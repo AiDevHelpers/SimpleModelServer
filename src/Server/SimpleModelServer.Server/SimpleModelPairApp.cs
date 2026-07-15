@@ -164,9 +164,10 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         IConfigurationManager configurationManager = new ConfigurationManager();
         IConfigurationUpdater configurationUpdater = new ConfigurationUpdater(configurationManager);
         IAdminAuthenticationService adminAuthenticationService = new AdminAuthenticationService(config);
-        var admin = new AdminEndpointHandler(config, logger, configurationManager, configurationUpdater, adminAuthenticationService);
+        var reloadCoordinator = new ModelReloadCoordinator(process, health, logger, TimeSpan.FromSeconds(5));
+        var admin = new AdminEndpointHandler(config, logger, configurationManager, configurationUpdater, adminAuthenticationService, reloadCoordinator);
 
-        router = new RouterHttpServer(config, logger, process, health, generation, agentTypeResolver, http, () => HardwareSettings, () => CurrentAgentType, ollamaHelpers, systemInfoService, admin);
+        router = new RouterHttpServer(config, logger, process, health, generation, agentTypeResolver, http, () => HardwareSettings, () => CurrentAgentType, ollamaHelpers, systemInfoService, admin, reloadCoordinator);
         mdns = new MdnsAdvertiser(
             Environment.MachineName,
             RouterPort,

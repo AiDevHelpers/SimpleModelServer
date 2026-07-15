@@ -22,7 +22,8 @@ internal sealed partial class AdminEndpointHandler(
     ILogger logger,
     IConfigurationManager configurationManager,
     IConfigurationUpdater configurationUpdater,
-    IAdminAuthenticationService adminAuthenticationService)
+    IAdminAuthenticationService adminAuthenticationService,
+    ModelReloadCoordinator reloadCoordinator)
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "[ADMIN] Admin UI not found at {Path}")]
     private static partial void LogAdminUiNotFound(ILogger logger, string path);
@@ -333,7 +334,35 @@ internal sealed partial class AdminEndpointHandler(
 
         // Reload settings that can be hot-reloaded (trusted networks, API keys, etc.)
         // These are already applied to config.Global, so no extra work needed here.
-        // In a more complex scenario, you might trigger model reloading, cache clearing, etc.
+
+        // Optional { "model": "<name>" } body triggers an actual model swap via
+        // ModelReloadCoordinator (pause subscribed clients, unload/reload, resume) — absent body
+        // just reloads hot-reloadable config, same as before this parameter existed.
+        string body = await RouterHttpUtilities.ReadBodyAsync(context.Request, config, logger);
+        string? modelName = null;
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            try
+            {
+                modelName = (JsonNode.Parse(body) as JsonObject)?["model"]?.GetValue<string>();
+            }
+            catch (JsonException)
+            {
+                // No/invalid body — treat as a plain config-only reload, same as an empty POST.
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(modelName))
+        {
+            await reloadCoordinator.BeginReloadAsync(modelName, context.RequestAborted);
+            await RouterHttpUtilities.WriteJsonAsync(context, 200, new
+            {
+                success = true,
+                message = $"Model '{modelName}' reloaded.",
+                model = modelName
+            });
+            return;
+        }
 
         await RouterHttpUtilities.WriteJsonAsync(context, 200, new
         {

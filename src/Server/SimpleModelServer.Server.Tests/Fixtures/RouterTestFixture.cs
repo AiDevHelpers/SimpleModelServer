@@ -150,7 +150,8 @@ internal sealed class RouterTestFixture : IAsyncDisposable
         IConfigurationManager configManager = new StubConfigurationManager();
         IConfigurationUpdater configUpdater = new StubConfigurationUpdater();
         IAdminAuthenticationService adminAuth = new StubAdminAuthenticationService();
-        AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth);
+        ModelReloadCoordinator reloadCoordinator = new(process, health, NullLogger.Instance, TimeSpan.FromSeconds(5));
+        AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth, reloadCoordinator);
 
         RouterHttpServer router = new(
             config, NullLogger.Instance, process, health, generation, agentTypeResolver, sharedHttp,
@@ -158,7 +159,8 @@ internal sealed class RouterTestFixture : IAsyncDisposable
             () => currentAgentType,
             ollamaHelpers,
             systemInfoService,
-            admin);
+            admin,
+            reloadCoordinator);
 
         int routerPort = GetFreeTcpPort();
 

@@ -10,6 +10,8 @@ using SimpleModelServer.Server.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -44,7 +46,8 @@ internal sealed partial class RouterHttpServer(
     Func<string> currentAgentType,
     IOllamaHelpers ollamaHelpers,
     SystemInfoService systemInfoService,
-    AdminEndpointHandler admin) : IRouter
+    AdminEndpointHandler admin,
+    ModelReloadCoordinator reloadCoordinator) : IRouter
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "[{Method}] {Path}")]
     private static partial void LogRequest(ILogger logger, string method, string path);
@@ -189,8 +192,12 @@ internal sealed partial class RouterHttpServer(
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.UseUrls($"http://{RouterHost}:{port}");
+        builder.Services.AddSignalR();
+        builder.Services.AddSingleton(reloadCoordinator);
 
         await using WebApplication app = builder.Build();
+        reloadCoordinator.Hub = app.Services.GetRequiredService<IHubContext<ModelStatusHub>>();
+        app.MapHub<ModelStatusHub>("/hubs/model-status");
         app.Run(context => HandleRequestAsync(context, ct));
 
         try
@@ -480,6 +487,18 @@ internal sealed partial class RouterHttpServer(
                 return;
         }
     }
+
+    /// <summary>
+    ///     Blocks until neither the draft nor main model is mid-reload — see
+    ///     <see cref="ModelReloadCoordinator" />. Unlike <see cref="CheckModelWarmupAsync" /> (which
+    ///     returns a 202 for the caller to retry), this actually waits: a reload is expected to
+    ///     resolve in seconds, and callers that already paused cooperatively via
+    ///     <see cref="ModelStatusHub" /> shouldn't need to poll.
+    /// </summary>
+    private Task WaitForModelsReadyAsync(CancellationToken ct)
+        => Task.WhenAll(
+            reloadCoordinator.WaitIfPausedAsync(generation.DraftModelName, ct),
+            reloadCoordinator.WaitIfPausedAsync(generation.MainModelName, ct));
 
     /// <summary>
     ///     Checks if models are warming up and returns a 202 response if they are.
@@ -849,6 +868,8 @@ internal sealed partial class RouterHttpServer(
             return;
         }
 
+        await WaitForModelsReadyAsync(ct);
+
         string body = await ReadBodyAsync(context.Request);
         JsonNode? json = JsonNode.Parse(body);
         string prompt = json?["prompt"]?.GetValue<string>() ?? "";
@@ -939,6 +960,8 @@ internal sealed partial class RouterHttpServer(
             return;
         }
 
+        await WaitForModelsReadyAsync(ct);
+
         string body = await ReadBodyAsync(context.Request);
         JsonNode? json = JsonNode.Parse(body);
         JsonArray messages = json?["messages"]?.AsArray() ?? [];
@@ -1016,6 +1039,8 @@ internal sealed partial class RouterHttpServer(
             return;
         }
 
+        await WaitForModelsReadyAsync(ct);
+
         string body = await ReadBodyAsync(context.Request);
         JsonNode? json = JsonNode.Parse(body);
         JsonArray messages = json?["messages"]?.AsArray() ?? [];
@@ -1077,6 +1102,8 @@ internal sealed partial class RouterHttpServer(
         {
             return;
         }
+
+        await WaitForModelsReadyAsync(ct);
 
         string body = await ReadBodyAsync(context.Request);
         JsonNode? json = JsonNode.Parse(body);
