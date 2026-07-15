@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-empty-03",
+  "category": "adversarial",
+  "prompt": "   ",
+  "expected": {
+    "intent": "other",
+    "quality": "invalid",
+    "ambiguity": "high",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Whitespace-only prompt. Router must not crash or route to codegen. Pipeline should respond asking what the user would like help with."
+}

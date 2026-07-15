@@ -1,0 +1,65 @@
+```csharp
+using System;
+using System.Collections.Generic;
+
+// Assuming Order, ITaxRateProvider, and IDiscountRepository are defined elsewhere
+public class Order
+{
+    public List<OrderLineItem> LineItems { get; set; }
+    public string CustomerRegion { get; set; }
+}
+
+public interface ITaxRateProvider
+{
+    decimal GetTaxRate(string region);
+}
+
+public interface IDiscountRepository
+{
+    decimal? GetActiveDiscount(Order order);
+}
+
+public class OrderTotal
+{
+    public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal Tax { get; set; }
+    public decimal Total { get; set; }
+}
+
+public class OrderPricingService
+{
+    private readonly ITaxRateProvider _taxRateProvider;
+    private readonly IDiscountRepository _discountRepository;
+
+    public OrderPricingService(ITaxRateProvider taxRateProvider, IDiscountRepository discountRepository)
+    {
+        _taxRateProvider = taxRateProvider;
+        _discountRepository = discountRepository;
+    }
+
+    public OrderTotal CalculateTotal(Order order)
+    {
+        decimal subtotal = 0;
+        foreach (var item in order.LineItems)
+        {
+            subtotal += item.Price * item.Quantity;
+        }
+
+        decimal discountAmount = _discountRepository.GetActiveDiscount(order) ?? 0;
+        decimal tax = subtotal * _taxRateProvider.GetTaxRate(order.CustomerRegion);
+
+        decimal total = subtotal - discountAmount + tax;
+
+        return new OrderTotal
+        {
+            Subtotal = subtotal,
+            DiscountAmount = discountAmount,
+            Tax = tax,
+            Total = total
+        };
+    }
+}
+```
+
+This solution introduces a new class `OrderPricingService` that encapsulates the logic for calculating the total price of an order, including applying discounts and taxes based on the customer's region. The `CalculateTotal` method iterates over the order's line items to calculate the subtotal, retrieves the active discount from the repository, calculates the tax using the tax rate provider, and then computes the total price.

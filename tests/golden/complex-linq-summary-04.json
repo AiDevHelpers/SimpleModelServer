@@ -1,0 +1,16 @@
+{
+  "id": "complex-linq-summary-04",
+  "category": "complex",
+  "prompt": "Write a C# static method List<CustomerSpendSummary> SummarizeTopCustomers(IEnumerable<Order> orders, int topN) that groups orders by CustomerId, computes total spend and order count per customer, filters out customers with fewer than 2 orders, orders by total spend descending, and returns the top N as CustomerSpendSummary records (CustomerId, OrderCount, TotalSpend, AverageOrderValue). Use LINQ method syntax throughout, no foreach loops.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["SummarizeTopCustomers", "record CustomerSpendSummary", "GroupBy", "OrderByDescending"],
+    "must_not_contain": ["class CustomerSpendSummary", "foreach", "TODO"]
+  },
+  "notes": "Verbatim from tests/prompts/csharp-tasks.json (linq-heavy). must_contain 'record CustomerSpendSummary' because Phase 0 found the 3B emitted a mutable class — compiles fine, violates spec. must_not_contain 'foreach' enforces LINQ-only constraint."
+}

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Windows service registration + SimpleModelServer-specific install behavior for SimpleModelServer Loader.
+
+  Reference implementation: build/scripts/install-draftmodel-service.ps1 and
+  uninstall-draftmodel-service.ps1. See
+  SimpleModelServer/SimpleModelServer.Server/INSTALLER_REQUIREMENTS.md for the full behavioral spec. This
+  file reproduces, via WiX elements plus deferred custom actions:
+
+    1. ServiceInstall/ServiceControl — service registration, matching Service.wxs in
+       TokenSaver.Setup (LocalSystem account, auto start, stop-before-replace/start-after on
+       upgrade via MSI's native service-control sequencing).
+    2. ConfigWriteCommand — writes SimpleModelServer.config.json only if it does not already exist
+       (DefaultConfig.EnsureConfig's own "never overwrite" contract, reproduced here so the
+       installer doesn't have to race the app's first-run config write). Runs BEFORE
+       StartServices so the config is in place before the service can read it, and BEFORE
+       UrlAclCommand so the ACL step can read the resolved routerHost/routerPort back out of
+       whatever config is on disk (existing or just-written).
+    3. UrlAclCommand — registers the netsh http URL ACL reservation for the router's
+       HttpListener prefix, derived from the config file's routerHost/routerPort (never
+       hardcoded — see INSTALLER_REQUIREMENTS.md "Known pitfall #5").
+    4. FailureActionsCommand — sc.exe failure backoff, same three-tier restart schedule as
+       TokenSaver.Setup's Service.wxs, ported from install-draftmodel-service.ps1.
+    5. OllamaCheckCommand — warns (via the Application event log, source 'SimpleModelServer') if the
+       separate `ollama` CLI/service isn't found on PATH, since SimpleModelServer.Server hard-depends
+       on it (DraftPairApp.RunAsync's CommandExists("ollama") check) and would otherwise fail
+       silently — the service reports "Running" to the SCM but the router never becomes
+       healthy, with no signal visible from the installer itself. Mirrors the equivalent check
+       in install-draftmodel-service.ps1. Never blocks install.
+
+  ConfigWriteCommand, UrlAclCommand, and OllamaCheckCommand shell out to install-support.ps1
+  (staged into INSTALLFOLDER by Product.wxs's InstallSupportScriptComponent) via
+  `powershell.exe -File`, rather than embedding the PowerShell inline in a CustomAction Value
+  attribute — nested-quote escaping inside a WXS attribute is very easy to get subtly wrong and
+  hard to catch without a full WiX build + real install, whereas install-support.ps1 can be run
+  and verified standalone first (`pwsh -File install-support.ps1 -Action ConfigWrite`).
+  FailureActionsCommand is a simple one-line sc.exe invocation, so it's kept as WixQuietExec
+  directly, same as TokenSaver.Setup's Service.wxs.
+
+  NOT reproduced here, deliberately: the /health HTTP poll that
+  install-draftmodel-service.ps1 does after starting the service. An MSI's UI thread blocking
+  on a 2-minute HTTP poll during a silent/unattended install is a worse experience than simply
+  reporting the service as started and letting the operator check readiness themselves —
+  see the "Post-install verification" note at the bottom of this file for the equivalent
+  manual step.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ServiceComponent" Guid="F671E30A-70C8-44F7-B59C-6AF64E9D3EF0">
+        <File Id="SimpleModelServerExe"
+              Source="$(PublishDir)\SimpleModelServer.Server.exe"
+              KeyPath="yes" />
+
+        <!-- Equivalent of:
+               sc.exe create SimpleModelServer binPath= "...\SimpleModelServer.Server.exe -service" start= auto
+               sc.exe description SimpleModelServer "Manages the local Ollama instance ..."
+             Account="LocalSystem" matches install-draftmodel-service.ps1's use of sc.exe's
+             default account (no obj= passed) — see INSTALLER_REQUIREMENTS.md's "Service
+             account" note for why this was deliberately kept rather than a named user account. -->
+        <ServiceInstall Id="SimpleModelServerServiceInstall"
+                         Name="SimpleModelServer"
+                         DisplayName="Simple Model Server"
+                         Description="Manages the local Ollama instance and exposes a draft-pair router for AI coding tools."
+                         Type="ownProcess"
+                         Start="auto"
+                         ErrorControl="normal"
+                         Account="LocalSystem"
+                         Arguments="--service" />
+
+        <!-- Equivalent of the old script's Stop-Service before file replacement (Stop="both"
+             covers both install and uninstall/upgrade), Start-Service after (Start="install"),
+             and uninstall-draftmodel-service.ps1's stop+sc.exe delete (Remove="uninstall").
+
+             Upgrade behavior: with MajorUpgrade Schedule="afterInstallExecute" (see
+             Product.wxs), an upgrade's install pass stops the running service, replaces its
+             files, then starts it again via Start="install" — the same install-pass action
+             fires for upgrades and fresh installs. Remove="uninstall" only fires for a genuine
+             product removal, so an upgrade never deletes+recreates the SCM service
+             registration; it's stopped and restarted in place. This preserves the sc.exe
+             failure-action config applied below by FailureActionsCommand, which intentionally
+             only reapplies on a fresh install (Condition="NOT Installed"). -->
+        <ServiceControl Id="SimpleModelServerServiceControl"
+                         Name="SimpleModelServer"
+                         Start="install"
+                         Stop="both"
+                         Remove="uninstall"
+                         Wait="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- ── Config write (only if missing) + URL ACL registration ──────────────────────
+         Both steps need to run after APPDATAFOLDER exists (CreateFolder in
+         AppDataFolderComponent, Product.wxs) but that's a per-machine folder created during
+         the same install sequence, not a hard ordering dependency WiX enforces automatically
+         for CustomActions — so InstallExecuteSequence below pins both actions After
+         "InstallFiles" (by which point all directories from Product.wxs, including
+         APPDATAFOLDER, are guaranteed to exist) and explicitly orders ConfigWriteCommand
+         before UrlAclCommand before StartServices. -->
+
+    <!-- Deferred custom actions run in the elevated, non-impersonated install session — this
+         matters because %ProgramData%\SimpleModelServer and netsh both need admin rights, same as
+         the reference script's Auto-elevate block at the top of
+         install-draftmodel-service.ps1. Impersonate="no" is required for that. -->
+
+    <!-- Mirrors install-draftmodel-service.ps1 steps 5/5a/5b: create %ProgramData%\SimpleModelServer
+         if missing, and if SimpleModelServer.config.json does not already exist, write the same
+         minimal stock config the script writes (sufficient for SimpleModelServer.Server's own
+         DefaultConfig.EnsureConfig to leave alone on first run, per
+         INSTALLER_REQUIREMENTS.md's "Config file: location and precedence" — EnsureConfig
+         only ever writes when the file is absent, so this MSI's job is just to make sure
+         *some* valid config exists before the service's first start, not to manage the
+         schema going forward). Existing configs (upgrade case) are left completely untouched —
+         this is a strict "if not exists, write" check, no field-level patching, so an
+         operator's customized ports/models/trustedNetworks always survive an upgrade. -->
+    <SetProperty Id="ConfigWriteCommand"
+                 Sequence="execute"
+                 Before="ConfigWriteCommand"
+                 Value="&quot;[ProgramFiles64Folder]PowerShell\7\pwsh.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#InstallSupportPs1]&quot; -Action ConfigWrite" />
+    <CustomAction Id="ConfigWriteCommand"
+                  BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="check"
+                  Impersonate="no" />
+
+    <!-- Mirrors install-draftmodel-service.ps1 step 5c: register the netsh URL ACL for the
+         router's HttpListener prefix, reading routerHost/routerPort back out of whatever
+         config is now on disk (existing config from a prior install, or the stock config
+         ConfigWriteCommand just wrote) rather than hardcoding localhost:11435 — see
+         INSTALLER_REQUIREMENTS.md "Known pitfalls" #5. Idempotent: `netsh http show urlacl`
+         is checked first so re-running (upgrade) doesn't error on an already-reserved prefix.
+         user=Everyone here controls which *local Windows accounts* may bind this URL prefix,
+         not remote network access — see INSTALLER_REQUIREMENTS.md's "Network/port
+         reservation" section; actual network exposure is gated by routerHost/trustedNetworks
+         inside the running process, which this installer does not and should not touch beyond
+         what ConfigWriteCommand already wrote. -->
+    <SetProperty Id="UrlAclCommand"
+                 Sequence="execute"
+                 Before="UrlAclCommand"
+                 Value="&quot;[ProgramFiles64Folder]PowerShell\7\pwsh.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#InstallSupportPs1]&quot; -Action UrlAcl" />
+    <CustomAction Id="UrlAclCommand"
+                  BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- Equivalent of:
+           sc.exe failure SimpleModelServer reset= 86400 actions= restart/5000/restart/10000/restart/30000
+         Same three-tier backoff as TokenSaver.Setup's Service.wxs; util:ServiceConfig doesn't
+         cover this exact schedule, so it's driven directly via sc.exe. -->
+    <SetProperty Id="FailureActionsCommand"
+                 Sequence="execute"
+                 Before="FailureActionsCommand"
+                 Value="&quot;[SystemFolder]sc.exe&quot; failure SimpleModelServer reset= 86400 actions= restart/5000/restart/10000/restart/30000" />
+    <CustomAction Id="FailureActionsCommand"
+                  BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <!-- Mirrors install-draftmodel-service.ps1's Prerequisites-step Ollama check (see that
+         script's "Checking prerequisites" section). Runs after FailureActionsCommand/
+         StartServices — by that point the service has been registered and told to start, so
+         this check's timing matches "install finished, here's what you still need to do" the
+         same way the PS1 script's warning does right before it starts the service. Return
+         must be "ignore": a missing Ollama is expected/common on a first install and must
+         never fail the MSI. -->
+    <SetProperty Id="OllamaCheckCommand"
+                 Sequence="execute"
+                 Before="OllamaCheckCommand"
+                 Value="&quot;[ProgramFiles64Folder]PowerShell\7\pwsh.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[#InstallSupportPs1]&quot; -Action OllamaCheck" />
+    <CustomAction Id="OllamaCheckCommand"
+                  BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Return="ignore"
+                  Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <!-- Config must exist before the URL ACL step reads it, and both must land before the
+           service actually starts (StartServices), but after InstallFiles so INSTALLFOLDER /
+           APPDATAFOLDER are guaranteed present. Condition="NOT Installed" restricts all three
+           to fresh installs and genuine upgrades' install pass (not routine repairs), matching
+           the reference script's ConfigWriteCommand/UrlAclCommand equivalents which only run
+           when install-draftmodel-service.ps1 itself is invoked (not on every service
+           restart). -->
+      <Custom Action="ConfigWriteCommand" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="UrlAclCommand" After="ConfigWriteCommand" Condition="NOT Installed" />
+      <Custom Action="FailureActionsCommand" After="StartServices" Condition="NOT Installed" />
+      <Custom Action="OllamaCheckCommand" After="FailureActionsCommand" Condition="NOT Installed" />
+    </InstallExecuteSequence>
+
+    <!-- Post-install verification (not automated in the MSI itself):
+           Invoke-WebRequest http://localhost:11435/health   (adjust port if routerPort was customized)
+         Per INSTALLER_REQUIREMENTS.md, "service reports running" is not sufficient confirmation
+         that the router is actually serving requests — Ollama/model bring-up happens on a
+         detached background task after the SCM already sees "Running". Point operators at this
+         check (e.g. in release notes / the installer's finish dialog) rather than a scripted
+         MSI-embedded poll. -->
+  </Fragment>
+</Wix>

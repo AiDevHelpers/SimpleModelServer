@@ -1,0 +1,86 @@
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public InventoryService(IStockRepository stockRepository, IUnitOfWork unitOfWork)
+    {
+        _stockRepository = stockRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        // Check current stock
+        var currentStock = await _stockRepository.GetStockAsync(productId, cancellationToken);
+
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException($"Insufficient stock for product {productId}. Available: {currentStock}, Required: {quantity}");
+        }
+
+        // Start a transaction
+        using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
+        {
+            try
+            {
+                // Decrement stock
+                await _stockRepository.DecrementStockAsync(productId, quantity, cancellationToken);
+
+                // Create reservation
+                var reservationId = Guid.NewGuid();
+                var reservation = new InventoryReservation
+                {
+                    Id = reservationId,
+                    ProductId = productId,
+                    Quantity = quantity,
+                    ExpiresAtUtc = DateTime.UtcNow.AddMinutes(15)
+                };
+
+                // Save reservation
+                await _unitOfWork.AddAsync(reservation, cancellationToken);
+
+                // Commit transaction
+                await transaction.CommitAsync(cancellationToken);
+
+                return reservation;
+            }
+            catch (Exception)
+            {
+                // Rollback transaction in case of an error
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+    }
+}
+
+public class InsufficientStockException : Exception
+{
+    public InsufficientStockException(string message) : base(message)
+    {
+    }
+}
+
+public interface IStockRepository
+{
+    Task<int> GetStockAsync(Guid productId, CancellationToken cancellationToken);
+    Task DecrementStockAsync(Guid productId, int quantity, CancellationToken cancellationToken);
+}
+
+public interface IUnitOfWork
+{
+    Task BeginTransactionAsync(CancellationToken cancellationToken);
+    Task CommitAsync(CancellationToken cancellationToken);
+    Task AddAsync<T>(T entity, CancellationToken cancellationToken) where T : class;
+}
+```
+
+In this solution, we have an `InventoryService` class that uses an `IStockRepository` to interact with the stock database and an `IUnitOfWork` to manage transactions. The `ReserveStockAsync` method checks the current stock, decrements it if sufficient, and creates a reservation. If the stock is insufficient, it throws an `InsufficientStockException`. The method uses async/await for better performance and handles exceptions to ensure that transactions are rolled back in case of errors.

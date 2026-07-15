@@ -1,0 +1,9 @@
+{
+  "SimpleModelServer.Extensions.VS.Command1.DisplayName": "Sample Remote Command",
+  "SimpleModelServer.Extensions.VS.ShowChatWindowCommand": "Simple Model Chat",
+  "SimpleModelServer.Extensions.VS.ShowChatWindowCommand.MenuGroup": "Simple Model Server",
+  "SimpleModelServer.Extensions.VS.ExplainCodeCommand": "Explain with SimpleModelServer",
+  "SimpleModelServer.Extensions.VS.GenerateTestsCommand": "Generate Tests with SimpleModelServer",
+  "SimpleModelServer.Extensions.VS.OptimizeCodeCommand": "Optimize Code with SimpleModelServer",
+  "SimpleModelServer.Extensions.VS.OpenSettingsCommand": "SimpleModelServer Settings"
+}

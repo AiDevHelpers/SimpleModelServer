@@ -1,0 +1,22 @@
+ Here's a self-contained C# static method `IsValidEmail` that validates an email address using `System.Text.RegularExpressions.Regex`. The method returns false for null, empty, or malformed input, and true for well-formed addresses like 'user@example.com'. The regex pattern is included inline.
+
+```csharp
+using System.Text.RegularExpressions;
+
+public static class EmailValidator
+{
+    private static readonly Regex EmailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+
+    public static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return false;
+        }
+
+        return EmailRegex.IsMatch(email);
+    }
+}
+```
+
+To use this method, simply call `EmailValidator.IsValidEmail("user@example.com")`. This will return `true` if the email address is valid, and `false` otherwise.

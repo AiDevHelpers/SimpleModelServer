@@ -1,0 +1,35 @@
+ If the message is not sent successfully, throw a NotificationSendFailedException.
+
+public class EmailNotificationSender : INotificationSender
+{
+    private readonly ISmtpClient _smtpClient;
+    private readonly ITemplateRenderer _templateRenderer;
+
+    public EmailNotificationSender(ISmtpClient smtpClient, ITemplateRenderer templateRenderer)
+    {
+        _smtpClient = smtpClient;
+        _templateRenderer = templateRenderer;
+    }
+
+    public bool CanHandle(NotificationChannel channel)
+    {
+        return channel == NotificationChannel.Email;
+    }
+
+    public async Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var body = await _templateRenderer.RenderAsync(message.TemplateId, message.TemplateData);
+            await _smtpClient.SendAsync(message.To, message.Subject, body, cancellationToken);
+        }
+        catch (SmtpException)
+        {
+            await _smtpClient.SendAsync(message.To, message.Subject, body, cancellationToken);
+        }
+        catch (Exception)
+        {
+            throw new NotificationSendFailedException();
+        }
+    }
+}

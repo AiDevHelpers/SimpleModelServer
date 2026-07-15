@@ -1,0 +1,98 @@
+ ```csharp
+using System.Security.Cryptography;
+using System.Text;
+using System.Diagnostics;
+using System.Numerics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class OrderProcessor
+{
+    // This method takes an IEnumerable<Order> and an int topN as input and returns a List<CustomerSpendSummary>
+    // containing the top N customers with their respective spend summary.
+    public static List<CustomerSpendSummary> GetTopNCustomers(IEnumerable<Order> orders, int topN)
+    {
+        // Group orders by CustomerId and calculate total spend and order count for each customer
+        var customerSpendSummaries = orders
+            .GroupBy(order => order.CustomerId)
+            .Select(group => new CustomerSpendSummary(group.First()))
+            .ToList();
+
+        // Filter out customers with fewer than 2 orders
+        customerSpendSummaries = customerSpendSummaries.Where(cs => cs.OrderCount >= 2).ToList();
+
+        // Order the customers by total spend descending
+        customerSpendSummaries = customerSpendSummaries.OrderByDescending(cs => cs.TotalSpend).ToList();
+
+        // Return the top N customers as CustomerSpendSummary records
+        return customerSpendSummaries.Take(topN).ToList();
+    }
+}
+
+class Order
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+}
+
+class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+
+    public CustomerSpendSummary(Order order)
+    {
+        CustomerId = order.CustomerId;
+        OrderCount = order.OrderCount;
+        TotalSpend = order.TotalSpend;
+        AverageOrderValue = TotalSpend / OrderCount;
+    }
+
+    public void CalculateTotalSpendAndOrderCount()
+    {
+        TotalSpend = OrderCount * AverageOrderValue;
+    }
+
+    public void FilterCustomersWithFewerThan2Orders()
+    {
+        if (OrderCount < 2)
+        {
+            // Remove the customer from the list
+            // This is a placeholder for actual removal logic
+        }
+    }
+
+    public void OrderCustomersByTotalSpendDescending()
+    {
+        // This is a placeholder for actual ordering logic
+    }
+}
+``` ```csharp
+using System.Security.Cryptography;
+using System.Text;
+using System.Diagnostics;
+using System.Numerics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class OrderProcessor
+{
+    // This method takes an IEnumerable<Order> and an int topN as input and returns a List<CustomerSpendSummary>
+    // containing the top N customers with their respective spend summary.
+    public static List<CustomerSpendSummary> GetTopNCustomers(IEnumerable<Order> orders, int topN)
+    {
+        // Group orders by CustomerId and calculate total spend and order count for each customer
+        var customerSpendSummaries = orders
+            .GroupBy(order => order.CustomerId)
+            .Select(group => new CustomerSpendSummary(group.First()))
+            .ToList();
+
+        // Filter out customers with fewer than 2 orders
+        customerSpendSummaries = customerSpendSummaries.Where(cs => cs.OrderCount >= 2).ToList();
+
+        // Order

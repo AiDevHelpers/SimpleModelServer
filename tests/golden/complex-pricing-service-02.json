@@ -1,0 +1,16 @@
+{
+  "id": "complex-pricing-service-02",
+  "category": "complex",
+  "prompt": "Write a C# class OrderPricingService with a constructor taking ITaxRateProvider and IDiscountRepository. Add a method CalculateTotal(Order order) that sums line items, applies any active discount from the repository, then applies tax from the provider based on the customer's region. Return an OrderTotal record with Subtotal, DiscountAmount, Tax, and Total. Assume Order, ITaxRateProvider, IDiscountRepository already exist with reasonable members; declare them if needed.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["OrderPricingService", "ITaxRateProvider", "IDiscountRepository", "CalculateTotal", "record OrderTotal"],
+    "must_not_contain": ["class OrderTotal", "TODO"]
+  },
+  "notes": "Verbatim from tests/prompts/csharp-tasks.json (service-class). Phase 0 found CS0136/CS1656: a foreach iteration variable named 'discount' colliding with an outer decimal local. must_compile will catch it. Also guards class-vs-record deviation on OrderTotal."
+}

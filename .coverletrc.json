@@ -1,0 +1,27 @@
+{
+  "include": [
+    "[SimpleModelServer.*]*"
+  ],
+  "exclude": [
+    "[SimpleModelServer.*.Tests]*",
+    "[xunit*]*",
+    "**/obj/**",
+    "**/bin/**"
+  ],
+  "excludeByAttribute": [
+    "System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute"
+  ],
+  "excludeByFile": [
+    "**/AssemblyInfo.cs",
+    "**/*.g.cs"
+  ],
+  "line-coverage-threshold": 75,
+  "branch-coverage-threshold": 65,
+  "method-coverage-threshold": 80,
+  "report-generators": [
+    "opencover",
+    "lcov"
+  ],
+  "output": "./coverage",
+  "outputFormat": "opencover"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "complex-decorator-08",
+  "category": "complex",
+  "prompt": "Implement a decorator IOrderRepository implementation called CachingOrderRepository that wraps an injected IOrderRepository and an IMemoryCache. GetByIdAsync should return from cache if present, otherwise call the inner repository, cache the result for 10 minutes, and return it. All other IOrderRepository methods must delegate directly to the inner repository without caching.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["CachingOrderRepository", "IOrderRepository", "IMemoryCache", "GetByIdAsync"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Decorator pattern with cache-aside. Tests that the model correctly wraps an interface, delegates non-cached methods, and uses IMemoryCache with an absolute expiry."
+}

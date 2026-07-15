@@ -1,0 +1,20 @@
+LineItemDto instance with a different ProductId.
+17. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different Sku.
+18. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different Quantity.
+19. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different UnitPrice.
+20. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId and Sku.
+21. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId and Quantity.
+22. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId and UnitPrice.
+23. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different Sku and Quantity.
+24. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different Sku and UnitPrice.
+25. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different Quantity and UnitPrice.
+26. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice.
+27. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different ProductId.
+28. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different Sku.
+29. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different Quantity.
+30. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different UnitPrice.
+31. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different ProductId and Sku.
+32. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different ProductId and Quantity.
+33. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different ProductId and UnitPrice.
+34. OrderLineItemDto should have a Copy method that creates a deep copy of the OrderLineItemDto instance with a different ProductId, Sku, Quantity, and UnitPrice and a different Sku and Quantity.
+35. OrderLineItem

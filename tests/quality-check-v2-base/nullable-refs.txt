@@ -1,0 +1,29 @@
+ Here is the code:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public static class NullableReferenceTypesExample
+{
+    public static string? FindFirstMatch(IEnumerable<string>? items, Func<string, bool> predicate)
+    {
+        if (items == null)
+        {
+            return null;
+        }
+
+        foreach (var item in items)
+        {
+            if (predicate(item))
+            {
+                return item;
+            }
+        }
+
+        return null;
+    }
+}
+```
+
+This method takes an `IEnumerable<string>` and a `Func<string, bool>` as parameters. It returns the first item that matches the predicate, or null if no match is found or if the input is null or empty. The method is nullable-warning-clean because it uses null-coalescing operators (`??`) and null-conditional operators (`?.`) to handle null values.

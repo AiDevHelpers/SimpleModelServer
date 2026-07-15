@@ -1,0 +1,69 @@
+ Ensure the method is thread-safe and handles exceptions appropriately.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+    private readonly ILogger<InventoryService> _logger;
+
+    public InventoryService(IStockRepository stockRepository, ILogger<InventoryService> logger)
+    {
+        _stockRepository = stockRepository;
+        _logger = logger;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check current stock
+            int currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+
+            if (currentStock < quantity)
+            {
+                throw new InsufficientStockException($"Not enough stock available for product {productId}. Current stock: {currentStock}, requested: {quantity}");
+            }
+
+            // Decrement stock transactionally
+            await _stockRepository.DecrementStockAsync(productId, quantity, cancellationToken);
+
+            // Create reservation
+            string reservationId = Guid.NewGuid().ToString();
+            DateTime expiresAtUtc = DateTime.UtcNow.AddMinutes(15);
+
+            InventoryReservation reservation = new InventoryReservation
+            {
+                ReservationId = reservationId,
+                ExpiresAtUtc = expiresAtUtc
+            };
+
+            return reservation;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reserve stock for product {productId}", productId);
+            throw;
+        }
+    }
+}
+
+public class InsufficientStockException : Exception
+{
+    public InsufficientStockException(string message) : base(message)
+    {
+    }
+}
+
+public class InventoryReservation
+{
+    public string ReservationId { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
+}
+```
+
+In this solution, the `InventoryService` class contains an async method `ReserveStockAsync` that checks the current stock, decrements it if sufficient, and returns an `InventoryReservation`. The method uses a cancellation token to handle potential cancellation requests. The `IStockRepository` is injected to handle the stock operations, and the `ILogger` is used for logging purposes. The `InventoryReservation` class is used to store the reservation details. The `InsufficientStockException` is a custom exception that is thrown when there is not enough stock available. The method is designed to be thread-safe and handles exceptions appropriately.

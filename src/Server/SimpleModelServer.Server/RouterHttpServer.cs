@@ -1,5 +1,4 @@
 using SimpleModelServer.Contracts.Models;
-using SimpleModelServer.Contracts.Providers;
 using SimpleModelServer.Contracts.Utilities;
 using SimpleModelServer.Config.Configuration;
 using SimpleModelServer.Hardware;
@@ -8,9 +7,14 @@ using SimpleModelServer.Server.Interfaces;
 using SimpleModelServer.Server.Infrastructure.Networking;
 using SimpleModelServer.Server.Configuration;
 
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -18,18 +22,20 @@ using System.Text.Json.Nodes;
 namespace SimpleModelServer.Server;
 
 /// <summary>
-///     Owns the HttpListener loop and all HTTP request/response plumbing for the draft-pair
+///     Owns the Kestrel host and all HTTP request/response plumbing for the draft-pair
 ///     router: trusted-network enforcement, CORS headers, GET/POST route dispatch, health and
 ///     capacity endpoints, and the Ollama-native / OpenAI-compatible / embeddings request
 ///     handlers. Delegates actual generation to <see cref="SimpleModelPairGenerationService" />,
 ///     agent detection to <see cref="AgentTypeResolver" />, and health state to
 ///     <see cref="ModelHealthMonitor" /> — this class is "just" the transport layer wiring
-///     those together.
+///     those together. The full request pipeline runs as a single terminal middleware (see
+///     <see cref="StartAsync" />) rather than a minimal-API route table, to keep the existing
+///     switch-based dispatch and its test coverage unchanged.
 /// </summary>
 internal sealed partial class RouterHttpServer(
     IAppConfig config,
     ILogger logger,
-    OllamaProcessManager process,
+    IOllamaProcessManager process,
     ModelHealthMonitor health,
     SimpleModelPairGenerationService generation,
     AgentTypeResolver agentTypeResolver,
@@ -38,12 +44,58 @@ internal sealed partial class RouterHttpServer(
     Func<string> currentAgentType,
     IOllamaHelpers ollamaHelpers,
     SystemInfoService systemInfoService,
-    IConfigurationManager configurationManager,
-    IConfigurationUpdater configurationUpdater,
-    IAdminAuthenticationService adminAuthenticationService) : IRouter, IOllama
+    AdminEndpointHandler admin) : IRouter
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "[{Method}] {Path}")]
     private static partial void LogRequest(ILogger logger, string method, string path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Unattributed request (no User-Agent) — fingerprint:\n  {Method} {Path}\n  Remote: {RemoteEndPoint}  (IP {RemoteIp})\n  Protocol: {ProtocolVersion}  KeepAlive={KeepAlive}\n  Headers:{Headers}")]
+    private static partial void LogUnattributedRequestFingerprint(ILogger logger, string method, string path, string remoteEndPoint, string remoteIp, string protocolVersion, bool keepAlive, string headers);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "\nA SimpleModelServer.Server router is already listening on http://{RouterHost}:{Port} — this instance will not start a second one.")]
+    private static partial void LogRouterAlreadyRunning(ILogger logger, string routerHost, int port);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Ollama and the models were still warmed up by this process; only the router bind was skipped.")]
+    private static partial void LogRouterSkipped(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "\nCould not bind router to http://{RouterHost}:{Port} — the port is already in use by another process (not a healthy Simple Model Server router, since the health probe failed).")]
+    private static partial void LogRouterBindFailed(ILogger logger, Exception ex, string routerHost, int port);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Free the port (check for a stuck SimpleModelServer.Server/other process) or set a different port via --router-port / global.routerPort in SimpleModelServer.config.json.")]
+    private static partial void LogRouterPortInUse(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "\n=== ROUTER SERVER STARTED ===")]
+    private static partial void LogRouterServerStarted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[AUTH FAILED] {RemoteAddress} is not loopback/trusted and provided invalid or missing API key")]
+    private static partial void LogAuthFailed(ILogger logger, string remoteAddress);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "[{Method}] {Path} from {Client}")]
+    private static partial void LogRequestClient(ILogger logger, string method, string path, string client);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Query string: {QueryString}")]
+    private static partial void LogQueryString(ILogger logger, string queryString);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Headers - User-Agent: {UserAgent}, Content-Type: {ContentType}")]
+    private static partial void LogHeaders(ILogger logger, string userAgent, string contentType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[{Method}] {Path} — 404 not found")]
+    private static partial void LogNotFound(ILogger logger, string method, string path);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "[{Method}] {Path} — client disconnected before response could be sent.")]
+    private static partial void LogClientDisconnected(ILogger logger, string method, string path);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "[{Method}] {Path} failed.")]
+    private static partial void LogRequestFailed(ILogger logger, Exception ex, string method, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[GET] {Path} — 404 not found")]
+    private static partial void LogGetNotFound(ILogger logger, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "[POST] {Path} — 404 not found. Body: {Body}")]
+    private static partial void LogPostNotFound(ILogger logger, string path, string body);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Health check failed — attempting recovery...")]
+    private static partial void LogHealthCheckFailed(ILogger logger);
 
     private static readonly TimeSpan RouterHealthProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan ModelResponsiveWarmupCheckTimeout = TimeSpan.FromSeconds(2);
@@ -62,18 +114,14 @@ internal sealed partial class RouterHttpServer(
     ///     request header (Authorization redacted to just its scheme), the remote endpoint, and the
     ///     protocol/keep-alive state. Info level, but only reached for unattributed requests.
     /// </summary>
-    private void LogUnattributedRequestFingerprint(
-        HttpListenerRequest request, string method, string path, string remoteIp)
+    private void LogUnattributedRequestFingerprintImpl(
+        HttpContext context, string method, string path, string remoteIp)
     {
+        HttpRequest request = context.Request;
         StringBuilder headers = new();
-        foreach (string? name in request.Headers.AllKeys)
+        foreach (string name in request.Headers.Keys)
         {
-            if (name is null)
-            {
-                continue;
-            }
-
-            string value = request.Headers[name] ?? "";
+            string value = request.Headers[name].ToString();
 
             // Never log credentials — keep only the auth scheme (e.g. "Bearer", "Basic") so we can
             // still see THAT a client authenticates and how, without leaking the token itself.
@@ -86,16 +134,11 @@ internal sealed partial class RouterHttpServer(
             headers.Append("\n    ").Append(name).Append(": ").Append(value);
         }
 
-        logger.LogInformation(
-            "Unattributed request (no User-Agent) — fingerprint:\n" +
-            "  {Method} {Path}\n" +
-            "  Remote: {RemoteEndPoint}  (IP {RemoteIp})\n" +
-            "  Protocol: HTTP/{ProtocolVersion}  KeepAlive={KeepAlive}\n" +
-            "  Headers:{Headers}",
-            method, path,
-            request.RemoteEndPoint, remoteIp,
-            request.ProtocolVersion, request.KeepAlive,
-            headers.ToString());
+        string remoteEndPoint = context.Connection.RemoteIpAddress is { } addr
+            ? $"{addr}:{context.Connection.RemotePort}"
+            : "unknown";
+        bool keepAlive = !string.Equals(request.Headers.Connection.ToString(), "close", StringComparison.OrdinalIgnoreCase);
+        LogUnattributedRequestFingerprint(logger, method, path, remoteEndPoint, remoteIp, request.Protocol, keepAlive, headers.ToString());
     }
 
     public async Task<bool> IsRouterAlreadyRunningAsync(int port)
@@ -124,39 +167,44 @@ internal sealed partial class RouterHttpServer(
     ///     listening router to advertise, not when this instance detected an already-running
     ///     router and skipped its own bind (see the early-return above).
     /// </summary>
+    /// <summary>
+    ///     True when the given exception is Kestrel failing to bind because the port is already
+    ///     held by another process — the Kestrel/ASP.NET Core equivalent of the old
+    ///     <see cref="OllamaProcessManager.IsAddressInUse(HttpListenerException)" /> check, which
+    ///     only understood <see cref="HttpListenerException" /> error codes and doesn't apply to
+    ///     Kestrel's bind failures (an <see cref="IOException" /> wrapping a <see cref="SocketException" />).
+    /// </summary>
+    private static bool IsKestrelAddressInUse(Exception ex)
+        => ex is IOException { InnerException: SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse } };
+
     public async Task StartAsync(int port, CancellationToken ct = default, Action? onBound = null)
     {
         if (await IsRouterAlreadyRunningAsync(port))
         {
-            logger.LogWarning(
-                "\nA SimpleModelServer.Server router is already listening on http://{RouterHost}:{Port} — this instance will not start a second one.",
-                RouterHost, port);
-            logger.LogWarning(
-                "Ollama and the models were still warmed up by this process; only the router bind was skipped.");
+            LogRouterAlreadyRunning(logger, RouterHost, port);
+            LogRouterSkipped(logger);
             return;
         }
 
-        using HttpListener listener = new();
-        listener.Prefixes.Add($"http://{RouterHost}:{port}/");
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        builder.Logging.ClearProviders();
+        builder.WebHost.UseUrls($"http://{RouterHost}:{port}");
+
+        await using WebApplication app = builder.Build();
+        app.Run(context => HandleRequestAsync(context, ct));
 
         try
         {
-            listener.Start();
+            await app.StartAsync(ct);
         }
-        catch (HttpListenerException ex) when (OllamaProcessManager.IsAddressInUse(ex))
+        catch (Exception ex) when (IsKestrelAddressInUse(ex))
         {
-            logger.LogError(
-                ex,
-                "\nCould not bind router to http://{RouterHost}:{Port} — the port is already in use by another process " +
-                "(not a healthy Simple Model Server router, since the health probe failed).",
-                RouterHost, port);
-            logger.LogWarning(
-                "Free the port (check for a stuck SimpleModelServer.Server/other process) or set a different port via " +
-                "--router-port / global.routerPort in SimpleModelServer.config.json.");
+            LogRouterBindFailed(logger, ex, RouterHost, port);
+            LogRouterPortInUse(logger);
             return;
         }
 
-        logger.LogInformation("\n=== ROUTER SERVER STARTED ===");
+        LogRouterServerStarted(logger);
         Console.WriteLine($"Listening on http://{RouterHost}:{port}");
         Console.WriteLine(
             "Endpoints: POST /api/generate, POST /api/chat, POST /v1/chat/completions, POST /chat/completions, POST /api/embeddings, POST /v1/embeddings, POST /embeddings, GET /v1/models, GET /models, GET /api/tags, GET /api/version, GET /health, GET /health/ready, GET /api/capacity, GET /api/system/info");
@@ -165,30 +213,26 @@ internal sealed partial class RouterHttpServer(
 
         onBound?.Invoke();
 
-        await using CancellationTokenRegistration ctReg = ct.Register(listener.Stop);
-
-        while (listener.IsListening)
+        try
         {
-            HttpListenerContext context;
-            try
-            {
-                context = await listener.GetContextAsync();
-            }
-            catch (HttpListenerException) when (ct.IsCancellationRequested)
-            {
-                break;
-            }
-
-            _ = Task.Run(() => HandleRequestAsync(context, ct), ct);
+            await app.WaitForShutdownAsync(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Router is shutting down — expected.
+        }
+        finally
+        {
+            await app.StopAsync(CancellationToken.None);
         }
     }
 
-    private async Task HandleRequestAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task HandleRequestAsync(HttpContext context, CancellationToken ct = default)
     {
-        HttpListenerRequest request = context.Request;
-        HttpListenerResponse response = context.Response;
+        HttpRequest request = context.Request;
+        HttpResponse response = context.Response;
 
-        IPAddress? remoteAddress = request.RemoteEndPoint?.Address;
+        IPAddress? remoteAddress = context.Connection.RemoteIpAddress;
         bool isLoopback = remoteAddress is not null &&
                          (IPAddress.IsLoopback(remoteAddress) ||
                           remoteAddress.Equals(IPAddress.IPv6Loopback));
@@ -199,26 +243,24 @@ internal sealed partial class RouterHttpServer(
             string? apiKey = ExtractApiKey(request);
             if (!IsValidApiKey(apiKey))
             {
-                logger.LogWarning(
-                    "[AUTH FAILED] {RemoteAddress} is not loopback/trusted and provided invalid or missing API key",
-                    remoteAddress?.ToString() ?? "unknown");
+                LogAuthFailed(logger, remoteAddress?.ToString() ?? "unknown");
                 await WriteJsonAsync(context, 401, new { error = "unauthorized: missing or invalid API key" });
                 return;
             }
         }
 
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
-        response.Headers.Add("Access-Control-Allow-Headers", "*");
-        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.Headers.Append("Access-Control-Allow-Origin", "*");
+        response.Headers.Append("Access-Control-Allow-Headers", "*");
+        response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 
-        string path = request.Url?.AbsolutePath.ToUpperInvariant() ?? "/";
-        string method = request.HttpMethod.ToUpperInvariant();
-        string queryString = request.Url?.Query ?? "";
-        string userAgent = request.Headers["User-Agent"] ?? "";
+        string path = request.Path.Value?.ToUpperInvariant() ?? "/";
+        string method = request.Method.ToUpperInvariant();
+        string queryString = request.QueryString.Value ?? "";
+        string userAgent = request.Headers["User-Agent"].ToString();
         string contentType = request.ContentType ?? "";
 
         LogRequest(logger, method, path);
-        string remoteIp = request.RemoteEndPoint?.Address?.ToString() ?? "unknown-ip";
+        string remoteIp = remoteAddress?.ToString() ?? "unknown-ip";
         string clientInfo;
         if (string.IsNullOrWhiteSpace(userAgent))
         {
@@ -232,14 +274,14 @@ internal sealed partial class RouterHttpServer(
         {
             clientInfo = $"{remoteIp} {userAgent}";
         }
-        logger.LogInformation("[{Method}] {Path} from {Client}", method, path, clientInfo);
+        LogRequestClient(logger, method, path, clientInfo);
 
         if (!string.IsNullOrEmpty(queryString))
         {
-            logger.LogDebug("Query string: {QueryString}", queryString);
+            LogQueryString(logger, queryString);
         }
 
-        logger.LogDebug("Headers - User-Agent: {UserAgent}, Content-Type: {ContentType}", userAgent, contentType);
+        LogHeaders(logger, userAgent, contentType);
 
         // When a request arrives with no User-Agent we can't attribute it the normal way. If the
         // global.debug.logUnattributedRequests diagnostic is enabled, dump the full request
@@ -248,7 +290,7 @@ internal sealed partial class RouterHttpServer(
         // app header) worth keying detection off of. Off by default — opt in while investigating.
         if (config.Global.Debug.LogUnattributedRequests && string.IsNullOrWhiteSpace(userAgent))
         {
-            LogUnattributedRequestFingerprint(request, method, path, remoteIp);
+            LogUnattributedRequestFingerprintImpl(context, method, path, remoteIp);
         }
 
         try
@@ -271,20 +313,26 @@ internal sealed partial class RouterHttpServer(
                 return;
             }
 
-            logger.LogWarning("[{Method}] {Path} — 404 not found", method, path);
+            LogNotFound(logger, method, path);
             await WriteJsonAsync(context, 404, new { error = "not found" });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Router is shutting down mid-request — nothing more to write, the listener
-            // itself is being torn down. Don't log this as an error.
+            // Router is shutting down mid-request — nothing more to write, the host itself
+            // is being torn down. Don't log this as an error.
         }
-        catch (HttpListenerException ex) when (ex.NativeErrorCode == 1229)
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            // Error 1229: "An operation was attempted on a nonexistent network connection"
-            // This happens when the client closes the connection before we finish writing
-            // the response. Not a server error — just a client that went away.
-            logger.LogDebug("[{Method}] {Path} — client disconnected before response could be sent.", method, path);
+            // The client closed the connection before we finished writing the response.
+            // Not a server error — just a client that went away.
+            LogClientDisconnected(logger, method, path);
+        }
+        catch (Exception ex) when (ex is IOException { InnerException: SocketException } or SocketException)
+        {
+            // Kestrel's connection-reset-while-writing signal — same "client went away"
+            // case as the RequestAborted branch above, just surfaced as an exception instead
+            // of cancellation depending on exactly where in the write the reset lands.
+            LogClientDisconnected(logger, method, path);
         }
         catch (Exception ex)
         {
@@ -293,7 +341,7 @@ internal sealed partial class RouterHttpServer(
             // localhost-only, but exception messages can still incidentally contain file
             // paths, connection strings, or other internal details depending on where the
             // failure originated, and there's no reason for a generic 500 to leak them.
-            logger.LogError(ex, "[{Method}] {Path} failed.", method, path);
+            LogRequestFailed(logger, ex, method, path);
 
             // A stack trace here means something actually broke — even if Ollama and the
             // models still separately probe as healthy, a caller polling /health should see
@@ -305,7 +353,7 @@ internal sealed partial class RouterHttpServer(
         }
     }
 
-    private async Task RouteGetAsync(HttpListenerContext context, string path)
+    private async Task RouteGetAsync(HttpContext context, string path)
     {
         switch (path)
         {
@@ -324,7 +372,7 @@ internal sealed partial class RouterHttpServer(
             case "/API/PS":
                 // Same case-sensitivity note as /API/EMBED above — Ollama's own router only
                 // registers the lowercase path.
-                await ProxyGetToOllamaAsync(context, "/api/ps");
+                await ProxyToOllamaAsync(context, "/api/ps", HttpMethod.Get);
                 return;
             case "/API/CAPACITY":
                 await HandleCapacityAsync(context);
@@ -333,11 +381,11 @@ internal sealed partial class RouterHttpServer(
                 await HandleSystemInfoAsync(context);
                 return;
             case "/ADMIN/CONFIG":
-                await HandleGetConfigAsync(context);
+                await admin.HandleGetConfigAsync(context);
                 return;
             case "/ADMIN":
             case "/ADMIN/":
-                await ServeAdminUIAsync(context);
+                await admin.ServeAdminUIAsync(context);
                 return;
         }
 
@@ -347,7 +395,7 @@ internal sealed partial class RouterHttpServer(
             return;
         }
 
-        logger.LogWarning("[GET] {Path} — 404 not found", path);
+        LogGetNotFound(logger, path);
         await WriteJsonAsync(context, 404, new { error = "not found" });
     }
 
@@ -378,7 +426,7 @@ internal sealed partial class RouterHttpServer(
         };
     }
 
-    private async Task RoutePostAsync(HttpListenerContext context, string path, CancellationToken ct = default)
+    private async Task RoutePostAsync(HttpContext context, string path, CancellationToken ct = default)
     {
         switch (path)
         {
@@ -411,7 +459,7 @@ internal sealed partial class RouterHttpServer(
                 // ollamaPath is forwarded verbatim to Ollama's own (case-sensitive) HTTP router,
                 // so it must be the real lowercase route, not the uppercased string used for
                 // switch-matching just above.
-                await ProxyToOllamaAsync(context, "/api/embed", ct);
+                await ProxyToOllamaAsync(context, "/api/embed", HttpMethod.Post, ct);
                 return;
             case "/API/EMBEDDINGS":
             case "/V1/EMBEDDINGS":
@@ -419,15 +467,15 @@ internal sealed partial class RouterHttpServer(
                 await ProxyEmbeddingsAsync(context, ct);
                 return;
             case "/ADMIN/CONFIG":
-                await HandleUpdateConfigAsync(context, ct);
+                await admin.HandleUpdateConfigAsync(context);
                 return;
             case "/ADMIN/RELOAD":
-                await HandleReloadAsync(context, ct);
+                await admin.HandleReloadAsync(context);
                 return;
             default:
                 string body = await ReadBodyAsync(context.Request);
                 string bodyPreview = body.Length > 500 ? body[..500] + "..." : body;
-                logger.LogWarning("[POST] {Path} — 404 not found. Body: {Body}", path, bodyPreview);
+                LogPostNotFound(logger, path, bodyPreview);
                 await WriteJsonAsync(context, 404, new { error = "not found" });
                 return;
         }
@@ -437,7 +485,7 @@ internal sealed partial class RouterHttpServer(
     ///     Checks if models are warming up and returns a 202 response if they are.
     ///     Returns true if any model is warming up (caller should not proceed with request).
     /// </summary>
-    private async Task<bool> CheckModelWarmupAsync(HttpListenerContext context)
+    private async Task<bool> CheckModelWarmupAsync(HttpContext context)
     {
         bool draftWarming = health.IsModelWarmingUp(generation.DraftModelName);
         bool mainWarming = health.IsModelWarmingUp(generation.MainModelName);
@@ -616,7 +664,7 @@ internal sealed partial class RouterHttpServer(
         // nothing to "recover" here beyond what the probes below already attempt. It stays
         // reflected in the re-captured snapshot until it ages out (see ModelHealthMonitor.FaultTtl).
 
-        logger.LogWarning("Health check failed — attempting recovery...");
+        LogHealthCheckFailed(logger);
         if (!snapshot.OllamaHealthy)
         {
             await health.EnsureOllamaHealthyAsync();
@@ -668,7 +716,7 @@ internal sealed partial class RouterHttpServer(
             : "unhealthy";
     }
 
-    private async Task HandleHealthAsync(HttpListenerContext context)
+    private async Task HandleHealthAsync(HttpContext context)
     {
         HealthSnapshot snapshot = await CaptureHealthSnapshotAsync();
         snapshot = await RecoverUnhealthyAsync(snapshot);
@@ -722,7 +770,7 @@ internal sealed partial class RouterHttpServer(
         });
     }
 
-    private async Task HandleHealthReadyAsync(HttpListenerContext context)
+    private async Task HandleHealthReadyAsync(HttpContext context)
     {
         HealthSnapshot snapshot = await CaptureHealthSnapshotAsync();
 
@@ -766,7 +814,7 @@ internal sealed partial class RouterHttpServer(
     ///     workspace indexer) can size background-inference concurrency (AI file/folder
     ///     summaries) off this machine's real capacity instead of guessing from CPU count.
     /// </summary>
-    private async Task HandleCapacityAsync(HttpListenerContext context)
+    private async Task HandleCapacityAsync(HttpContext context)
     {
         ResolvedHardwareSettings hw = hardwareSettings();
         await WriteJsonAsync(context, 200, new
@@ -788,13 +836,13 @@ internal sealed partial class RouterHttpServer(
     ///     available models, and agent types. Useful for clients that need to discover system
     ///     capabilities at runtime.
     /// </summary>
-    private async Task HandleSystemInfoAsync(HttpListenerContext context)
+    private async Task HandleSystemInfoAsync(HttpContext context)
     {
         var systemInfo = systemInfoService.GetSystemInfo();
         await WriteJsonAsync(context, 200, systemInfo);
     }
 
-    private async Task HandleOllamaGenerateAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task HandleOllamaGenerateAsync(HttpContext context, CancellationToken ct = default)
     {
         if (await CheckModelWarmupAsync(context))
         {
@@ -837,7 +885,6 @@ internal sealed partial class RouterHttpServer(
                         JsonSerializer.Serialize(new { response = token, done = false }) + "\n"), ct);
                 await WriteRawAsync(context.Response,
                     JsonSerializer.Serialize(new { response = "", done = true }) + "\n");
-                context.Response.Close();
                 streamedDirectly = true;
                 return true;
             }, ct);
@@ -855,7 +902,6 @@ internal sealed partial class RouterHttpServer(
                     JsonSerializer.Serialize(new { response = responseText, done = false }) + "\n");
                 await WriteRawAsync(context.Response,
                     JsonSerializer.Serialize(new { response = "", done = true }) + "\n");
-                context.Response.Close();
             }
             else
             {
@@ -884,10 +930,9 @@ internal sealed partial class RouterHttpServer(
             }, ct);
 
         await WriteRawAsync(context.Response, JsonSerializer.Serialize(new { response = "", done = true }) + "\n");
-        context.Response.Close();
     }
 
-    private async Task HandleOpenAiChatAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task HandleOpenAiChatAsync(HttpContext context, CancellationToken ct = default)
     {
         if (await CheckModelWarmupAsync(context))
         {
@@ -917,7 +962,6 @@ internal sealed partial class RouterHttpServer(
                 { choices = new[] { new { delta = new { content = responseText } } } });
                 await WriteRawAsync(context.Response, $"data: {payload}\n\n");
                 await WriteRawAsync(context.Response, "data: [DONE]\n\n");
-                context.Response.Close();
             }
             else
             {
@@ -950,7 +994,6 @@ internal sealed partial class RouterHttpServer(
                 await WriteRawAsync(context.Response, $"data: {payload}\n\n");
             }, ct);
             await WriteRawAsync(context.Response, "data: [DONE]\n\n");
-            context.Response.Close();
             return;
         }
 
@@ -966,7 +1009,7 @@ internal sealed partial class RouterHttpServer(
         });
     }
 
-    private async Task HandleOllamaChatAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task HandleOllamaChatAsync(HttpContext context, CancellationToken ct = default)
     {
         if (await CheckModelWarmupAsync(context))
         {
@@ -993,7 +1036,6 @@ internal sealed partial class RouterHttpServer(
                     JsonSerializer.Serialize(new { message = new { role = "assistant", content = responseText }, done = false }) + "\n");
                 await WriteRawAsync(context.Response,
                     JsonSerializer.Serialize(new { message = new { role = "assistant", content = "" }, done = true }) + "\n");
-                context.Response.Close();
             }
             else
             {
@@ -1017,7 +1059,6 @@ internal sealed partial class RouterHttpServer(
                     JsonSerializer.Serialize(new { message = new { role = "assistant", content = token }, done = false }) + "\n"), ct);
             await WriteRawAsync(context.Response,
                 JsonSerializer.Serialize(new { message = new { role = "assistant", content = "" }, done = true }) + "\n");
-            context.Response.Close();
             return;
         }
 
@@ -1030,7 +1071,7 @@ internal sealed partial class RouterHttpServer(
         });
     }
 
-    private async Task HandleOpenAiCompletionAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task HandleOpenAiCompletionAsync(HttpContext context, CancellationToken ct = default)
     {
         if (await CheckModelWarmupAsync(context))
         {
@@ -1055,71 +1096,46 @@ internal sealed partial class RouterHttpServer(
         });
     }
 
-    private async Task<string> ReadBodyAsync(HttpListenerRequest request)
-    {
-        string body;
-        using (StreamReader reader = new(request.InputStream, request.ContentEncoding))
-        {
-            body = await reader.ReadToEndAsync();
-        }
-
-        // global.debug.logRequestBodies: log the (truncated) request body as it's read. This is the
-        // single choke point every POST handler funnels through, so logging here catches every body
-        // exactly once without re-reading the (once-only) input stream or threading the text through
-        // handler signatures. Verbose and potentially sensitive (bodies carry prompt text) — off by
-        // default; intended for short local debugging sessions only.
-        if (config.Global.Debug.LogRequestBodies)
-        {
-            const int MaxBodyLog = 2000;
-            string preview = body.Length > MaxBodyLog
-                ? $"{body[..MaxBodyLog]}… (+{body.Length - MaxBodyLog} more chars)"
-                : body;
-            logger.LogInformation(
-                "[{Method}] {Path} body ({Length} chars):\n{Body}",
-                request.HttpMethod.ToUpperInvariant(),
-                request.Url?.AbsolutePath ?? "/",
-                body.Length,
-                preview);
-        }
-
-        return body;
-    }
+    // This is the single choke point every POST handler funnels through, so the shared
+    // ReadBodyAsync's optional debug logging catches every body exactly once without re-reading
+    // the (once-only) input stream or threading the text through handler signatures.
+    private Task<string> ReadBodyAsync(HttpRequest request)
+        => RouterHttpUtilities.ReadBodyAsync(request, config, logger);
 
     /// <summary>
-    ///     Pass the request body straight through to Ollama and stream the response back.
-    ///     Used for /api/embed and any other endpoints that don't need draft-pair logic.
+    ///     Pass a request straight through to Ollama and stream the response back. Used for
+    ///     /api/embed and any other endpoints that don't need draft-pair logic. For
+    ///     <see cref="HttpMethod.Post" />, the router's own request body is forwarded verbatim;
+    ///     other methods (GET/DELETE/HEAD) send no body. HEAD closes the response without reading
+    ///     Ollama's response body, matching the semantics of an HTTP HEAD request.
     /// </summary>
-    private async Task ProxyToOllamaAsync(HttpListenerContext context, string ollamaPath, CancellationToken ct = default)
+    private async Task ProxyToOllamaAsync(HttpContext context, string ollamaPath, HttpMethod method, CancellationToken ct = default)
     {
-        string body = await ReadBodyAsync(context.Request);
-        using StringContent content = new(body, Encoding.UTF8, "application/json");
+        using HttpRequestMessage request = new(method, new Uri($"http://127.0.0.1:{process.ServerPort}{ollamaPath}"));
+        if (method == HttpMethod.Post)
+        {
+            string body = await ReadBodyAsync(context.Request);
+            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        }
 
-        using HttpResponseMessage ollamaResponse = await http.PostAsync(new Uri($"http://127.0.0.1:{process.ServerPort}{ollamaPath}"), content, ct);
-
+        using HttpResponseMessage ollamaResponse = await http.SendAsync(request, ct);
         context.Response.StatusCode = (int)ollamaResponse.StatusCode;
-        context.Response.ContentType = ollamaResponse.Content.Headers.ContentType?.ToString() ?? "application/json";
 
+        if (method == HttpMethod.Head)
+        {
+            return;
+        }
+
+        context.Response.ContentType = ollamaResponse.Content.Headers.ContentType?.ToString() ?? "application/json";
         byte[] responseBody = await ollamaResponse.Content.ReadAsByteArrayAsync(ct);
-        context.Response.ContentLength64 = responseBody.Length;
-        await context.Response.OutputStream.WriteAsync(responseBody, ct);
-        context.Response.Close();
-    }
-
-    private async Task ProxyGetToOllamaAsync(HttpListenerContext context, string ollamaPath)
-    {
-        using HttpResponseMessage ollamaResponse = await http.GetAsync(new Uri($"http://127.0.0.1:{process.ServerPort}{ollamaPath}"));
-        context.Response.StatusCode = (int)ollamaResponse.StatusCode;
-        context.Response.ContentType = ollamaResponse.Content.Headers.ContentType?.ToString() ?? "application/json";
-        byte[] responseBody = await ollamaResponse.Content.ReadAsByteArrayAsync();
-        context.Response.ContentLength64 = responseBody.Length;
-        await context.Response.OutputStream.WriteAsync(responseBody);
-        context.Response.Close();
+        context.Response.ContentLength = responseBody.Length;
+        await context.Response.Body.WriteAsync(responseBody, ct);
     }
 
     /// <summary>
     ///     Handle OpenAI-compatible /v1/embeddings by translating to Ollama /api/embed and back.
     /// </summary>
-    private async Task ProxyEmbeddingsAsync(HttpListenerContext context, CancellationToken ct = default)
+    private async Task ProxyEmbeddingsAsync(HttpContext context, CancellationToken ct = default)
     {
         string body = await ReadBodyAsync(context.Request);
         JsonNode? json = JsonNode.Parse(body);
@@ -1163,153 +1179,28 @@ internal sealed partial class RouterHttpServer(
         });
     }
 
-    private static async Task WriteJsonAsync(HttpListenerContext context, int statusCode, object body)
-    {
-        string json = JsonSerializer.Serialize(body);
-        byte[] bytes = Encoding.UTF8.GetBytes(json);
-        context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "application/json";
-        context.Response.ContentLength64 = bytes.Length;
-        await context.Response.OutputStream.WriteAsync(bytes);
-        context.Response.Close();
-    }
+    private static Task WriteJsonAsync(HttpContext context, int statusCode, object body)
+        => RouterHttpUtilities.WriteJsonAsync(context, statusCode, body);
 
-    private static async Task WriteRawAsync(HttpListenerResponse response, string text)
+    private static async Task WriteRawAsync(HttpResponse response, string text)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(text);
-        await response.OutputStream.WriteAsync(bytes);
-        await response.OutputStream.FlushAsync();
+        await response.Body.WriteAsync(bytes);
+        await response.Body.FlushAsync();
     }
 
     // ── IRouter explicit implementations ──
 
-    Task IRouter.HandleHealthAsync(HttpListenerContext context) => HandleHealthAsync(context);
+    Task IRouter.HandleHealthAsync(HttpContext context) => HandleHealthAsync(context);
 
-    Task IRouter.HandleHealthReadyAsync(HttpListenerContext context) => HandleHealthReadyAsync(context);
+    Task IRouter.HandleHealthReadyAsync(HttpContext context) => HandleHealthReadyAsync(context);
 
-    Task IRouter.HandleCapacityAsync(HttpListenerContext context) => HandleCapacityAsync(context);
+    Task IRouter.HandleCapacityAsync(HttpContext context) => HandleCapacityAsync(context);
 
-    // ── IOllama explicit implementations ──
+    private static string RemoteAddress(HttpContext context)
+        => RouterHttpUtilities.RemoteAddress(context);
 
-    Task IOllama.HandleGetApiTagsAsync(HttpListenerContext context)
-    {
-        // /api/tags is handled in RouteGetAsync, delegating to BuildTagsBody
-        return HandleGetApiTagsAsync(context);
-    }
-
-    private async Task HandleGetApiTagsAsync(HttpListenerContext context)
-    {
-        await WriteJsonAsync(context, 200, BuildTagsBody());
-    }
-
-    Task IOllama.HandleGetApiVersionAsync(HttpListenerContext context)
-    {
-        return HandleGetApiVersionAsync(context);
-    }
-
-    private async Task HandleGetApiVersionAsync(HttpListenerContext context)
-    {
-        await WriteJsonAsync(context, 200, BuildVersionBody());
-    }
-
-    Task IOllama.HandleGetApiPsAsync(HttpListenerContext context)
-    {
-        // Proxy to Ollama's /api/ps
-        return ProxyGetToOllamaAsync(context, "/api/ps");
-    }
-
-    Task IOllama.HandlePostApiGenerateAsync(HttpListenerContext context, CancellationToken ct)
-        => HandleOllamaGenerateAsync(context, ct);
-
-    Task IOllama.HandlePostApiChatAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // /api/chat is handled via OpenAI-compatible handler
-        return HandleOpenAiChatAsync(context, ct);
-    }
-
-    Task IOllama.HandlePostApiEmbedAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/embed
-        return ProxyToOllamaAsync(context, "/api/embed", ct);
-    }
-
-    Task IOllama.HandlePostApiEmbeddingsAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Legacy endpoint — map to /v1/embeddings handler
-        return ProxyEmbeddingsAsync(context, ct);
-    }
-
-    Task IOllama.HandlePostApiShowAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/show
-        return ProxyToOllamaAsync(context, "/api/show", ct);
-    }
-
-    Task IOllama.HandlePostApiCreateAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/create
-        return ProxyToOllamaAsync(context, "/api/create", ct);
-    }
-
-    Task IOllama.HandlePostApiCopyAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/copy
-        return ProxyToOllamaAsync(context, "/api/copy", ct);
-    }
-
-    Task IOllama.HandleDeleteApiAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy DELETE /api/delete to Ollama
-        return ProxyDeleteToOllamaAsync(context, "/api/delete", ct);
-    }
-
-    Task IOllama.HandlePostApiPullAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/pull
-        return ProxyToOllamaAsync(context, "/api/pull", ct);
-    }
-
-    Task IOllama.HandlePostApiPushAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        // Proxy to Ollama's /api/push
-        return ProxyToOllamaAsync(context, "/api/push", ct);
-    }
-
-    Task IOllama.HandleHeadApiBlobsAsync(HttpListenerContext context, string digest)
-    {
-        // Proxy HEAD /api/blobs/:digest to Ollama
-        return ProxyHeadToOllamaAsync(context, $"/api/blobs/{Uri.EscapeDataString(digest)}");
-    }
-
-    Task IOllama.HandlePostApiBlobsAsync(HttpListenerContext context, string digest, CancellationToken ct)
-    {
-        // Proxy POST /api/blobs/:digest to Ollama
-        return ProxyToOllamaAsync(context, $"/api/blobs/{Uri.EscapeDataString(digest)}", ct);
-    }
-
-    // ── Proxy helpers for new Ollama endpoints ──
-
-    private async Task ProxyDeleteToOllamaAsync(HttpListenerContext context, string ollamaPath, CancellationToken ct = default)
-    {
-        using HttpRequestMessage request = new(HttpMethod.Delete, new Uri($"http://127.0.0.1:{process.ServerPort}{ollamaPath}"));
-        using HttpResponseMessage ollamaResponse = await http.SendAsync(request, ct);
-        context.Response.StatusCode = (int)ollamaResponse.StatusCode;
-        context.Response.ContentType = ollamaResponse.Content.Headers.ContentType?.ToString() ?? "application/json";
-        byte[] responseBody = await ollamaResponse.Content.ReadAsByteArrayAsync(ct);
-        context.Response.ContentLength64 = responseBody.Length;
-        await context.Response.OutputStream.WriteAsync(responseBody, ct);
-        context.Response.Close();
-    }
-
-    private async Task ProxyHeadToOllamaAsync(HttpListenerContext context, string ollamaPath)
-    {
-        using HttpRequestMessage request = new(HttpMethod.Head, new Uri($"http://127.0.0.1:{process.ServerPort}{ollamaPath}"));
-        using HttpResponseMessage ollamaResponse = await http.SendAsync(request);
-        context.Response.StatusCode = (int)ollamaResponse.StatusCode;
-        context.Response.Close();
-    }
-
-    private string? ExtractApiKey(HttpListenerRequest request)
+    private string? ExtractApiKey(HttpRequest request)
     {
         string? auth = request.Headers["Authorization"];
         if (!string.IsNullOrEmpty(auth) && auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
@@ -1330,230 +1221,6 @@ internal sealed partial class RouterHttpServer(
         return config.Global.TrustedApiKeys.Contains(apiKey, StringComparer.Ordinal);
     }
 
-    // ── Configuration Admin Endpoints ──
-
-    /// <summary>
-    ///     Serves the admin UI HTML page.
-    /// </summary>
-    private async Task ServeAdminUIAsync(HttpListenerContext context)
-    {
-        try
-        {
-            string adminUiPath = Path.Combine(AppContext.BaseDirectory, "admin", "index.html");
-            if (!File.Exists(adminUiPath))
-            {
-                logger.LogWarning("[ADMIN] Admin UI not found at {Path}", adminUiPath);
-                await WriteJsonAsync(context, 404, new { error = "Admin UI not available" });
-                return;
-            }
-
-            string html = await File.ReadAllTextAsync(adminUiPath);
-            context.Response.ContentType = "text/html; charset=utf-8";
-            context.Response.StatusCode = 200;
-
-            byte[] buffer = Encoding.UTF8.GetBytes(html);
-            context.Response.ContentLength64 = buffer.Length;
-            await context.Response.OutputStream.WriteAsync(buffer);
-            context.Response.Close();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[ADMIN] Error serving admin UI");
-            await WriteJsonAsync(context, 500, new { error = "Internal server error" });
-        }
-    }
-
-    /// <summary>
-    ///     GET /admin/config — Retrieves the current configuration as JSON.
-    ///     Requires admin authentication (localhost or valid API key).
-    /// </summary>
-    private async Task HandleGetConfigAsync(HttpListenerContext context)
-    {
-        if (!adminAuthenticationService.IsAuthorized(context.Request))
-        {
-            logger.LogWarning("[ADMIN] [GET] /admin/config — unauthorized access attempt from {RemoteAddress}",
-                context.Request.RemoteEndPoint?.Address);
-            await WriteJsonAsync(context, 401, new
-            {
-                error = "unauthorized",
-                message = "Admin configuration requires authentication (localhost trusted by default, remote requests require Bearer token)"
-            });
-            return;
-        }
-
-        logger.LogInformation("[ADMIN] [GET] /admin/config from {RemoteAddress}", context.Request.RemoteEndPoint?.Address);
-
-        var configData = new
-        {
-            global = new
-            {
-                routerPort = config.Global.RouterPort,
-                ollamaPort = config.Global.OllamaPort,
-                routerHost = config.Global.RouterHost,
-                routerModelName = config.Global.RouterModelName,
-                draftModel = config.Global.DraftModel,
-                mainModel = config.Global.MainModel,
-                embedModel = config.Global.EmbedModel,
-                contextSize = config.Global.ContextSize,
-                defaultAgentType = config.Global.DefaultAgentType,
-                agentType = config.Global.AgentType,
-                draftHandoffTimeoutMs = config.Global.DraftHandoffTimeoutMs,
-                draftMode = config.Global.DraftMode.ToString(),
-                trustedNetworks = config.Global.TrustedNetworks,
-                trustedApiKeys = new string[0], // Never return actual keys for security
-                mdnsEnabled = config.Global.MdnsEnabled,
-                mdnsServiceName = config.Global.MdnsServiceName,
-                gpuLayers = config.Global.GpuLayers.IsSpecified ?
-                    (config.Global.GpuLayers.Auto ? "auto" : config.Global.GpuLayers.Value?.ToString() ?? "unspecified")
-                    : "unspecified",
-                cpuThreads = config.Global.CpuThreads.IsSpecified ?
-                    (config.Global.CpuThreads.Auto ? "auto" : config.Global.CpuThreads.Value?.ToString() ?? "unspecified")
-                    : "unspecified"
-            },
-            agents = config.Agents.ToDictionary(
-                kvp => kvp.Key,
-                kvp => new
-                {
-                    systemPrompt = kvp.Value.SystemPrompt,
-                    temperature = kvp.Value.Temperature
-                }),
-            modelCount = config.ModelSources.Count,
-            note = "Localhost is always trusted. Remote requests require 'Authorization: Bearer <key>' header."
-        };
-
-        await WriteJsonAsync(context, 200, configData);
-    }
-
-    /// <summary>
-    ///     POST /admin/config — Updates a configuration setting.
-    ///     Body: { "setting": "global.routerPort", "value": 11436 }
-    ///     Returns: { "success": true, "requiresRestart": true, "message": "..." }
-    /// </summary>
-    private async Task HandleUpdateConfigAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        if (!adminAuthenticationService.IsAuthorized(context.Request))
-        {
-            logger.LogWarning("[ADMIN] [POST] /admin/config — unauthorized access attempt from {RemoteAddress}",
-                context.Request.RemoteEndPoint?.Address);
-            await WriteJsonAsync(context, 401, new
-            {
-                error = "unauthorized",
-                message = "Admin configuration requires authentication (localhost trusted by default, remote requests require Bearer token)"
-            });
-            return;
-        }
-
-        try
-        {
-            string bodyText = await ReadBodyAsync(context.Request);
-            JsonNode? requestBody = JsonNode.Parse(bodyText);
-            if (requestBody is not JsonObject bodyObj)
-            {
-                await WriteJsonAsync(context, 400, new { error = "Invalid request body. Expected JSON object." });
-                return;
-            }
-
-            string? settingPath = bodyObj["setting"]?.GetValue<string>();
-            object? value = bodyObj["value"];
-
-            if (string.IsNullOrWhiteSpace(settingPath))
-            {
-                await WriteJsonAsync(context, 400, new { error = "Missing or empty 'setting' field" });
-                return;
-            }
-
-            // Validate the setting
-            ValidationResult validation = configurationManager.Validate(settingPath, value);
-            if (!validation.IsValid)
-            {
-                logger.LogWarning("[ADMIN] Invalid config update from {RemoteAddress}: {Setting} = {Value} — {Error}",
-                    context.Request.RemoteEndPoint?.Address, settingPath, value, validation.ErrorMessage);
-                await WriteJsonAsync(context, 400, new
-                {
-                    error = "validation_failed",
-                    message = validation.ErrorMessage
-                });
-                return;
-            }
-
-            // Apply the update
-            string settingName = settingPath.Contains('.', StringComparison.Ordinal) ? settingPath.Split('.')[^1] : settingPath;
-            UpdateResult updateResult = configurationUpdater.UpdateGlobalSetting(config.Global, settingName, value);
-
-            if (!updateResult.Success)
-            {
-                logger.LogWarning("[ADMIN] Failed to update config from {RemoteAddress}: {Setting} = {Value} — {Error}",
-                    context.Request.RemoteEndPoint?.Address, settingPath, value, updateResult.ErrorMessage);
-                await WriteJsonAsync(context, 400, new
-                {
-                    error = "update_failed",
-                    message = updateResult.ErrorMessage
-                });
-                return;
-            }
-
-            logger.LogInformation("[ADMIN] Configuration updated from {RemoteAddress}: {Setting} = {Value} (requiresRestart={RequiresRestart})",
-                context.Request.RemoteEndPoint?.Address, settingPath, value, updateResult.RequiresRestart);
-
-            await WriteJsonAsync(context, 200, new
-            {
-                success = true,
-                setting = settingPath,
-                requiresRestart = updateResult.RequiresRestart,
-                message = updateResult.RequiresRestart
-                    ? $"Setting '{settingPath}' updated. Server restart required for change to take effect."
-                    : $"Setting '{settingPath}' updated and reloaded."
-            });
-        }
-        catch (JsonException ex)
-        {
-            logger.LogWarning("[ADMIN] Invalid JSON in config update from {RemoteAddress}: {Error}",
-                context.Request.RemoteEndPoint?.Address, ex.Message);
-            await WriteJsonAsync(context, 400, new
-            {
-                error = "invalid_json",
-                message = "Request body must be valid JSON"
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "[ADMIN] Unexpected error in config update from {RemoteAddress}",
-                context.Request.RemoteEndPoint?.Address);
-            await WriteJsonAsync(context, 500, new { error = "internal_server_error" });
-        }
-    }
-
-    /// <summary>
-    ///     POST /admin/reload — Reloads configuration changes that don't require restart.
-    ///     For settings requiring restart, this does nothing (restart required via other means).
-    /// </summary>
-    private async Task HandleReloadAsync(HttpListenerContext context, CancellationToken ct)
-    {
-        if (!adminAuthenticationService.IsAuthorized(context.Request))
-        {
-            logger.LogWarning("[ADMIN] [POST] /admin/reload — unauthorized access attempt from {RemoteAddress}",
-                context.Request.RemoteEndPoint?.Address);
-            await WriteJsonAsync(context, 401, new
-            {
-                error = "unauthorized",
-                message = "Admin reload requires authentication"
-            });
-            return;
-        }
-
-        logger.LogInformation("[ADMIN] [POST] /admin/reload from {RemoteAddress}", context.Request.RemoteEndPoint?.Address);
-
-        // Reload settings that can be hot-reloaded (trusted networks, API keys, etc.)
-        // These are already applied to config.Global, so no extra work needed here.
-        // In a more complex scenario, you might trigger model reloading, cache clearing, etc.
-
-        await WriteJsonAsync(context, 200, new
-        {
-            success = true,
-            message = "Hot-reloadable configuration reloaded. Settings requiring restart must be applied via server restart.",
-            note = "For settings marked requiresRestart, restart the server to apply changes."
-        });
-    }
 }
 
 

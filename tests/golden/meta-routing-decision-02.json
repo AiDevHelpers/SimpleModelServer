@@ -1,0 +1,12 @@
+{
+  "id": "meta-routing-decision-02",
+  "category": "meta",
+  "prompt": "What happens when I send a prompt that is longer than 8000 tokens? Does this system fall back to Claude, or does it truncate my input? What routing_reason would I see in the response?",
+  "expected": {
+    "intent": "meta",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Question about pipeline overflow behavior and routing_reason field — system internals, not C# knowledge. Mention of 'routing_reason' is a strong meta signal the router must not misread as question. Guards r15/r16 pattern."
+}

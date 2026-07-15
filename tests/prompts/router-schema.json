@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "intent": { "enum": ["code_generation", "question", "explanation", "meta", "other"] },
+    "quality": { "enum": ["good", "weak", "invalid"] },
+    "ambiguity": { "enum": ["none", "low", "medium", "high"] },
+    "confidence": { "type": "number" },
+    "rewritten_prompt": { "type": ["string", "null"] },
+    "plan": { "type": ["string", "null"] },
+    "response": { "type": ["string", "null"] },
+    "routing_reason": { "type": "string" }
+  },
+  "required": ["intent", "quality", "ambiguity", "confidence", "routing_reason"]
+}

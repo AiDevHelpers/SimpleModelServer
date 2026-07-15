@@ -1,0 +1,12 @@
+{
+  "id": "question-iasyncenumerable-02",
+  "category": "question",
+  "prompt": "When should I prefer IAsyncEnumerable<T> over Task<IEnumerable<T>> in .NET? Are there cases where the synchronous form is better?",
+  "expected": {
+    "intent": "question",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "API-choice question. Presence of C# type names must not trigger codegen routing."
+}

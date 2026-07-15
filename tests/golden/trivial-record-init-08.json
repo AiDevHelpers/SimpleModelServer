@@ -1,0 +1,16 @@
+{
+  "id": "trivial-record-init-08",
+  "category": "trivial",
+  "prompt": "Write a C# record ErrorResponse with properties string Code, string Message, and DateTimeOffset OccurredAt. Use init-only setters, not positional record syntax.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["record ErrorResponse", "Code", "Message", "OccurredAt", "init"],
+    "must_not_contain": ["class ErrorResponse", "TODO"]
+  },
+  "notes": "Record with init-only properties (not positional). Tests C# 9 init syntax. Guards against fallback to plain class or to the positional record shorthand."
+}

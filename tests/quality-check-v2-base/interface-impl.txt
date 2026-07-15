@@ -1,0 +1,33 @@
+ If the message is not for email, throw an InvalidOperationException.
+
+public class EmailNotificationSender : INotificationSender
+{
+    private readonly ISmtpClient _smtpClient;
+    private readonly ITemplateRenderer _templateRenderer;
+
+    public EmailNotificationSender(ISmtpClient smtpClient, ITemplateRenderer templateRenderer)
+    {
+        _smtpClient = smtpClient;
+        _templateRenderer = templateRenderer;
+    }
+
+    public bool CanHandle(NotificationChannel channel) => channel == NotificationChannel.Email;
+
+    public async Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        if (!CanHandle(message.Channel))
+        {
+            throw new InvalidOperationException("Invalid channel");
+        }
+
+        try
+        {
+            var body = await _templateRenderer.RenderAsync(message.TemplateId, message.TemplateData);
+            await _smtpClient.SendAsync(message.Recipient, message.Subject, body, cancellationToken);
+        }
+        catch (SmtpException)
+        {
+            await _smtpClient.SendAsync(message.Recipient, message.Subject, body, cancellationToken);
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "weak-logger-03",
+  "category": "weak",
+  "prompt": "need logging on the service class, structured logs plz, the important stuff like request id and timing",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Very informal but clearly wants ILogger<T> structured logging with request id and duration. Router rewrite should produce a concrete method with LogInformation calls and proper message templates."
+}

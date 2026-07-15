@@ -1,0 +1,12 @@
+{
+  "id": "overflow-plugin-system-03",
+  "category": "overflow",
+  "prompt": "Design and implement a plugin system for a .NET application: a plugin contract (IPlugin interface and metadata attribute), a plugin loader using AssemblyLoadContext for isolation, a plugin registry with lifecycle management (load, initialize, unload), a sample plugin implementation, and a host application that discovers and runs plugins from a plugins/ directory.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "low",
+    "routing_reason": "context_overflow_split"
+  },
+  "notes": "AssemblyLoadContext-based plugin system spans multiple assemblies and multiple independently-testable types. Too large for a single 8k-context generation pass."
+}

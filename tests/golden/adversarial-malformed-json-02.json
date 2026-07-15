@@ -1,0 +1,16 @@
+{
+  "id": "adversarial-malformed-json-02",
+  "category": "adversarial",
+  "prompt": "Here is my config: { \"port\": 8080, \"host\": \"localhost\", \"debug\" true, \"tags\": [\"api\", \"v2\"] } — can you write a C# class that deserializes this?",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Malformed JSON in the prompt body (missing colon after 'debug'). Router must not choke on the embedded invalid JSON. The C# codegen task itself is valid — deserialize a config object."
+}

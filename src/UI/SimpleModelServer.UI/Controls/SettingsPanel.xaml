@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SimpleModelServer.UI.Controls.SettingsPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignHeight="400"
+    d:DesignWidth="600">
+
+    <ScrollViewer Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+        <StackPanel Margin="20">
+            <!-- Title -->
+            <TextBlock
+                Text="Simple Model Server Settings"
+                FontSize="18"
+                FontWeight="Bold"
+                Margin="0,0,0,20"
+                Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+
+            <!-- Server Settings Section -->
+            <Border BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1" Margin="0,0,0,15" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                <StackPanel Margin="15">
+                    <TextBlock
+                        Text="Server Connection"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+
+                    <!-- Server Host -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="Server Host:" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                        <TextBox
+                            Grid.Column="1"
+                            x:Name="ServerHostTextBox"
+                            Padding="8"
+                            Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                            Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                            BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                            BorderThickness="1" />
+                    </Grid>
+
+                    <!-- Server Port -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="Server Port:" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                        <TextBox
+                            Grid.Column="1"
+                            x:Name="ServerPortTextBox"
+                            Padding="8"
+                            Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                            Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                            BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                            BorderThickness="1" />
+                    </Grid>
+
+                    <!-- API Key -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="API Key (Optional):" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                        <PasswordBox
+                            Grid.Column="1"
+                            x:Name="ApiKeyBox"
+                            Padding="8"
+                            Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                            Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                            BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                            BorderThickness="1" />
+                    </Grid>
+
+                    <!-- Test Connection Button -->
+                    <Button
+                        x:Name="TestConnectionButton"
+                        Padding="10,8"
+                        Click="TestConnectionClick"
+                        HorizontalAlignment="Left">
+                        <TextBlock Text="Test Connection" />
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Agent Settings Section -->
+            <Border BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1" Margin="0,0,0,15" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                <StackPanel Margin="15">
+                    <TextBlock
+                        Text="Agent Configuration"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+
+                    <!-- Default Agent -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="Default Agent:" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                        <ComboBox
+                            Grid.Column="1"
+                            x:Name="DefaultAgentComboBox"
+                            Padding="8"
+                            VerticalContentAlignment="Center">
+                            <ComboBoxItem>Ask</ComboBoxItem>
+                            <ComboBoxItem>Code</ComboBoxItem>
+                            <ComboBoxItem>Debug</ComboBoxItem>
+                            <ComboBoxItem>Planning</ComboBoxItem>
+                        </ComboBox>
+                    </Grid>
+
+                    <!-- Enabled Features -->
+                    <TextBlock
+                        Text="Enabled Features:"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        Margin="0,0,0,10" />
+
+                    <CheckBox
+                        x:Name="ExplainCodeCheckBox"
+                        Content="Explain Code"
+                        Margin="20,0,0,5"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        IsChecked="True" />
+
+                    <CheckBox
+                        x:Name="GenerateTestsCheckBox"
+                        Content="Generate Tests"
+                        Margin="20,0,0,5"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        IsChecked="True" />
+
+                    <CheckBox
+                        x:Name="OptimizeCodeCheckBox"
+                        Content="Optimize Code"
+                        Margin="20,0,0,5"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        IsChecked="True" />
+
+                    <CheckBox
+                        x:Name="RememberChatCheckBox"
+                        Content="Remember Last Chat"
+                        Margin="20,0,0,0"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        IsChecked="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- Agent Prompts Section -->
+            <Border BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1" Margin="0,0,0,15" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+                <StackPanel Margin="15">
+                    <TextBlock
+                        Text="Agent Prompts"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+
+                    <!-- Agent Picker -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="Agent:" VerticalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                        <ComboBox
+                            Grid.Column="1"
+                            x:Name="AgentPromptComboBox"
+                            Padding="8"
+                            VerticalContentAlignment="Center"
+                            DisplayMemberPath="Name"
+                            SelectionChanged="AgentPromptComboBox_SelectionChanged" />
+                    </Grid>
+
+                    <TextBlock
+                        Text="System Prompt:"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        Margin="0,0,0,5" />
+                    <TextBox
+                        x:Name="AgentPromptTextBox"
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        VerticalScrollBarVisibility="Auto"
+                        Height="120"
+                        Padding="8"
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                        BorderThickness="1" />
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            x:Name="RefreshAgentPromptsButton"
+                            Content="Refresh"
+                            Padding="10,8"
+                            Margin="0,0,10,0"
+                            Click="RefreshAgentPromptsClick" />
+                        <Button
+                            x:Name="SaveAgentPromptButton"
+                            Content="Save Prompt"
+                            Padding="10,8"
+                            Click="SaveAgentPromptClick" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Status Message -->
+            <TextBlock
+                x:Name="StatusMessage"
+                Text=""
+                Foreground="Green"
+                Margin="0,10,0,0"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

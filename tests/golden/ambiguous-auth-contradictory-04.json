@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-auth-contradictory-04",
+  "category": "ambiguous",
+  "prompt": "Implement authentication that is both stateless (no session) and allows the server to immediately invalidate a user's token before it expires.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Asks for X and not-X: stateless JWTs cannot be server-side invalidated without a token store (which reintroduces state). Router must ask which constraint to relax rather than silently picking one."
+}

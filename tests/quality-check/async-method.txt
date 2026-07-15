@@ -1,0 +1,58 @@
+ Ensure that the method is thread-safe and handles concurrency issues. Here is an example implementation of the `ReserveStockAsync` method:
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+    private readonly DbContext _dbContext;
+
+    public InventoryService(IStockRepository stockRepository, DbContext dbContext)
+    {
+        _stockRepository = stockRepository;
+        _dbContext = dbContext;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        // Check current stock
+        var currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException($"Insufficient stock for product {productId}");
+        }
+
+        // Decrement stock transactionally
+        using (var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken))
+        {
+            try
+            {
+                await _stockRepository.DecrementStockAsync(productId, quantity, cancellationToken);
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        // Return reservation
+        var reservationId = Guid.NewGuid();
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(15);
+        return new InventoryReservation(reservationId, expiresAtUtc);
+    }
+}
+```
+
+In this implementation, we use a `DbContext` to perform the transactionally. We also use a `TransactionScope` to ensure that the transaction is rolled back if an exception occurs.
+
+Note that we use `Guid.NewGuid()` to generate a unique reservation ID, and `DateTime.UtcNow.AddMinutes(15)` to calculate the expiration time. You can modify these values as needed.
+
+Also note that we use `await` to wait for the asynchronous operations to complete, and we pass the cancellation token through to ensure that the method can be cancelled if necessary.
+
+Finally, we return an `InventoryReservation` object with the reservation ID and expiration time. You can modify this object as needed.

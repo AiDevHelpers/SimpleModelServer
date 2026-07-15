@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SimpleModelServer.Loader — main product definition.
+
+  Sibling of build/wix/TokenSaver.Setup/Product.wxs. Service install/upgrade/uninstall
+  behavior, config-file handling, URL ACL registration, and failure-action backoff live in
+  Service.wxs (see that file's header for the mapping back to
+  install-draftmodel-service.ps1 / uninstall-draftmodel-service.ps1, which remain the
+  reference implementation — see SimpleModelServer/SimpleModelServer.Loader/INSTALLER_REQUIREMENTS.md).
+
+  ── Update-in-place ──
+  UpgradeCode is the fixed value Windows Installer uses (not ProductName) to detect "this is
+  an upgrade of an existing install" via the MajorUpgrade element below. It must NEVER change
+  across releases. Package/@Version should be bumped per release (passed in via
+  -p:MyAppVersion=x.y.z, see SimpleModelServer.Setup.wixproj).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="SimpleModelServer Loader"
+            Manufacturer="Richard Sperry"
+            Version="$(MyAppVersion)"
+            UpgradeCode="7ADD086D-EE7B-462C-958D-C56FF654F123"
+            Scope="perMachine"
+            Compressed="yes">
+
+    <!-- Upgrade-detection: blocks installing an older version over a newer one.
+
+         Schedule="afterInstallExecute" (rather than WiX's default afterInstallInitialize)
+         installs the new version's files/service "on top of" the existing install, then
+         removes only what's no longer present, instead of fully uninstalling the old product
+         first and reinstalling from scratch. For ServiceComponent in Service.wxs this means
+         the SimpleModelServerLoader service is stopped, has its files replaced, and is restarted in
+         place — it is NOT deleted and recreated — as long as ServiceComponent's Component/@Guid
+         and ServiceInstall/@Name stay unchanged across releases (they're hardcoded, not "*",
+         so this holds). A recreate would otherwise reset the sc.exe failure-action config
+         applied by FailureActionsCommand in Service.wxs (only re-applied when NOT Installed,
+         i.e. on a genuinely fresh install), briefly deregister the service from the SCM, and —
+         critically for SimpleModelServer — risk the config-write custom action treating a real
+         upgrade as a fresh install. See docs/versioning.md and
+         https://learn.microsoft.com/windows/win32/msi/majorupgrade-table for the
+         RemoveExistingProducts scheduling this controls. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of SimpleModelServer Loader is already installed."
+                  Schedule="afterInstallExecute" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- {autopf}\SimpleModelServer equivalent -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="SimpleModelServer" />
+    </StandardDirectory>
+
+    <!-- %ProgramData%\SimpleModelServer — holds SimpleModelServer.config.json and the Ollama model store
+         (models\ subfolder), both of which must survive an uninstall/reinstall. Marked
+         permanent (not removed on uninstall) for the same reason TokenSaver's APPDATAFOLDER
+         is: an admin/operator may have customized the config or pulled multi-GB models here,
+         and losing either silently on a routine upgrade would be a serious regression. See
+         INSTALLER_REQUIREMENTS.md's "Config file: location and precedence" section — this is
+         resolution-order case 2, %ProgramData%\SimpleModelServer\SimpleModelServer.config.json. -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="APPDATAFOLDER" Name="SimpleModelServer" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="SimpleModelServer Loader" Level="1">
+      <ComponentGroupRef Id="SimpleModelServerFiles" />
+      <ComponentRef Id="AppDataFolderComponent" />
+      <ComponentRef Id="AiInstructionsComponent" />
+      <ComponentRef Id="InstallSupportScriptComponent" />
+      <ComponentRef Id="ServiceComponent" />
+    </Feature>
+
+    <!-- Mirrors install-draftmodel-service.ps1's robocopy /MIR of the published output into
+         the install directory.
+
+         SimpleModelServer.Server.exe itself is excluded here — it's packaged explicitly as
+         ServiceComponent's File in Service.wxs instead, because that File has to be the
+         KeyPath tied to ServiceInstall/ServiceControl. Sweeping it into this wildcard group
+         too would give the exe two components claiming the same target path
+         ([INSTALLFOLDER]\SimpleModelServer.Server.exe) and fail MSI validation with ICE30 ("installed
+         by two different components ... breaks component reference counting"). Every other
+         file under PublishDir (DLLs, the runtime host, appsettings, etc.) has no such
+         ownership requirement, so it's fine for the wildcard group to own those. -->
+    <ComponentGroup Id="SimpleModelServerFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PublishDir)\**">
+        <Exclude Files="$(PublishDir)\**\*.pdb" />
+        <Exclude Files="$(PublishDir)\SimpleModelServer.Server.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- Placeholder permanent directory component for APPDATAFOLDER, since WiX requires at
+         least one component to create/reference a directory that isn't otherwise populated by
+         files. Permanent="yes" means it (and SimpleModelServer.config.json / models\ dropped there at
+         runtime) survives uninstall. -->
+    <DirectoryRef Id="APPDATAFOLDER">
+      <Component Id="AppDataFolderComponent" Guid="3BF53210-BD8E-4873-9ACC-0F5C9E41D4AA" Permanent="yes">
+        <CreateFolder />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Copy AI_INSTRUCTIONS_REMOTE_ROUTER.md into APPDATAFOLDER, refreshed on every
+         install/upgrade so it stays in sync with the installed version — mirrors
+         install-draftmodel-service.ps1's unconditional Copy-Item -Force for this file. Unlike
+         SimpleModelServer.config.json (handled by the ConfigWrite custom action in Service.wxs), this
+         file has no "don't clobber user edits" concern, so it's a plain WiX File entry rather
+         than a custom action. -->
+    <DirectoryRef Id="APPDATAFOLDER">
+      <Component Id="AiInstructionsComponent" Guid="C7CEC23A-A884-4EAD-BEF3-74ACFC45B9EB">
+        <File Id="AiInstructionsRemoteRouterMd"
+              Source="..\..\..\..\src\Server\SimpleModelServer.Server\AI_INSTRUCTIONS_REMOTE_ROUTER.md"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- install-support.ps1 (see Service.wxs) is staged into INSTALLFOLDER so the deferred
+         ConfigWriteCommand/UrlAclCommand custom actions can invoke it with a plain -File path
+         instead of embedding PowerShell inline in a CustomAction's Value attribute. -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="InstallSupportScriptComponent" Guid="A1B2C3D4-5E6F-4788-9A0B-1C2D3E4F5061">
+        <File Id="InstallSupportPs1"
+              Source="$(WixProjDir)install-support.ps1"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Icon Id="SimpleModelServerIcon" SourceFile="$(PublishDir)\SimpleModelServer.Server.exe" />
+    <Property Id="ARPPRODUCTICON" Value="SimpleModelServerIcon" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <!-- Build traceability: which exact commit this install was built from. Purely
+         informational (visible in Programs & Features as "Comments") — does NOT participate in
+         upgrade detection, which is Package/@Version + UpgradeCode only. Resolved by
+         SimpleModelServer.Setup.wixproj's ResolveMyAppVersionFromNbgv target via
+         `nbgv get-version -v GitCommitIdShort`. -->
+    <Property Id="ARPCOMMENTS" Value="Build $(var.GitCommitHash)" />
+
+  </Package>
+</Wix>

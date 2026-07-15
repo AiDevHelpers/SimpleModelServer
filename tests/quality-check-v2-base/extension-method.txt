@@ -1,0 +1,24 @@
+ Here is the requested C# static extension method:
+
+```csharp
+using System.Collections.Generic;
+using System.Linq;
+
+public static class ChunkExtension
+{
+    public static IEnumerable<List<T>> Chunk<T>(this IEnumerable<T> source, int size)
+    {
+        if (size < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(size), "Size must be greater than or equal to 1.");
+        }
+
+        return source
+            .Select((item, index) => new { Item = item, Index = index })
+            .GroupBy(x => x.Index / size)
+            .Select(group => group.Select(x => x.Item).ToList());
+    }
+}
+```
+
+This method takes an `IEnumerable<T>` as input and returns an `IEnumerable<List<T>>`. It uses LINQ to group the elements into chunks of the specified size. If the `size` parameter is less than 1, it throws an `ArgumentOutOfRangeException`.

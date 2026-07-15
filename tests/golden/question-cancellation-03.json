@@ -1,0 +1,12 @@
+{
+  "id": "question-cancellation-03",
+  "category": "question",
+  "prompt": "How does CancellationToken propagation work across async method chains? Can I link two separate tokens so that either one cancels the operation?",
+  "expected": {
+    "intent": "question",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Conceptual .NET question. CancellationToken mention must not trigger codegen — guards the r13 pattern where API-name presence confused the router."
+}

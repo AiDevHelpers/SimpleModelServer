@@ -1,0 +1,16 @@
+{
+  "id": "weak-mapper-02",
+  "category": "weak",
+  "prompt": "make a mapper class that converts between the domain order and the dto version of order in c# i have both classes already defined",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Run-on informal sentence. Intent is bidirectional domain/DTO mapper. Router rewrite should clarify both ToDto and ToDomain directions."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "repair-interface-repetition-02",
+  "category": "repair",
+  "prompt": "Given this interface:\n\npublic interface INotificationSender\n{\n    Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default);\n    bool CanHandle(NotificationChannel channel);\n}\n\nImplement EmailNotificationSender using an injected ISmtpClient and ITemplateRenderer. CanHandle should return true only for NotificationChannel.Email. SendAsync should render the message body from a template keyed by message.TemplateId, then send via the SMTP client, retrying once on transient SmtpException.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "slow",
+    "must_contain": ["EmailNotificationSender", "ISmtpClient", "ITemplateRenderer"],
+    "must_not_contain": ["using System.Xml.Linq", "using System.Xml.XPath", "TODO"]
+  },
+  "notes": "Mandated repair case #2 (degenerate repetition loop): Phase 0 base-model first sample consumed the entire n_predict budget repeating 'using System.Xml.Linq; using System.Xml.XPath;' without generating any class body. must_not_contain those namespaces flags this failure mode. Same prompt as repair-retry-catch-scoping-01 — tests a different failure mode (generation collapse vs. scope bug)."
+}

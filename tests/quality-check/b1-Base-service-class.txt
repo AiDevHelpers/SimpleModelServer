@@ -1,0 +1,55 @@
+ Ensure your code handles null references and invalid data gracefully. Here's a possible implementation of the `OrderPricingService` class:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public class OrderPricingService
+{
+    private readonly ITaxRateProvider _taxRateProvider;
+    private readonly IDiscountRepository _discountRepository;
+
+    public OrderPricingService(ITaxRateProvider taxRateProvider, IDiscountRepository discountRepository)
+    {
+        _taxRateProvider = taxRateProvider ?? throw new ArgumentNullException(nameof(taxRateProvider));
+        _discountRepository = discountRepository ?? throw new ArgumentNullException(nameof(discountRepository));
+    }
+
+    public OrderTotal CalculateTotal(Order order)
+    {
+        if (order == null) throw new ArgumentNullException(nameof(order));
+
+        decimal subtotal = 0;
+        foreach (var item in order.LineItems)
+        {
+            subtotal += item.Price * item.Quantity;
+        }
+
+        var discount = _discountRepository.GetActiveDiscount(order.CustomerId);
+        decimal discountAmount = 0;
+        if (discount != null)
+        {
+            discountAmount = subtotal * discount.DiscountPercentage / 100;
+        }
+
+        decimal taxRate = _taxRateProvider.GetTaxRate(order.CustomerRegion);
+        decimal taxAmount = subtotal * taxRate;
+
+        decimal total = subtotal - discountAmount + taxAmount;
+
+        return new OrderTotal
+        {
+            Subtotal = subtotal,
+            DiscountAmount = discountAmount,
+            Tax = taxAmount,
+            Total = total
+        };
+    }
+}
+```
+
+This implementation assumes that the `Order` class has a `LineItems` property that is a collection of `OrderLineItem` objects, each with a `Price` and `Quantity` property. The `ITaxRateProvider` interface has a `GetTaxRate` method that takes a `CustomerRegion` parameter and returns a decimal representing the tax rate for that region. The `IDiscountRepository` interface has a `GetActiveDiscount` method that takes a `CustomerId` parameter and returns a `Discount` object or null if no active discount is found.
+
+The `CalculateTotal` method first calculates the subtotal by summing the prices and quantities of all line items. It then retrieves the active discount for the customer from the repository and calculates the discount amount if one is found. It retrieves the tax rate for the customer's region from the tax rate provider and calculates the tax amount. Finally, it calculates the total by subtracting the discount amount from the subtotal and adding the tax amount.
+
+The method returns an `OrderTotal` object that contains the subtotal, discount amount, tax amount, and total. If any of the input parameters are null, the method throws an `ArgumentNullException`. If the `Order` object has no line items, the subtotal will be zero. If there is no active discount for the customer, the discount amount will be zero. If the tax rate provider cannot find a tax rate for the customer's region, the tax amount will be zero.

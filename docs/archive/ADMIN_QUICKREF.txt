@@ -1,0 +1,165 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║            SimpleModelServer Admin Configuration - Quick Reference              ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─ ENDPOINTS ────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  GET  /admin/              Admin dashboard UI (HTML)                           │
+│  GET  /admin/config        Get configuration (JSON)                            │
+│  POST /admin/config        Update a setting                                    │
+│  POST /admin/reload        Reload hot-reloadable settings                      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ QUICK EXAMPLES ───────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Open Admin UI:                                                                │
+│    curl http://localhost:11435/admin/                                         │
+│                                                                                 │
+│  Get Config:                                                                   │
+│    curl http://localhost:11435/admin/config                                   │
+│                                                                                 │
+│  Update Hot-Reload Setting (agentType):                                       │
+│    curl -X POST http://localhost:11435/admin/config \                         │
+│      -H "Content-Type: application/json" \                                    │
+│      -d '{"setting": "global.agentType", "value": "debug"}'                   │
+│                                                                                 │
+│  Update Restart-Required Setting (routerPort):                                │
+│    curl -X POST http://localhost:11435/admin/config \                         │
+│      -H "Content-Type: application/json" \                                    │
+│      -d '{"setting": "global.routerPort", "value": 11436}'                    │
+│                                                                                 │
+│  Remote Access with API Key:                                                  │
+│    curl -H "Authorization: Bearer your-key" \                                 │
+│      http://server:11435/admin/config                                         │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ AUTHENTICATION ───────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Localhost (127.0.0.1, ::1): Always trusted ✓                                │
+│  Remote:                     Requires: Authorization: Bearer <key>             │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ SETTINGS REFERENCE ───────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Network & Security:                                                          │
+│    • routerPort (int, 1-65535) ⚠️ RESTART                                     │
+│    • routerHost (string) ⚠️ RESTART                                           │
+│    • ollamaPort (int, 1-65535) ⚠️ RESTART                                     │
+│    • trustedNetworks (array) ✓ HOT-RELOAD                                    │
+│    • trustedApiKeys (array) ✓ HOT-RELOAD                                     │
+│                                                                                 │
+│  Models:                                                                       │
+│    • draftModel (string) ⚠️ RESTART                                           │
+│    • mainModel (string) ⚠️ RESTART                                            │
+│    • embedModel (string) ✓ HOT-RELOAD                                        │
+│    • routerModelName (string) ⚠️ RESTART                                      │
+│    • contextSize (int) ✓ HOT-RELOAD                                          │
+│                                                                                 │
+│  Agent & Generation:                                                           │
+│    • defaultAgentType (string) ✓ HOT-RELOAD                                  │
+│    • agentType (string) ✓ HOT-RELOAD                                         │
+│    • draftMode (string: Preview/Cleanup/Both) ✓ HOT-RELOAD                   │
+│    • draftHandoffTimeoutMs (int) ✓ HOT-RELOAD                                │
+│                                                                                 │
+│  mDNS:                                                                         │
+│    • mdnsEnabled (bool) ✓ HOT-RELOAD                                         │
+│    • mdnsServiceName (string) ✓ HOT-RELOAD                                   │
+│                                                                                 │
+│  Hardware:                                                                     │
+│    • gpuLayers (int or "auto") ✓ HOT-RELOAD                                 │
+│    • cpuThreads (int or "auto") ✓ HOT-RELOAD                                │
+│                                                                                 │
+│  Legend:                                                                       │
+│    ⚠️  RESTART  = Requires server restart to take effect                      │
+│    ✓  HOT-RELOAD = Takes effect immediately                                  │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ COMMON TASKS ─────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  1. Change Draft Model:                                                       │
+│     Setting: global.draftModel                                                │
+│     Effect: ⚠️ Restart Required                                               │
+│                                                                                 │
+│  2. Force Agent Type Globally:                                                │
+│     Setting: global.agentType                                                 │
+│     Value: ask | code | debug | planning | "" (disabled)                      │
+│     Effect: ✓ Hot Reload                                                      │
+│                                                                                 │
+│  3. Enable Remote Access:                                                     │
+│     Setting: global.trustedApiKeys                                            │
+│     Value: ["key1", "key2", "key3"]                                          │
+│     Effect: ✓ Hot Reload                                                      │
+│                                                                                 │
+│  4. Allow Local Network:                                                      │
+│     Setting: global.trustedNetworks                                           │
+│     Value: ["192.168.1.0/24"]                                                │
+│     Effect: ✓ Hot Reload                                                      │
+│                                                                                 │
+│  5. Change Router Port:                                                       │
+│     Setting: global.routerPort                                                │
+│     Value: 11436                                                              │
+│     Effect: ⚠️ Restart Required                                               │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ TROUBLESHOOTING ──────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Problem                          Solution                                    │
+│  ────────────────────────────────  ──────────────────────────────────────────  │
+│  "Unauthorized" from remote       Add API key: trustedApiKeys setting        │
+│  "Connection Refused"             Check router port & firewall               │
+│  Change not taking effect         Check if requires restart (⚠️)             │
+│  Can't see current values         Make sure /admin/config is accessible      │
+│  Web UI won't load                Verify admin/index.html in output dir      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ DOCUMENTATION ────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Quick Start:    docs/ADMIN_QUICKSTART.md                                    │
+│  Full Reference: docs/ADMIN_CONFIG.md                                        │
+│  Overview:       docs/README_ADMIN.md                                        │
+│  Features:       ADMIN_FEATURES.md                                           │
+│  This File:      ADMIN_QUICKREF.txt                                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ API RESPONSE FORMAT ──────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  Success (Hot Reload):                                                        │
+│  {                                                                             │
+│    "success": true,                                                           │
+│    "setting": "global.agentType",                                             │
+│    "requiresRestart": false,                                                  │
+│    "message": "Setting updated and reloaded."                                 │
+│  }                                                                             │
+│                                                                                 │
+│  Success (Restart Required):                                                  │
+│  {                                                                             │
+│    "success": true,                                                           │
+│    "setting": "global.routerPort",                                            │
+│    "requiresRestart": true,                                                   │
+│    "message": "Setting updated. Server restart required."                     │
+│  }                                                                             │
+│                                                                                 │
+│  Validation Error:                                                            │
+│  {                                                                             │
+│    "error": "validation_failed",                                              │
+│    "message": "Port must be a number between 1 and 65535"                     │
+│  }                                                                             │
+│                                                                                 │
+│  Authentication Error:                                                        │
+│  {                                                                             │
+│    "error": "unauthorized",                                                   │
+│    "message": "Admin configuration requires authentication..."                │
+│  }                                                                             │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                          START: http://localhost:11435/admin/                 ║
+╚════════════════════════════════════════════════════════════════════════════════╝

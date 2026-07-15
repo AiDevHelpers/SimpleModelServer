@@ -1,0 +1,16 @@
+{
+  "id": "trivial-enum-01",
+  "category": "trivial",
+  "prompt": "Write a C# enum called OrderStatus with values Pending, Processing, Shipped, Delivered, and Cancelled.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["enum OrderStatus", "Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+    "must_not_contain": ["class OrderStatus", "TODO"]
+  },
+  "notes": "Simplest possible enum. Fast-path (0.5B) candidate. Router must not over-classify this as complex."
+}

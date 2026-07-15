@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-contradictory-immutable-02",
+  "category": "ambiguous",
+  "prompt": "Write an immutable C# OrderState class where I can update the status field without creating a new instance.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Self-contradictory: immutable and mutating a field are mutually exclusive. Mandated adversarial case (asks for X and not-X). The repair loop cannot fix a logically contradictory spec — only clarification can."
+}

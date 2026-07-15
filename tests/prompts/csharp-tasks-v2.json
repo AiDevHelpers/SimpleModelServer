@@ -1,0 +1,52 @@
+[
+  {
+    "id": "string-utils",
+    "label": "String utility",
+    "prompt": "Write a self-contained C# static method `string ReverseWords(string sentence)` that reverses the order of words in a sentence (not the characters within each word), collapsing any extra whitespace between words to a single space, and trimming leading/trailing whitespace. Handle null or empty input by returning it unchanged. No comments, just the code, and include any `using` directives needed."
+  },
+  {
+    "id": "generic-cache",
+    "label": "Generic LRU cache",
+    "prompt": "Write a self-contained, fully working C# generic class `LruCache<TKey, TValue>` with a constructor taking `int capacity`, a method `bool TryGet(TKey key, out TValue value)`, and a method `void Set(TKey key, TValue value)`. When capacity is exceeded, evict the least-recently-used entry. Use only built-in .NET collections (e.g. `Dictionary`, `LinkedList`) — no external packages. No comments, just the code."
+  },
+  {
+    "id": "validation",
+    "label": "Email validation",
+    "prompt": "Write a self-contained C# static method `bool IsValidEmail(string email)` that validates an email address using `System.Text.RegularExpressions.Regex`. It should return false for null, empty, or malformed input, and true for well-formed addresses like 'user@example.com'. Include the regex pattern inline. No comments, just the code."
+  },
+  {
+    "id": "sorting-multikey",
+    "label": "Multi-key sorting",
+    "prompt": "Given this class:\n\npublic class Person\n{\n    public string LastName { get; set; }\n    public string FirstName { get; set; }\n    public int Age { get; set; }\n}\n\nWrite a self-contained C# static method `List<Person> SortPeople(List<Person> people)` that returns a new list sorted first by LastName ascending, then by FirstName ascending, then by Age descending, using LINQ method syntax. No comments, just the code."
+  },
+  {
+    "id": "custom-exceptions",
+    "label": "Custom exception hierarchy",
+    "prompt": "Write a self-contained C# exception hierarchy for a banking domain: a base `BankingException` (inherits `Exception`, has a constructor taking a `string message`), and two derived exceptions `InsufficientFundsException` (adds a `decimal ShortfallAmount` property, set via constructor) and `AccountFrozenException` (adds a `DateTimeOffset FrozenSinceUtc` property, set via constructor). All exceptions must have a constructor that takes at least a message. No comments, just the code."
+  },
+  {
+    "id": "nullable-refs",
+    "label": "Nullable reference types",
+    "prompt": "With nullable reference types enabled (`#nullable enable`), write a self-contained C# static method `string? FindFirstMatch(IEnumerable<string>? items, Func<string, bool> predicate)` that returns the first item matching the predicate, or null if `items` is null, empty, or no match is found. The method signature and body must be nullable-warning-clean. No comments, just the code."
+  },
+  {
+    "id": "generic-constraint",
+    "label": "Generic constrained method",
+    "prompt": "Write a self-contained C# static generic method `T Max<T>(IEnumerable<T> items) where T : IComparable<T>` that returns the largest item in the sequence. Throw `InvalidOperationException` if the sequence is null or empty. No comments, just the code."
+  },
+  {
+    "id": "extension-method",
+    "label": "Extension method: chunking",
+    "prompt": "Write a self-contained C# static extension method `IEnumerable<List<T>> Chunk<T>(this IEnumerable<T> source, int size)` that splits a sequence into consecutive chunks (lists) of at most `size` elements each, preserving order. Throw `ArgumentOutOfRangeException` if `size` is less than 1. Must be a proper `static class` with a `static` extension method using `this`. No comments, just the code."
+  },
+  {
+    "id": "recursive-tree",
+    "label": "Recursive tree flatten",
+    "prompt": "Given this class:\n\npublic class TreeNode\n{\n    public int Value { get; set; }\n    public List<TreeNode> Children { get; set; } = new List<TreeNode>();\n}\n\nWrite a self-contained C# static method `List<int> FlattenDepthFirst(TreeNode root)` that returns all node values in depth-first pre-order (the root's own value first, then each child's subtree in order), using recursion. Handle a null root by returning an empty list. No comments, just the code."
+  },
+  {
+    "id": "retry-backoff",
+    "label": "Retry with backoff",
+    "prompt": "Write a self-contained, fully working C# static generic method `Task<T> RetryWithBackoffAsync<T>(Func<Task<T>> operation, int maxAttempts, TimeSpan initialDelay)` that calls `operation()`, and on any exception, retries up to `maxAttempts` total attempts, doubling the delay between each retry (starting from `initialDelay`), using `await Task.Delay(...)`. If all attempts fail, rethrow the last exception. Every variable referenced inside a catch block must be declared in a scope visible to that catch block — do not declare a variable inside the try block and then reference it again in the catch block, since that will not compile. No comments, just the code."
+  }
+]

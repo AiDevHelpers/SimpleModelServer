@@ -1,0 +1,16 @@
+{
+  "id": "trivial-flags-enum-06",
+  "category": "trivial",
+  "prompt": "Write a C# flags enum called Permission with values None (0), Read, Write, Delete, and Admin (all three combined). Use [Flags] attribute and power-of-two values.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["[Flags]", "enum Permission", "None", "Read", "Write", "Delete", "Admin"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Flags enum with a combined value (Admin = Read | Write | Delete). Verifies model handles bitwise enum values and the [Flags] attribute correctly."
+}

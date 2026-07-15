@@ -1,0 +1,140 @@
+{
+  "name": "simplemodelserver-vscode",
+  "displayName": "SimpleModelServer",
+  "description": "Copilot Chat model provider for SimpleModelServer router",
+  "version": "1.0.0",
+  "publisher": "SimpleModelServer",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "main": "./out/extension.js",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rsperry79/SimpleModelServer"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "SimpleModelServer",
+      "properties": {
+        "simplemodelserver.host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "SimpleModelServer router host"
+        },
+        "simplemodelserver.port": {
+          "type": "number",
+          "default": 11435,
+          "description": "SimpleModelServer router port (note: 11435, not Ollama's 11434)"
+        },
+        "simplemodelserver.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for SimpleModelServer (if required)",
+          "markdownDescription": "API key for SimpleModelServer (if required). Leave empty for localhost.",
+          "scope": "application"
+        },
+        "simplemodelserver.defaultAgent": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "claude",
+            "research"
+          ],
+          "enumDescriptions": [
+            "Auto-detect based on request",
+            "Claude agent",
+            "Research agent"
+          ],
+          "description": "Default agent type for SimpleModelServer requests"
+        },
+        "simplemodelserver.healthCheckInterval": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "description": "Health check poll interval in seconds"
+        }
+      }
+    },
+    "languageModelChatProviders": [
+      {
+        "vendor": "simplemodelserver",
+        "displayName": "SimpleModelServer",
+        "id": "simplemodelserver",
+        "markets": [
+          "public"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "simplemodelserver.explainCode",
+        "title": "Explain with SimpleModelServer",
+        "category": "SimpleModelServer"
+      },
+      {
+        "command": "simplemodelserver.generateTests",
+        "title": "Generate Tests with SimpleModelServer",
+        "category": "SimpleModelServer"
+      },
+      {
+        "command": "simplemodelserver.optimizeCode",
+        "title": "Optimize Code with SimpleModelServer",
+        "category": "SimpleModelServer"
+      },
+      {
+        "command": "simplemodelserver.openSettings",
+        "title": "Open SimpleModelServer Settings",
+        "category": "SimpleModelServer"
+      },
+      {
+        "command": "simplemodelserver.testConnection",
+        "title": "Test SimpleModelServer Connection",
+        "category": "SimpleModelServer"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "simplemodelserver.explainCode",
+          "group": "simplemodelserver",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "simplemodelserver.generateTests",
+          "group": "simplemodelserver",
+          "when": "editorHasSelection && resourceLangId == 'typescript' || resourceLangId == 'javascript' || resourceLangId == 'csharp' || resourceLangId == 'python'"
+        },
+        {
+          "command": "simplemodelserver.optimizeCode",
+          "group": "simplemodelserver",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node ./out/test/runTests.js",
+    "test:unit": "node --loader tsx ./node_modules/.bin/vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.104.0",
+    "esbuild": "^0.19.10",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "gpt-tokenizer": "^3.4.0"
+  }
+}

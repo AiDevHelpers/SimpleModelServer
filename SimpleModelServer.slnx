@@ -1,0 +1,48 @@
+<Solution>
+  <Folder Name="/Client/">
+    <Project Path="src/Clients/SimpleModelServer.Chat/SimpleModelServer.Chat.csproj" />
+  </Folder>
+  <Folder Name="/Common/">
+    <Project Path="src/Common/SimpleModelServer.Common/SimpleModelServer.Common.csproj" />
+  </Folder>
+  <Folder Name="/Config/">
+    <Project Path="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
+  </Folder>
+  <Folder Name="/Contracts/">
+    <Project Path="src/Contracts/SimpleModelServer.Contracts/SimpleModelServer.Contracts.csproj" Id="547a384f-2ead-4db5-8109-19c28b607087" />
+  </Folder>
+  <Folder Name="/Evals/">
+    <Project Path="src/Evals/SimpleModelServer.Evals.Tests/SimpleModelServer.Evals.Tests.csproj" />
+    <Project Path="src/Evals/SimpleModelServer.Evals/SimpleModelServer.Evals.csproj" />
+  </Folder>
+  <Folder Name="/Extensions/">
+    <Project Path="src/Extensions/SimpleModelServer.Extensions.VS/SimpleModelServer.Extensions.VS.csproj" Id="b74ee557-78c4-4812-b2f5-c12d0df67bb8" />
+    <Project Path="src/Extensions/SimpleModelServer.Extensions.VS.Tests/SimpleModelServer.Extensions.VS.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Hardware/">
+    <Project Path="src/Hardware/SimpleModelServer.Hardware/SimpleModelServer.Hardware.csproj" Id="15c4ea83-743e-4a78-8241-1438d80a5ce3" />
+    <Project Path="src/Hardware/SimpleModelServer.Hardware.Tests/SimpleModelServer.Hardware.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Providers/">
+    <Project Path="src/Providers/SimpleModelServer.Providers.Common/SimpleModelServer.Providers.Common.csproj" Id="fe46816c-fef6-45e2-a60b-d2f6f3f23d4f" />
+    <Project Path="src/Providers/SimpleModelServer.Providers.LMStudio/SimpleModelServer.Providers.LMStudio.csproj" Id="ff84e72d-e274-449c-bddb-4edb9cdf2aed" />
+    <Project Path="src/Providers/SimpleModelServer.Providers.Ollama/SimpleModelServer.Providers.Ollama.csproj" Id="f86a5b20-a0c4-4845-82fc-fce6942c66d7" />
+  </Folder>
+  <Folder Name="/Server/">
+    <Project Path="src/Server/SimpleModelServer.Server.Tests/SimpleModelServer.Server.Tests.csproj" />
+    <Project Path="src/Server/SimpleModelServer.Server/SimpleModelServer.Server.csproj" />
+  </Folder>
+  <Folder Name="/UI/">
+    <Project Path="src/UI/SimpleModelServer.UI/SimpleModelServer.UI.csproj" />
+    <Project Path="src/UI/SimpleModelServer.UI.Tests/SimpleModelServer.UI.Tests.csproj" />
+  </Folder>
+
+  <Folder Name="/Wix/">
+    <File Path="build/scripts/publish-simplemodelserver-for-wix.ps1" />
+    <Project Path="build/wix/SimpleModelServer.Setup/SimpleModelServer.Setup.wixproj" Type="b7dd6f7e-def8-4e67-b5b7-07ef123db6f0">
+      <BuildDependency Project="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
+      <BuildDependency Project="src/Server/SimpleModelServer.Server/SimpleModelServer.Server.csproj" />
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

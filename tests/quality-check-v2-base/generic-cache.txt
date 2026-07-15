@@ -1,0 +1,55 @@
+ Here's a self-contained, fully working C# generic class `LruCache<TKey, TValue>` with the required methods:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public class LruCache<TKey, TValue>
+{
+    private readonly int capacity;
+    private readonly Dictionary<TKey, LinkedListNode<KeyValuePair<TKey, TValue>>> cache;
+    private readonly LinkedList<KeyValuePair<TKey, TValue>> lruList;
+
+    public LruCache(int capacity)
+    {
+        this.capacity = capacity;
+        cache = new Dictionary<TKey, LinkedListNode<KeyValuePair<TKey, TValue>>>();
+        lruList = new LinkedList<KeyValuePair<TKey, TValue>>();
+    }
+
+    public bool TryGet(TKey key, out TValue value)
+    {
+        if (!cache.TryGetValue(key, out var node))
+        {
+            value = default(TValue);
+            return false;
+        }
+
+        lruList.Remove(node.Value);
+        lruList.AddFirst(node.Value);
+        cache[key] = lruList.First;
+
+        value = node.Value.Value;
+        return true;
+    }
+
+    public void Set(TKey key, TValue value)
+    {
+        if (cache.ContainsKey(key))
+        {
+            lruList.Remove(cache[key].Value);
+        }
+        else if (cache.Count == capacity)
+        {
+            cache.Remove(lruList.Last.Value.Key);
+            lruList.RemoveLast();
+        }
+
+        var newNode = new KeyValuePair<TKey, TValue>(key, value);
+        lruList.AddFirst(newNode);
+        cache[key] = lruList.First;
+    }
+}
+```
+
+This implementation uses a `Dictionary` to store the key-value pairs and a `LinkedList` to maintain the order of least recently used elements. The `TryGet` method retrieves a value from the cache and updates its position in the linked list. The `Set` method adds or updates a key-value pair in the cache, evicting the least recently used element if necessary.

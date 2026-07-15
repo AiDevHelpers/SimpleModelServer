@@ -1,0 +1,13 @@
+.git/
+.gitignore
+node_modules/
+out/
+test/
+src/
+tsconfig.json
+package-lock.json
+*.vsix
+.env
+.env.local
+.vscode-test/
+*.test.ts

@@ -1,0 +1,16 @@
+{
+  "id": "trivial-dto-simple-05",
+  "category": "trivial",
+  "prompt": "Write a C# class AddressDto with string properties Street, City, State, PostalCode, and Country. All properties should have public getters and setters. No constructor.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["class AddressDto", "Street", "City", "State", "PostalCode", "Country"],
+    "must_not_contain": ["record AddressDto", "TODO"]
+  },
+  "notes": "Explicitly asks for class (not record). must_not_contain 'record AddressDto' tests the inverse of the class-vs-record deviation found in Phase 0."
+}

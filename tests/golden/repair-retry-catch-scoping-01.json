@@ -1,0 +1,16 @@
+{
+  "id": "repair-retry-catch-scoping-01",
+  "category": "repair",
+  "prompt": "Given this interface:\n\npublic interface INotificationSender\n{\n    Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default);\n    bool CanHandle(NotificationChannel channel);\n}\n\nImplement EmailNotificationSender using an injected ISmtpClient and ITemplateRenderer. CanHandle should return true only for NotificationChannel.Email. SendAsync should render the message body from a template keyed by message.TemplateId, then send via the SMTP client, retrying once on transient SmtpException.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "slow",
+    "must_contain": ["EmailNotificationSender", "ISmtpClient", "ITemplateRenderer", "SmtpException"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Mandated repair case #1 (CS0103): both 3B-base and 3B-Instruct independently produced a catch block referencing a variable declared inside the try block (e.g., 'string body' declared in try, referenced again in catch on the retry call). Roslyn must catch CS0103; the repair loop must fix it. latency_class slow because worst-case needs the repair pass."
+}

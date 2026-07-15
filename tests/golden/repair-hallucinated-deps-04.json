@@ -1,0 +1,16 @@
+{
+  "id": "repair-hallucinated-deps-04",
+  "category": "repair",
+  "prompt": "Write an async C# method Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken) on a class InventoryService. Use the injected IStockRepository for all data access — no other data access mechanism. Check current stock, throw InsufficientStockException if insufficient, otherwise decrement stock and return an InventoryReservation with a new Id and ExpiresAtUtc 15 minutes from now.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["ReserveStockAsync", "IStockRepository", "InsufficientStockException", "ExpiresAtUtc"],
+    "must_not_contain": ["DbContext", "IUnitOfWork", "EntityFrameworkCore", "BeginTransactionAsync", "TODO"]
+  },
+  "notes": "Mandated repair case #4 (hallucinated dependencies): Phase 0 async-method task found the 3B injected an EF Core DbContext not mentioned in the prompt. This case makes the constraint explicit ('no other data access mechanism') and asserts must_not_contain DbContext and IUnitOfWork — the two specific hallucinations Phase 0 observed."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "overflow-workflow-engine-04",
+  "category": "overflow",
+  "prompt": "Implement a workflow engine with state machine semantics: workflow, state, transition, and action abstractions; a workflow runner with persistence (save and restore state); guard conditions on transitions; async action execution; event triggers; and a JSON-based workflow definition format that can be loaded at runtime.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "low",
+    "routing_reason": "context_overflow_split"
+  },
+  "notes": "State machine engine with persistence, async actions, and a custom runtime DSL — six distinct design concerns. Clearly exceeds 8k single-pass generation. Context split with contract extraction is the correct path."
+}

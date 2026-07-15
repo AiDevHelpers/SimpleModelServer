@@ -1,0 +1,20 @@
+ Here's the requested C# static generic method `T Max<T>(IEnumerable<T> items) where T : IComparable<T>`:
+
+```csharp
+public static T Max<T>(IEnumerable<T> items) where T : IComparable<T>
+{
+    if (items == null)
+    {
+        throw new InvalidOperationException("The sequence cannot be null.");
+    }
+
+    if (!items.Any())
+    {
+        throw new InvalidOperationException("The sequence cannot be empty.");
+    }
+
+    return items.Max();
+}
+```
+
+This method takes an `IEnumerable<T>` as input and returns the largest item in the sequence. It uses the `Max()` method of the `IEnumerable<T>` interface to find the maximum value. The method also checks if the input sequence is null or empty and throws an `InvalidOperationException` if either condition is true.

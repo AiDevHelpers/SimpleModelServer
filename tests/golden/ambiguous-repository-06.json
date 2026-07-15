@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-repository-06",
+  "category": "ambiguous",
+  "prompt": "Create a CustomerRepository that supports querying customers by region, spending tier, and last purchase date.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "medium",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Missing data access technology (Dapper, EF Core, ADO.NET, MongoDB?) — the query implementation is entirely different per choice. Also ambiguous whether filters are AND or OR combined. Two independent decision points, either alone would block generation."
+}

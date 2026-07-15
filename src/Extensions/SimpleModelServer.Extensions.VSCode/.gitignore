@@ -1,0 +1,11 @@
+node_modules/
+out/
+*.vsix
+.vscode-test/
+.env
+.env.local
+package-lock.json
+*.log
+.DS_Store
+dist/
+build/

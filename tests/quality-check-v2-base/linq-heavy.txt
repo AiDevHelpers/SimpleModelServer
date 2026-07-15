@@ -1,0 +1,43 @@
+ Ensure the method is efficient and handles large datasets well. Here is the implementation of the `SummarizeTopCustomers` method in C#:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+
+public static class OrderExtensions
+{
+    public static List<CustomerSpendSummary> SummarizeTopCustomers(this IEnumerable<Order> orders, int topN)
+    {
+        var summaries = orders
+            .GroupBy(o => o.CustomerId)
+            .Where(g => g.Count() >= 2)
+            .Select(g => new CustomerSpendSummary
+            {
+                CustomerId = g.Key,
+                OrderCount = g.Count(),
+                TotalSpend = g.Sum(o => o.Total),
+                AverageOrderValue = g.Average(o => o.Total)
+            })
+            .OrderByDescending(s => s.TotalSpend)
+            .Take(topN)
+            .ToList();
+
+        return summaries;
+    }
+}
+```
+
+This code defines a `CustomerSpendSummary` class to hold the summary information for each customer. The `OrderExtensions` class contains the `SummarizeTopCustomers` method, which uses LINQ to perform the required operations efficiently.
+
+The method first groups the orders by `CustomerId`, filters out customers with fewer than 2 orders, computes the total spend and order count for each customer, orders the summaries by total spend descending, and takes the top N summaries. Finally, it returns the resulting list of summaries.
+
+Note that this implementation assumes that the `Order` class has properties `CustomerId`, `Total`, and `TotalSpend`. If your actual `Order` class has different property names, you'll need to adjust the code accordingly.

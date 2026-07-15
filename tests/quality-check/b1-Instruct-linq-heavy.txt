@@ -1,0 +1,86 @@
+ Here's the CustomerSpendSummary class:
+
+```csharp
+public class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+```
+
+And here's an example of how to use the method:
+
+```csharp
+var orders = new List<Order>
+{
+    new Order { CustomerId = 1, Amount = 100 },
+    new Order { CustomerId = 2, Amount = 200 },
+    new Order { CustomerId = 1, Amount = 150 },
+    new Order { CustomerId = 3, Amount = 300 },
+    new Order { CustomerId = 2, Amount = 250 },
+    new Order { CustomerId = 3, Amount = 350 }
+};
+
+var topCustomers = SummarizeTopCustomers(orders, 2);
+foreach (var customer in topCustomers)
+{
+    Console.WriteLine($"Customer {customer.CustomerId}: OrderCount = {customer.OrderCount}, TotalSpend = {customer.TotalSpend}, AverageOrderValue = {customer.AverageOrderValue}");
+}
+```
+
+This should output:
+
+```
+Customer 3: OrderCount = 3, TotalSpend = 700, AverageOrderValue = 233.33333333333335
+Customer 2: OrderCount = 2, TotalSpend = 450, AverageOrderValue = 225
+```
+
+Note that the AverageOrderValue is calculated as TotalSpend divided by OrderCount, and it should be rounded to two decimal places. ```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+
+public class Order
+{
+    public int CustomerId { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class Program
+{
+    public static List<CustomerSpendSummary> SummarizeTopCustomers(IEnumerable<Order> orders, int topN)
+    {
+        return orders
+            .GroupBy(order => order.CustomerId)
+            .Select(group => new CustomerSpendSummary
+            {
+                CustomerId = group.Key,
+                OrderCount = group.Count(),
+                TotalSpend = group.Sum(order => order.Amount),
+                AverageOrderValue = Math.Round(group.Average(order => order.Amount), 2)
+            })
+            .Where(customer => customer.OrderCount >= 2)
+            .OrderByDescending(customer => customer.TotalSpend)
+            .Take(topN)
+            .ToList();
+    }
+
+    public static void Main()
+    {
+        var orders = new List<Order>
+        {
+            new Order { CustomerId = 1, Amount = 100 },
+            new Order { CustomerId = 2, Amount = 200 },
+            new Order { CustomerId = 1, Amount = 150 },
+            new Order { CustomerId = 3, Amount = 300 },
+            new Order { CustomerId = 2

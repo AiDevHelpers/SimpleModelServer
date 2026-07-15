@@ -1,0 +1,28 @@
+ Here is the self-contained C# static method `List<Person> SortPeople(List<Person> people)` that sorts the list of `Person` objects as described:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class Person
+{
+    public string LastName { get; set; }
+    public string FirstName { get; set; }
+    public int Age { get; set; }
+}
+
+public static class PersonSorter
+{
+    public static List<Person> SortPeople(List<Person> people)
+    {
+        return people
+            .OrderBy(p => p.LastName)
+            .ThenBy(p => p.FirstName)
+            .ThenByDescending(p => p.Age)
+            .ToList();
+    }
+}
+```
+
+This method uses LINQ's `OrderBy`, `ThenBy`, and `ThenByDescending` methods to sort the list of `Person` objects. The `OrderBy` method sorts the list by `LastName`, the `ThenBy` method sorts the list by `FirstName`, and the `ThenByDescending` method sorts the list by `Age` in descending order. Finally, the `ToList` method converts the sorted enumerable back to a list.

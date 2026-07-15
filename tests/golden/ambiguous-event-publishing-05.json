@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-event-publishing-05",
+  "category": "ambiguous",
+  "prompt": "Add event publishing when an order is placed.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Two missing critical decisions: (1) event bus technology (in-process C# events, MediatR, Azure Service Bus, RabbitMQ, outbox pattern?), (2) where to hook it (domain event? application service? outbox?). Too underspecified to codegen correctly."
+}

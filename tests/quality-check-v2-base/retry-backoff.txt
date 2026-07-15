@@ -1,0 +1,34 @@
+ Here is the self-contained, fully working C# static generic method `Task<T> RetryWithBackoffAsync<T>(Func<Task<T>> operation, int maxAttempts, TimeSpan initialDelay)`:
+
+```csharp
+using System;
+using System.Threading.Tasks;
+
+public static class RetryWithBackoffAsync
+{
+    public static async Task<T> RetryWithBackoffAsync<T>(Func<Task<T>> operation, int maxAttempts, TimeSpan initialDelay)
+    {
+        TimeSpan delay = initialDelay;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Attempt {attempt} failed: {ex.Message}");
+                if (attempt == maxAttempts)
+                {
+                    throw;
+                }
+                await Task.Delay(delay);
+                delay *= 2;
+            }
+        }
+        throw new InvalidOperationException("All attempts failed.");
+    }
+}
+```
+
+This method takes a function `operation` that returns a `Task<T>`, along with `maxAttempts` and `initialDelay`. It retries the operation up to `maxAttempts` times, doubling the delay between each retry. If all attempts fail, it rethrows the last exception.

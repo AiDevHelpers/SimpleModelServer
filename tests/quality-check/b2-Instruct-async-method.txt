@@ -1,0 +1,101 @@
+, and a private field for CancellationToken. The InventoryReservation class should have a private field for InventoryId and a private field for ExpiresAtUtc. The InventoryService class should have a public method ReserveStockAsync that takes a Guid productId, int quantity, and CancellationToken cancellationToken. The method should check the current stock via the IStockRepository, throw InsufficientStockException if not enough is available, otherwise decrements stock transactionally and returns an InventoryReservation with a reservation Id and ExpiresAtUtc 15 minutes out. The method should use proper async/await and pass the cancellation token through.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+    private readonly InventoryReservation _reservation;
+    private readonly CancellationToken _cancellationToken;
+
+    public InventoryService(IStockRepository stockRepository, InventoryReservation reservation, CancellationToken cancellationToken)
+    {
+        _stockRepository = stockRepository;
+        _reservation = reservation;
+        _cancellationToken = cancellationToken;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException("Not enough stock available.");
+        }
+
+        // Simulate transactional decrement of stock
+        await _stockRepository.DecrementStockAsync(productId, quantity, cancellationToken);
+
+        // Calculate expiration time 15 minutes from now
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(15);
+
+        // Create and return the reservation
+        return new InventoryReservation(productId, expiresAtUtc);
+    }
+}
+
+public class InventoryReservation
+{
+    private readonly Guid _inventoryId;
+    private readonly DateTime _expiresAtUtc;
+
+    public InventoryReservation(Guid inventoryId, DateTime expiresAtUtc)
+    {
+        _inventoryId = inventoryId;
+        _expiresAtUtc = expiresAtUtc;
+    }
+
+    public Guid InventoryId => _inventoryId;
+    public DateTime ExpiresAtUtc => _expiresAtUtc;
+}
+
+public class InsufficientStockException : Exception
+{
+    public InsufficientStockException(string message) : base(message)
+    {
+    }
+}
+
+public interface IStockRepository
+{
+    Task<int> GetCurrentStockAsync(Guid productId, CancellationToken cancellationToken);
+    Task DecrementStockAsync(Guid productId, int quantity, CancellationToken cancellationToken);
+}
+``` ```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+    private readonly InventoryReservation _reservation;
+    private readonly CancellationToken _cancellationToken;
+
+    public InventoryService(IStockRepository stockRepository, InventoryReservation reservation, CancellationToken cancellationToken)
+    {
+        _stockRepository = stockRepository;
+        _reservation = reservation;
+        _cancellationToken = cancellationToken;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException("Not enough stock available.");
+        }
+
+        // Simulate transactional decrement of stock
+        await _stockRepository.DecrementStockAsync(productId, quantity, cancellationToken);
+
+        // Calculate expiration time 15 minutes from now
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes

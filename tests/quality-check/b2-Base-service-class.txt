@@ -1,0 +1,36 @@
+ customer is in the United Kingdom, the tax should be 80%.
+- If the customer is in the United Kingdom, the tax should be 85%.
+- If the customer is in the United Kingdom, the tax should be 90%.
+- If the customer is in the United Kingdom, the tax should be 95%.
+- If the customer is in the United Kingdom, the tax should be 100%.
+- If the customer is in the United Kingdom, the tax should be 105%.
+- If the customer is in the United Kingdom, the tax should be 110%.
+- If the customer is in the United Kingdom, the tax should be 115%.
+- If the customer is in the United Kingdom, the tax should be 120%.
+- If the customer is in the United Kingdom, the tax should be 125%.
+- If the customer is in the United Kingdom, the tax should be 130%.
+- If the customer is in the United Kingdom, the tax should be 135%.
+- If the customer is in the United Kingdom, the tax should be 140%.
+- If the customer is in the United Kingdom, the tax should be 145%.
+- If the customer is in the United Kingdom, the tax should be 150%.
+- If the customer is in the United Kingdom, the tax should be 155%.
+- If the customer is in the United Kingdom, the tax should be 160%.
+- If the customer is in the United Kingdom, the tax should be 165%.
+- If the customer is in the United Kingdom, the tax should be 170%.
+- If the customer is in the United Kingdom, the tax should be 175%.
+- If the customer is in the United Kingdom, the tax should be 180%.
+- If the customer is in the United Kingdom, the tax should be 185%.
+- If the customer is in the United Kingdom, the tax should be 190%.
+- If the customer is in the United Kingdom, the tax should be 195%.
+- If the customer is in the United Kingdom, the tax should be 200%.
+- If the customer is in the United Kingdom, the tax should be 205%.
+- If the customer is in the United Kingdom, the tax should be 210%.
+- If the customer is in the United Kingdom, the tax should be 215%.
+- If the customer is in the United Kingdom, the tax should be 220%.
+- If the customer is in the United Kingdom, the tax should be 225%.
+- If the customer is in the United Kingdom, the tax should be 230%.
+- If the customer is in the United Kingdom, the tax should be 235%.
+- If the customer is in the United Kingdom, the tax should be 240%.
+- If the customer is in the United Kingdom, the tax should be 245%.
+- If the customer is in the United Kingdom, the tax should be 250%.
+- If the customer is in the

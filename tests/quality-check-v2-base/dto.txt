@@ -1,0 +1,27 @@
+ Here is the C# code for the OrderDto record type:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public record OrderDto
+{
+    public Guid OrderId { get; init; }
+    public Guid CustomerId { get; init; }
+    public IReadOnlyList<OrderLineItemDto> LineItems { get; init; }
+    public decimal Subtotal { get; init; }
+    public decimal Tax { get; init; }
+    public decimal Total { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; }
+}
+
+public record OrderLineItemDto
+{
+    public Guid ProductId { get; init; }
+    public string Sku { get; init; }
+    public int Quantity { get; init; }
+    public decimal UnitPrice { get; init; }
+}
+```
+
+This code defines two record types: `OrderDto` and `OrderLineItemDto`. The `OrderDto` type represents an e-commerce order and includes properties for the order ID, customer ID, line items, subtotal, tax, total, and creation date. The `OrderLineItemDto` type represents an individual line item in the order and includes properties for the product ID, SKU, quantity, and unit price.

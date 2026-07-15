@@ -1,0 +1,65 @@
+```csharp
+using System.Security.Cryptography;
+using System.Text;
+using System.Diagnostics;
+using System.Numerics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+
+public class Order
+{
+    public int CustomerId { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class Program
+{
+    public static List<CustomerSpendSummary> SummarizeTopCustomers(IEnumerable<Order> orders, int topN)
+    {
+        return orders
+            .GroupBy(order => order.CustomerId)
+            .Select(group => new CustomerSpendSummary
+            {
+                CustomerId = group.Key,
+                OrderCount = group.Count(),
+                TotalSpend = group.Sum(order => order.Amount),
+                AverageOrderValue = group.Count() > 0 ? group.Average(order => order.Amount) : 0
+            })
+            .Where(customer => customer.OrderCount >= 2)
+            .OrderByDescending(customer => customer.TotalSpend)
+            .Take(topN)
+            .ToList();
+    }
+
+    public static void Main()
+    {
+        // Example usage:
+        var orders = new List<Order>
+        {
+            new Order { CustomerId = 1, Amount = 100 },
+            new Order { CustomerId = 1, Amount = 200 },
+            new Order { CustomerId = 2, Amount = 150 },
+            new Order { CustomerId = 3, Amount = 50 },
+            new Order { CustomerId = 3, Amount = 100 },
+            new Order { CustomerId = 4, Amount = 250 }
+        };
+
+        var topCustomers = SummarizeTopCustomers(orders, 2);
+        foreach (var customer in topCustomers)
+        {
+            Console.WriteLine($"CustomerId: {customer.CustomerId}, OrderCount: {customer.OrderCount}, TotalSpend: {customer.TotalSpend}, AverageOrderValue: {customer.AverageOrderValue}");
+        }
+    }
+}
+```
+
+This code defines a `CustomerSpendSummary` class to hold the summary data for each customer, an `Order` class to represent individual orders, and a `Program` class with a `SummarizeTopCustomers` method that performs the required operations using LINQ. The `Main` method demonstrates how to use this method with a sample list of orders.

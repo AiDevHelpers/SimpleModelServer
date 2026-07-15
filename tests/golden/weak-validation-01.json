@@ -1,0 +1,16 @@
+{
+  "id": "weak-validation-01",
+  "category": "weak",
+  "prompt": "i need to validate my user object thing can u write the c# for it, it should check the name and email and maybe age if theres an age",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Poorly phrased but intent is clear: validate a User object (name, email, optional age). Router should rewrite to a concrete prompt with a proper signature before sending to codegen."
+}

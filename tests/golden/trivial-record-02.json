@@ -1,0 +1,16 @@
+{
+  "id": "trivial-record-02",
+  "category": "trivial",
+  "prompt": "Write a C# positional record called ProductId that wraps a single Guid value. No extra methods.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["record ProductId"],
+    "must_not_contain": ["class ProductId", "TODO"]
+  },
+  "notes": "Strongly-typed ID using positional record. must_contain 'record' because the LINQ-heavy Phase 0 task showed the 3B emits a mutable class when a record is asked for — the compiler accepts both, but spec does not."
+}

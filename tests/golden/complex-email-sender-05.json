@@ -1,0 +1,16 @@
+{
+  "id": "complex-email-sender-05",
+  "category": "complex",
+  "prompt": "Given this interface:\n\npublic interface INotificationSender\n{\n    Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default);\n    bool CanHandle(NotificationChannel channel);\n}\n\nImplement EmailNotificationSender using an injected ISmtpClient and ITemplateRenderer. CanHandle should return true only for NotificationChannel.Email. SendAsync should render the message body from a template keyed by message.TemplateId, then send via the SMTP client, retrying once on transient SmtpException.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["EmailNotificationSender", "INotificationSender", "ISmtpClient", "ITemplateRenderer", "NotificationChannel.Email"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Verbatim from tests/prompts/csharp-tasks.json (interface-impl). Both 3B-base and 3B-Instruct independently produce the CS0103 try-scoped variable bug on the retry-once pattern. The Roslyn gate must catch it; the repair loop must fix it before output reaches the user."
+}

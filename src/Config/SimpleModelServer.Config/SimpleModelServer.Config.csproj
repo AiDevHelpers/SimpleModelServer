@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+    <IsPackable>true</IsPackable>
+    <PackageId>SimpleModelServer.Config</PackageId>
+    <Description>Configuration model and loader for SimpleModelServer.Loader.</Description>
+    <Authors>rsperry79</Authors>
+    <RepositoryUrl>https://github.com/rsperry79/DraftModel</RepositoryUrl>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\build\dist\$(Configuration.ToLower())\nuget</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <ProjectReference Include="..\..\Common\SimpleModelServer.Common\SimpleModelServer.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+  </ItemGroup>
+</Project>

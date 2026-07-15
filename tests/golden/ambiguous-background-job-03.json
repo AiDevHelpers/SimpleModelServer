@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-background-job-03",
+  "category": "ambiguous",
+  "prompt": "Schedule a job to run every night at midnight to clean up old records.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Missing critical decision: which scheduler? Hangfire, Quartz.NET, .NET BackgroundService + PeriodicTimer, Azure Functions timer trigger, cron? The implementation differs completely per choice. Mandated ambiguous-by-omission pattern."
+}

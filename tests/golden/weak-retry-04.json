@@ -1,0 +1,16 @@
+{
+  "id": "weak-retry-04",
+  "category": "weak",
+  "prompt": "write retry logic for http calls maybe 3 tries exponential backoff or something",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Informal, hedged ('maybe', 'or something'). Intent is clear: HttpClient retry with exponential backoff. Router rewrite should specify max attempts, base delay, jitter, and exception types."
+}

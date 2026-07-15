@@ -1,0 +1,12 @@
+{
+  "id": "ambiguous-caching-01",
+  "category": "ambiguous",
+  "prompt": "Add caching to the product lookup service so we're not hitting the database every time.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Critical decision missing: which cache store (IMemoryCache in-process, IDistributedCache, Redis, custom dictionary)? TTL? Eviction policy? Invalidation strategy? Generating code requires picking one — wrong pick wastes the generation. Classic ambiguous-by-omission case mandated by the spec."
+}

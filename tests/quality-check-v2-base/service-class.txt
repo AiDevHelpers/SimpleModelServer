@@ -1,0 +1,94 @@
+ Ensure the class is properly tested. Here is an example implementation of the OrderPricingService class:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public class OrderPricingService
+{
+    private readonly ITaxRateProvider _taxRateProvider;
+    private readonly IDiscountRepository _discountRepository;
+
+    public OrderPricingService(ITaxRateProvider taxRateProvider, IDiscountRepository discountRepository)
+    {
+        _taxRateProvider = taxRateProvider;
+        _discountRepository = discountRepository;
+    }
+
+    public OrderTotal CalculateTotal(Order order)
+    {
+        decimal subtotal = CalculateSubtotal(order);
+        decimal discountAmount = GetDiscountAmount(order);
+        decimal taxAmount = CalculateTax(subtotal, order.Customer.Region);
+        decimal total = subtotal - discountAmount + taxAmount;
+
+        return new OrderTotal
+        {
+            Subtotal = subtotal,
+            DiscountAmount = discountAmount,
+            Tax = taxAmount,
+            Total = total
+        };
+    }
+
+    private decimal CalculateSubtotal(Order order)
+    {
+        decimal subtotal = 0;
+        foreach (var lineItem in order.LineItems)
+        {
+            subtotal += lineItem.Quantity * lineItem.Price;
+        }
+        return subtotal;
+    }
+
+    private decimal GetDiscountAmount(Order order)
+    {
+        var discount = _discountRepository.GetActiveDiscount(order.Customer);
+        return discount != null ? discount.Amount : 0;
+    }
+
+    private decimal CalculateTax(decimal subtotal, string region)
+    {
+        var taxRate = _taxRateProvider.GetTaxRate(region);
+        return subtotal * taxRate;
+    }
+}
+```
+
+And here is a sample test for the OrderPricingService class:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using Xunit;
+
+public class OrderPricingServiceTests
+{
+    [Fact]
+    public void CalculateTotal_ReturnsCorrectValues()
+    {
+        var order = new Order
+        {
+            Customer = new Customer { Region = "US" },
+            LineItems = new List<LineItem>
+            {
+                new LineItem { Quantity = 2, Price = 10 },
+                new LineItem { Quantity = 3, Price = 5 }
+            }
+        };
+
+        var taxRateProvider = new MockTaxRateProvider();
+        var discountRepository = new MockDiscountRepository();
+        var service = new OrderPricingService(taxRateProvider, discountRepository);
+
+        var result = service.CalculateTotal(order);
+
+        Assert.Equal(25, result.Subtotal);
+        Assert.Equal(0, result.DiscountAmount);
+        Assert.Equal(5, result.Tax);
+        Assert.Equal(20, result.Total);
+    }
+}
+```
+
+Note that this is just a basic example and you may need to modify it to fit your specific requirements. Also, you should replace the `MockTaxRateProvider` and `MockDiscountRepository` classes with actual implementations of the `ITaxRateProvider` and `IDiscountRepository` interfaces.

@@ -1,0 +1,51 @@
+ Ensure the method is thread-safe and handles concurrent reservations. Here is an example implementation of the `ReserveStockAsync` method in C#:
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+
+    public InventoryService(IStockRepository stockRepository)
+    {
+        _stockRepository = stockRepository ?? throw new ArgumentNullException(nameof(stockRepository));
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        // Check current stock
+        var currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException($"Insufficient stock for product {productId}. Current stock: {currentStock}, requested quantity: {quantity}");
+        }
+
+        // Decrement stock transactionally
+        var reservationId = Guid.NewGuid();
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(15);
+
+        using (var transaction = await _stockRepository.BeginTransactionAsync(cancellationToken))
+        {
+            await _stockRepository.DecrementStockAsync(productId, quantity, reservationId, expiresAtUtc, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        return new InventoryReservation(reservationId, expiresAtUtc);
+    }
+}
+```
+
+In this implementation, we first check the current stock using the `GetCurrentStockAsync` method of the `IStockRepository`. If there is not enough stock, we throw an `InsufficientStockException`.
+
+Next, we create a new `InventoryReservation` object with a random `reservationId` and an expiration time of 15 minutes from now.
+
+We then start a new transaction using the `BeginTransactionAsync` method of the `IStockRepository`. Inside the transaction, we decrement the stock using the `DecrementStockAsync` method, passing in the `reservationId` and expiration time.
+
+Finally, we commit the transaction using the `CommitAsync` method and return the `InventoryReservation` object.
+
+Note that we use the `using` statement to ensure that the transaction is properly disposed of even if an exception is thrown. This is important to prevent any potential issues with database connections or other resources.

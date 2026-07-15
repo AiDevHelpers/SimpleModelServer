@@ -1,0 +1,32 @@
+ value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order` class should have a method `TotalAmount` that calculates the total amount of an order.
+- The `Order` class should have a method `OrderValue` that calculates the total value of an order.
+- The `Order`

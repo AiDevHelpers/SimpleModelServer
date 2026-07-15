@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SimpleModelServer.Evals</AssemblyName>
+    <RootNamespace>SimpleModelServer.Evals</RootNamespace>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Roslyn for the parse/compile gates (CodegenRunner). -->
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Not a web app, but referencing the ASP.NET Core shared framework gives the compile gate
+         access (via TRUSTED_PLATFORM_ASSEMBLIES) to the framework types several golden cases
+         assume exist: IApplicationBuilder/RequestDelegate (complex-middleware-06), IMemoryCache
+         (complex-decorator-08), and BackgroundService (complex-background-service-07) all ship in
+         Microsoft.AspNetCore.App rather than a standalone NuGet package. This project itself never
+         hosts a server. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- CodeBlockExtractor, AssertionChecker, and report serialization are exercised directly by
+         SimpleModelServer.Evals.Tests without a live server; the runner classes that hit HTTP are not
+         made internal-only since nothing else in the repo constructs them, but this keeps the
+         door open if a future test needs to fake the HTTP layer. -->
+    <InternalsVisibleTo Include="SimpleModelServer.Evals.Tests" />
+  </ItemGroup>
+</Project>

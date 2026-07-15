@@ -1,0 +1,16 @@
+{
+  "id": "trivial-extension-method-04",
+  "category": "trivial",
+  "prompt": "Write a C# extension method IsNullOrEmpty on IEnumerable<T> that returns true when the sequence is null or contains no elements.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["static", "IsNullOrEmpty", "IEnumerable"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "One-liner extension method. Tests that model generates a static class with a static method and the 'this' parameter correctly."
+}

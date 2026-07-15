@@ -1,0 +1,67 @@
+ Ensure the method is thread-safe and handles concurrency issues. Here is an example implementation of the `ReserveStockAsync` method:
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class InventoryService
+{
+    private readonly IStockRepository _stockRepository;
+
+    public InventoryService(IStockRepository stockRepository)
+    {
+        _stockRepository = stockRepository;
+    }
+
+    public async Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        // Check current stock
+        var currentStock = await _stockRepository.GetCurrentStockAsync(productId, cancellationToken);
+
+        if (currentStock < quantity)
+        {
+            throw new InsufficientStockException($"Insufficient stock for product {productId}. Current stock: {currentStock}, requested quantity: {quantity}");
+        }
+
+        // Decrement stock transactionally
+        var reservationId = Guid.NewGuid();
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(15);
+
+        await _stockRepository.DecrementStockAsync(productId, quantity, reservationId, expiresAtUtc, cancellationToken);
+
+        return new InventoryReservation(reservationId, expiresAtUtc);
+    }
+}
+
+public class InventoryReservation
+{
+    public Guid ReservationId { get; }
+    public DateTime ExpiresAtUtc { get; }
+
+    public InventoryReservation(Guid reservationId, DateTime expiresAtUtc)
+    {
+        ReservationId = reservationId;
+        ExpiresAtUtc = expiresAtUtc;
+    }
+}
+
+public class InsufficientStockException : Exception
+{
+    public InsufficientStockException(string message) : base(message)
+    {
+    }
+}
+
+public interface IStockRepository
+{
+    Task<int> GetCurrentStockAsync(Guid productId, CancellationToken cancellationToken);
+    Task DecrementStockAsync(Guid productId, int quantity, Guid reservationId, DateTime expiresAtUtc, CancellationToken cancellationToken);
+}
+```
+
+In this implementation, we use the `async` and `await` keywords to make the method asynchronous. We also pass the cancellation token through to the repository methods to allow for cancellation of the operation.
+
+The `ReserveStockAsync` method first checks the current stock using the `GetCurrentStockAsync` method of the `IStockRepository`. If there is not enough stock, it throws an `InsufficientStockException`. Otherwise, it creates a new `InventoryReservation` object with a reservation ID and expiration time, and then calls the `DecrementStockAsync` method of the repository to decrement the stock and create the reservation.
+
+Note that this implementation assumes that the `IStockRepository` interface has the necessary methods to perform these operations. You may need to adjust the implementation based on your specific requirements.

@@ -1,0 +1,16 @@
+{
+  "id": "complex-inventory-async-03",
+  "category": "complex",
+  "prompt": "Write an async C# method Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken) on a class InventoryService that: checks current stock via an injected IStockRepository, throws InsufficientStockException if not enough is available, otherwise decrements stock transactionally and returns an InventoryReservation with a reservation Id and ExpiresAtUtc 15 minutes out. Use proper async/await and pass the cancellation token through.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["ReserveStockAsync", "IStockRepository", "InsufficientStockException", "ExpiresAtUtc"],
+    "must_not_contain": ["DbContext", "EntityFrameworkCore", "IUnitOfWork", "TODO"]
+  },
+  "notes": "Verbatim from tests/prompts/csharp-tasks.json (async-method). Phase 0 found the 3B hallucinated an EF Core DbContext not mentioned in the prompt. must_not_contain guards that specific hallucination. The prompt says IStockRepository — no other data access should appear."
+}

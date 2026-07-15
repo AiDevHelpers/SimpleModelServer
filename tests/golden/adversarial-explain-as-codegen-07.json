@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-explain-as-codegen-07",
+  "category": "adversarial",
+  "prompt": "Show me how LINQ GroupBy works under the hood — walk through what the C# runtime is actually doing when I call .GroupBy(x => x.Category).",
+  "expected": {
+    "intent": "explanation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Explanation request phrased with codegen verbs ('show me', 'walk through'). Phase 0 r13 misrouted this pattern: explanation classified as code_generation. 'under the hood' and 'what the runtime is doing' are explanation signals the router must recognise."
+}

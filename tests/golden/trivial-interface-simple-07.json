@@ -1,0 +1,16 @@
+{
+  "id": "trivial-interface-simple-07",
+  "category": "trivial",
+  "prompt": "Define a C# interface IRepository<T> with three methods: Task<T?> GetByIdAsync(Guid id, CancellationToken ct), Task<IReadOnlyList<T>> GetAllAsync(CancellationToken ct), and Task SaveAsync(T entity, CancellationToken ct).",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["interface IRepository", "GetByIdAsync", "GetAllAsync", "SaveAsync", "CancellationToken"],
+    "must_not_contain": ["class IRepository", "TODO"]
+  },
+  "notes": "Generic interface definition — no implementation. Fast-path eligible. Tests that model does not attempt to implement the interface when only the contract is asked for."
+}

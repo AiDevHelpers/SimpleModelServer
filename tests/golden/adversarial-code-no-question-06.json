@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-code-no-question-06",
+  "category": "adversarial",
+  "prompt": "public class OrderService\n{\n    private readonly IOrderRepository _repo;\n    public OrderService(IOrderRepository repo) { _repo = repo; }\n    public async Task<Order> GetOrderAsync(Guid id) => await _repo.GetByIdAsync(id);\n}",
+  "expected": {
+    "intent": "other",
+    "quality": "good",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Prompt is pure C# code with no question, task, or instruction. Router must not default to codegen. Correct behavior: ask what the user wants (explain, extend, review, refactor?)."
+}

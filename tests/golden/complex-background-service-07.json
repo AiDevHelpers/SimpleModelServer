@@ -1,0 +1,16 @@
+{
+  "id": "complex-background-service-07",
+  "category": "complex",
+  "prompt": "Write a .NET BackgroundService subclass called OutboxPublisherService that every 5 seconds fetches unpublished OutboxMessage rows using an injected IOutboxRepository, publishes each via an injected IMessageBus, marks them published, and handles transient errors by logging and continuing rather than crashing the loop. Use ILogger for diagnostics. Use PeriodicTimer for the 5-second interval.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["OutboxPublisherService", "BackgroundService", "IOutboxRepository", "IMessageBus", "PeriodicTimer"],
+    "must_not_contain": ["Thread.Sleep", "Task.Delay", "TODO"]
+  },
+  "notes": "Outbox pattern background worker. must_not_contain Thread.Sleep and Task.Delay asserts the correct modern PeriodicTimer idiom (.NET 6+) rather than a spin-loop."
+}

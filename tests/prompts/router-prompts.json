@@ -1,0 +1,22 @@
+[
+  { "id": "r01", "expected_intent": "code_generation", "prompt": "Write a C# record for a ProductDto with Id, Name, and Price." },
+  { "id": "r02", "expected_intent": "code_generation", "prompt": "Give me a one-liner extension method that checks if a string is a valid email." },
+  { "id": "r03", "expected_intent": "code_generation", "prompt": "Implement a thread-safe LRU cache in C# with a capacity limit." },
+  { "id": "r04", "expected_intent": "code_generation", "prompt": "Write an async method that retries an HTTP call up to 3 times with exponential backoff." },
+  { "id": "r05", "expected_intent": "code_generation", "prompt": "Create an interface IOrderRepository with CRUD methods for an Order entity." },
+  { "id": "r06", "expected_intent": "code_generation", "prompt": "Refactor this LINQ query to avoid multiple enumeration: orders.Where(o => o.IsActive).Select(o => o.Total).Sum()" },
+  { "id": "r07", "expected_intent": "code_generation", "prompt": "Write a unit test for a method that calculates sales tax given a rate and subtotal." },
+  { "id": "r08", "expected_intent": "code_generation", "prompt": "Generate a DbContext class for Orders, Customers, and LineItems using EF Core." },
+  { "id": "r09", "expected_intent": "question", "prompt": "What's the difference between IEnumerable and IQueryable in C#?" },
+  { "id": "r10", "expected_intent": "question", "prompt": "Does record equality in C# compare by reference or by value?" },
+  { "id": "r11", "expected_intent": "question", "prompt": "Is it safe to call ConfigureAwait(false) inside an ASP.NET Core controller action?" },
+  { "id": "r12", "expected_intent": "explanation", "prompt": "Explain how the .NET garbage collector decides when to run a Gen2 collection." },
+  { "id": "r13", "expected_intent": "explanation", "prompt": "Walk me through why this deadlocks: task.Result inside a synchronous ASP.NET MVC action." },
+  { "id": "r14", "expected_intent": "explanation", "prompt": "Explain the difference between Task.WhenAll and Task.WaitAll and when each causes issues." },
+  { "id": "r15", "expected_intent": "meta", "prompt": "What model are you running right now?" },
+  { "id": "r16", "expected_intent": "meta", "prompt": "Can you show me the routing_reason for my last request?" },
+  { "id": "r17", "expected_intent": "other", "prompt": "What's a good name for a cat that only comes out at night?" },
+  { "id": "r18", "expected_intent": "code_generation", "prompt": "make me a thing that does the order stuff" },
+  { "id": "r19", "expected_intent": "code_generation", "prompt": "fix it so it doesnt throw when the list is empty, IEnumerable<int> Avg(List<int> xs) => xs.Sum()/xs.Count;" },
+  { "id": "r20", "expected_intent": "code_generation", "prompt": "Add pagination to this repository method however makes sense." }
+]

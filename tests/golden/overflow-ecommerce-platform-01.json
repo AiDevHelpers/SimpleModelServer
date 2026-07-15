@@ -1,0 +1,12 @@
+{
+  "id": "overflow-ecommerce-platform-01",
+  "category": "overflow",
+  "prompt": "Build a complete e-commerce order management system with order creation, payment processing, inventory management, shipping integration, and return handling. Include domain models, service layer, repositories, and an ASP.NET Core API with all endpoints.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "low",
+    "routing_reason": "context_overflow_split"
+  },
+  "notes": "Five bounded contexts plus API layer — far exceeds 8k tokens of generation. Claude decomposes into subtasks; 3B generates each part. The prompt text is short but the task scope overflows."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "trivial-constants-03",
+  "category": "trivial",
+  "prompt": "Create a static C# class called HttpHeaders containing string constants for Content-Type, Authorization, X-Request-Id, and X-Correlation-Id.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "fast",
+    "must_contain": ["static class HttpHeaders", "Content-Type", "Authorization", "X-Request-Id", "X-Correlation-Id"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Trivial constants class, no logic. 0.5B fast-path eligible. Tests that static class + const string declarations compile."
+}

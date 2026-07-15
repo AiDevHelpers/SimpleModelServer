@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "DraftModel.Loader (--service)": {
+      "commandName": "Project",
+      "commandLineArgs": "--service",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "DRAFTMODEL_NO_SCM": "1"
+      }
+    },
+    "DraftModel.Loader (--router only)": {
+      "commandName": "Project",
+      "commandLineArgs": "--router",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "DRAFTMODEL_NO_SCM": "1"
+      }
+    }
+  }
+}

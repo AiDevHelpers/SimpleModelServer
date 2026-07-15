@@ -1,0 +1,81 @@
+ ```csharp
+using System;
+using System.Collections.Generic;
+
+public class OrderPricingService
+{
+    private readonly ITaxRateProvider _taxRateProvider;
+    private readonly IDiscountRepository _discountRepository;
+
+    public OrderPricingService(ITaxRateProvider taxRateProvider, IDiscountRepository discountRepository)
+    {
+        _taxRateProvider = taxRateProvider;
+        _discountRepository = discountRepository;
+    }
+
+    public OrderTotal CalculateTotal(Order order)
+    {
+        decimal subtotal = 0;
+        foreach (var lineItem in order.LineItems)
+        {
+            subtotal += lineItem.Price * lineItem.Quantity;
+        }
+
+        decimal discountAmount = 0;
+        var activeDiscount = _discountRepository.GetActiveDiscount(order.CustomerId);
+        if (activeDiscount != null)
+        {
+            discountAmount = subtotal * activeDiscount.DiscountRate;
+        }
+
+        decimal tax = subtotal - discountAmount;
+        tax = _taxRateProvider.GetTaxRate(order.CustomerRegion) * tax;
+
+        decimal total = subtotal - discountAmount + tax;
+
+        return new OrderTotal
+        {
+            Subtotal = subtotal,
+            DiscountAmount = discountAmount,
+            Tax = tax,
+            Total = total
+        };
+    }
+}
+
+public class Order
+{
+    public List<OrderLineItem> LineItems { get; set; }
+    public string CustomerId { get; set; }
+    public string CustomerRegion { get; set; }
+}
+
+public class OrderLineItem
+{
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+}
+
+public interface ITaxRateProvider
+{
+    decimal GetTaxRate(string region);
+}
+
+public interface IDiscountRepository
+{
+    Discount GetActiveDiscount(string customerId);
+}
+
+public class Discount
+{
+    public decimal DiscountRate { get; set; }
+}
+
+public class OrderTotal
+{
+    public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal Tax { get; set; }
+    public decimal Total { get; set; }
+}
+``` ```

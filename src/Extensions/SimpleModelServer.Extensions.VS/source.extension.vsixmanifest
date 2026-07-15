@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SimpleModelServer.Extensions.VS.56c8b593-11c3-48bb-ba20-21e0a7226282" Version="1.0.0" Language="en-US" Publisher="SimpleModelServer Contributors" />
+    <DisplayName>Simple Model Server IDE Integration</DisplayName>
+    <Description>Lightweight local model server for AI-powered coding. Brings AI assistance to VS via Ollama or LM Studio backends with zero configuration. Features smart draft-pair routing (fast drafts + quality analysis), embedding models for semantic search, and AI agents (Ask, Code, Debug, Planning). Auto-discovered via mDNS. Reduces API costs while enabling offline development.</Description>
+    <MoreInfo>https://github.com/rsperry79/SimpleModelServer</MoreInfo>
+    <ReleaseNotes>https://github.com/rsperry79/SimpleModelServer/releases</ReleaseNotes>
+    <Tags>AI; ModelServer; Chat; CodeGeneration; Testing; Optimization</Tags>
+    <Preview>false</Preview>
+  </Metadata>
+  <Installation ExtensionType="VSSDK+VisualStudio.Extensibility">
+    <!-- Visual Studio 2025/2026 Community, Professional, Enterprise -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.14,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.14,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.14,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.14,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.NetCore.RuntimeHost" DisplayName="Microsoft .NET 10.0 Runtime" d:Source="Manual" Version="[10.0,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+    <Prerequisite Id="Microsoft.VisualStudio.Component.Roslyn.LanguageServices" Version="[17.0,)" DisplayName="Roslyn and syntax trees" />
+  </Prerequisites>
+</PackageManifest>

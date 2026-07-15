@@ -1,0 +1,16 @@
+{
+  "id": "repair-variable-shadowing-03",
+  "category": "repair",
+  "prompt": "Write a C# method ProcessOrderBatches(IEnumerable<OrderBatch> batches) that iterates over each batch, then iterates over each order in the batch, and for each order applies any active discount from a List<Discount> discounts field on the class. Track total savings in a decimal discount variable declared before the outer loop.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "slow",
+    "must_contain": ["ProcessOrderBatches"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "Mandated repair case #3 (CS0136 variable shadowing): the prompt deliberately tempts the model to name a foreach iteration variable 'discount', colliding with the outer 'decimal discount' local. This is the exact bug Phase 0 found in the service-class task. Roslyn catches CS0136/CS1656; the repair loop must rename the iteration variable."
+}

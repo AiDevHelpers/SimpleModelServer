@@ -1,0 +1,12 @@
+{
+  "id": "question-nullable-01",
+  "category": "question",
+  "prompt": "What does the ? after a type name mean in C#? Is string? the same as Nullable<string>?",
+  "expected": {
+    "intent": "question",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Non-code C# concept question. Router must not confuse the ? syntax with a codegen request."
+}

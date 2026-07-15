@@ -1,0 +1,70 @@
+ Handle exceptions by logging them and returning false.
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net.Mail;
+
+public class EmailNotificationSender : INotificationSender
+{
+    private readonly ISmtpClient _smtpClient;
+    private readonly ITemplateRenderer _templateRenderer;
+    private readonly ILogger<EmailNotificationSender> _logger;
+
+    public EmailNotificationSender(ISmtpClient smtpClient, ITemplateRenderer templateRenderer, ILogger<EmailNotificationSender> logger)
+    {
+        _smtpClient = smtpClient;
+        _templateRenderer = templateRenderer;
+        _logger = logger;
+    }
+
+    public bool CanHandle(NotificationChannel channel)
+    {
+        return channel == NotificationChannel.Email;
+    }
+
+    public async Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            string body = await _templateRenderer.RenderAsync(message.TemplateId, message.TemplateData);
+            MailMessage mailMessage = new MailMessage
+            {
+                From = new MailAddress(message.From),
+                To = new MailAddress(message.To),
+                Subject = message.Subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+
+            await _smtpClient.SendMailAsync(mailMessage, cancellationToken);
+        }
+        catch (SmtpException ex)
+        {
+            _logger.LogError(ex, "Failed to send email notification.");
+            // Retry once
+            try
+            {
+                await _smtpClient.SendMailAsync(mailMessage, cancellationToken);
+            }
+            catch (SmtpException retryEx)
+            {
+                _logger.LogError(retryEx, "Failed to retry email notification.");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email notification.");
+            return false;
+        }
+
+        return true;
+    }
+}
+```
+
+In this solution, we've created an EmailNotificationSender class that implements the INotificationSender interface. The constructor takes in an ISmtpClient and ITemplateRenderer, which are used to send emails and render templates, respectively. The CanHandle method checks if the channel is Email, and the SendAsync method sends an email using the SMTP client, retrying once on transient SmtpException. Exceptions are logged using the ILogger, and the method returns false if an error occurs. This implementation ensures that the email notifications are sent correctly and that errors are handled gracefully.

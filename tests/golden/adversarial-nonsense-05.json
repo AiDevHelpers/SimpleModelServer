@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-nonsense-05",
+  "category": "adversarial",
+  "prompt": "zxqflorp blargh @@## write me the flibbertigibbet in C# async await frobnicator nullable",
+  "expected": {
+    "intent": "other",
+    "quality": "invalid",
+    "ambiguity": "high",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Junk nonsense prompt. C# keywords present but no coherent task. Must route to 'other'/invalid, not codegen. Phase 0 r17 pattern: router misread similar noise as code_generation."
+}

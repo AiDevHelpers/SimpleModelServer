@@ -1,0 +1,16 @@
+{
+  "id": "weak-json-serialization-06",
+  "category": "weak",
+  "prompt": "serialize/deserialize some stuff to json in c# using the built in thing not newtonsoft, add error handling too",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["Newtonsoft", "TODO"]
+  },
+  "notes": "Informal. Intent: System.Text.Json serialize/deserialize helpers with try/catch. must_not_contain 'Newtonsoft' because the user explicitly excluded it — a rewrite must honor that constraint."
+}

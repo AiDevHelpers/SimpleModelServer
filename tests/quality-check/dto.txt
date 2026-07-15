@@ -1,0 +1,9 @@
+ Here is the code for the OrderDto and OrderLineItemDto records:
+
+```csharp
+public record OrderDto(Guid OrderId, Guid CustomerId, IReadOnlyList<OrderLineItemDto> LineItems, decimal Subtotal, decimal Tax, decimal Total, DateTimeOffset CreatedAtUtc);
+
+public record OrderLineItemDto(Guid ProductId, string Sku, int Quantity, decimal UnitPrice);
+```
+
+This code defines two records: `OrderDto` and `OrderLineItemDto`. The `OrderDto` record has properties for `OrderId`, `CustomerId`, `LineItems`, `Subtotal`, `Tax`, `Total`, and `CreatedAtUtc`. The `OrderLineItemDto` record has properties for `ProductId`, `Sku`, `Quantity`, and `UnitPrice`.

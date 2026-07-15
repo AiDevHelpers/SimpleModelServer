@@ -1,0 +1,44 @@
+ Ensure the method is efficient and handles large datasets effectively. Here's an implementation of the `SummarizeTopCustomers` method in C# using LINQ:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class CustomerSpendSummary
+{
+    public int CustomerId { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpend { get; set; }
+    public decimal AverageOrderValue { get; set; }
+}
+
+public static class OrderProcessor
+{
+    public static List<CustomerSpendSummary> SummarizeTopCustomers(IEnumerable<Order> orders, int topN)
+    {
+        // Group orders by CustomerId
+        var groupedOrders = orders.GroupBy(o => o.CustomerId);
+
+        // Compute total spend and order count per customer
+        var customerSpendSummaries = groupedOrders
+            .Select(g => new CustomerSpendSummary
+            {
+                CustomerId = g.Key,
+                OrderCount = g.Count(),
+                TotalSpend = g.Sum(o => o.TotalAmount),
+                AverageOrderValue = g.Average(o => o.TotalAmount)
+            })
+            .Where(cs => cs.OrderCount >= 2)
+            .OrderByDescending(cs => cs.TotalSpend)
+            .Take(topN)
+            .ToList();
+
+        return customerSpendSummaries;
+    }
+}
+```
+
+This implementation uses LINQ methods such as `GroupBy`, `Select`, `Where`, `OrderByDescending`, and `Take` to efficiently process the input `orders` and produce the desired output `CustomerSpendSummary` records.
+
+Note that this implementation assumes that the `Order` class has properties such as `CustomerId`, `TotalAmount`, etc., which are used in the computation. You may need to adjust the implementation based on your specific requirements.

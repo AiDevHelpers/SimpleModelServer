@@ -1,0 +1,24 @@
+ Here is the C# record type named OrderDto for an e-commerce order:
+
+```csharp
+public record OrderDto
+{
+    public Guid OrderId { get; init; }
+    public Guid CustomerId { get; init; }
+    public IReadOnlyList<OrderLineItemDto> LineItems { get; init; }
+    public decimal Subtotal { get; init; }
+    public decimal Tax { get; init; }
+    public decimal Total { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; }
+}
+
+public record OrderLineItemDto
+{
+    public Guid ProductId { get; init; }
+    public string Sku { get; init; }
+    public int Quantity { get; init; }
+    public decimal UnitPrice { get; init; }
+}
+```
+
+This code defines two records: `OrderDto` and `OrderLineItemDto`. The `OrderDto` record represents an e-commerce order, while the `OrderLineItemDto` record represents a line item in the order. Both records have properties that correspond to the fields in the original C# code.

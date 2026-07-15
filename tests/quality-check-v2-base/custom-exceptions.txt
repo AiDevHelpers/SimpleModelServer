@@ -1,0 +1,35 @@
+ Here's the complete C# code for the banking exception hierarchy:
+
+```csharp
+using System;
+
+namespace BankingDomain
+{
+    public class BankingException : Exception
+    {
+        public BankingException(string message) : base(message) { }
+    }
+
+    public class InsufficientFundsException : BankingException
+    {
+        public decimal ShortfallAmount { get; }
+
+        public InsufficientFundsException(string message, decimal shortfallAmount) : base(message)
+        {
+            ShortfallAmount = shortfallAmount;
+        }
+    }
+
+    public class AccountFrozenException : BankingException
+    {
+        public DateTimeOffset FrozenSinceUtc { get; }
+
+        public AccountFrozenException(string message, DateTimeOffset frozenSinceUtc) : base(message)
+        {
+            FrozenSinceUtc = frozenSinceUtc;
+        }
+    }
+}
+```
+
+This code defines a `BankingException` class that inherits from `Exception` and has a constructor that takes a `string message`. Two derived classes, `InsufficientFundsException` and `AccountFrozenException`, inherit from `BankingException` and add additional properties and constructors as specified.

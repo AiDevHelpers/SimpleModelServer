@@ -1,0 +1,12 @@
+{
+  "id": "question-di-scope-04",
+  "category": "question",
+  "prompt": "What is the difference between Singleton, Scoped, and Transient lifetimes in .NET dependency injection? What happens if a Singleton depends on a Scoped service?",
+  "expected": {
+    "intent": "question",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "DI lifetime question. Common real-world query. Must route to local_answer, not codegen."
+}

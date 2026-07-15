@@ -1,6 +1,8 @@
 bin/
 obj/
 .vs/
+src/Installers/dist/
+src/Installers/staging/
 *.user
 *.suo
 *.sln.docstates

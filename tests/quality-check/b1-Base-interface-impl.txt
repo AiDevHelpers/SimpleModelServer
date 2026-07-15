@@ -1,0 +1,34 @@
+ The template renderer should be injected as a singleton.
+
+public class EmailNotificationSender : INotificationSender
+{
+    private readonly ISmtpClient _smtpClient;
+    private readonly ITemplateRenderer _templateRenderer;
+
+    public EmailNotificationSender(ISmtpClient smtpClient, ITemplateRenderer templateRenderer)
+    {
+        _smtpClient = smtpClient;
+        _templateRenderer = templateRenderer;
+    }
+
+    public bool CanHandle(NotificationChannel channel)
+    {
+        return channel == NotificationChannel.Email;
+    }
+
+    public async Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var body = await _templateRenderer.RenderAsync(message.TemplateId, message.TemplateData);
+            await _smtpClient.SendAsync(message.To, message.Subject, body, cancellationToken);
+        }
+        catch (SmtpException)
+        {
+            // Retry once
+            await _smtpClient.SendAsync(message.To, message.Subject, body, cancellationToken);
+        }
+    }
+}
+
+This implementation uses the provided ISmtpClient and ITemplateRenderer to send emails. It checks if the channel is NotificationChannel.Email before sending the email. If the email sending fails due to a transient SmtpException, it retries once before throwing the exception. The template renderer is injected as a singleton.

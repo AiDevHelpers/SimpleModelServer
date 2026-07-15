@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-junk-looks-like-task-08",
+  "category": "adversarial",
+  "prompt": "implement the thing from the meeting",
+  "expected": {
+    "intent": "other",
+    "quality": "invalid",
+    "ambiguity": "high",
+    "routing_reason": "ambiguous"
+  },
+  "notes": "Looks like a task ('implement') but carries zero extractable information. Phase 0 r17 pattern: router misread 'other' junk as code_generation because of the verb. Must route to ambiguous, not codegen."
+}

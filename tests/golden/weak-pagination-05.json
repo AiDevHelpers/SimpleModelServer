@@ -1,0 +1,16 @@
+{
+  "id": "weak-pagination-05",
+  "category": "weak",
+  "prompt": "CAN U ADD PAGINATION TO THE REPOSITORY GETALL METHOD PAGE SIZE AND PAGE NUMBER PARAMETERS RETURN THE STUFF WITH TOTAL COUNT",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "weak",
+    "ambiguity": "low",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": [],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "All-caps, no punctuation. Intent is clear: add pageNumber and pageSize parameters to a GetAll method and return a paged result with total count. Tests router robustness to shouted formatting."
+}

@@ -3,6 +3,7 @@ using SimpleModelServer.Contracts.Models;
 namespace SimpleModelServer.Config.Models;
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 /// <summary>
@@ -37,64 +38,105 @@ public static class GpuDetector
         return DetectCpuOnly();
     }
 
-    private static GpuInfo DetectNvidiaGpu()
+    /// <summary>
+    ///     Raw NVIDIA GPU probe via <c>nvidia-smi</c> — the single place that actually shells out
+    ///     and parses its CSV output. Shared by <see cref="DetectNvidiaGpu" /> (which needs total
+    ///     VRAM in GB for model-size estimation) and
+    ///     <see cref="SimpleModelServer.Hardware.HardwareDetection" /> (which needs total/free VRAM
+    ///     in MB for GPU-layer/concurrency decisions) so the process-launch and parsing logic isn't
+    ///     maintained twice with the two copies free to drift out of sync.
+    /// </summary>
+    public static bool TryDetectNvidiaGpuRaw(out string name, out int memoryTotalMb, out int? memoryFreeMb)
     {
+        name = "";
+        memoryTotalMb = 0;
+        memoryFreeMb = null;
+
         try
         {
-            // Try to run nvidia-smi to detect NVIDIA GPU
-            var processInfo = new ProcessStartInfo
+            ProcessStartInfo startInfo = new()
             {
                 FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "nvidia-smi.exe" : "nvidia-smi",
-                Arguments = "--query-gpu=memory.total,name --format=csv,noheader",
+                Arguments = "--query-gpu=name,memory.total,memory.free --format=csv,noheader,nounits",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                CreateNoWindow = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
             };
 
-            using var process = Process.Start(processInfo);
-            if (process == null)
+            using Process? process = Process.Start(startInfo);
+            if (process is null)
             {
-                return new GpuInfo { IsAvailable = false };
+                return false;
             }
 
-            using var reader = process.StandardOutput;
-            var output = reader.ReadToEnd();
-            process.WaitForExit();
-
-            if (string.IsNullOrWhiteSpace(output))
+            if (!process.WaitForExit(1500))
             {
-                return new GpuInfo { IsAvailable = false };
-            }
-
-            // Parse output: "memory_total, gpu_name"
-            var parts = output.Trim().Split(',');
-            if (parts.Length >= 2)
-            {
-                var memoryStr = parts[0].Trim();
-                var gpuName = parts[1].Trim();
-
-                // Parse memory (usually in MB)
-                if (double.TryParse(memoryStr.Split()[0], out var memoryMb))
+                try
                 {
-                    var memoryGb = memoryMb / 1024.0;
-                    var maxModelSize = EstimateMaxModelSize(memoryGb);
-
-                    return new GpuInfo
-                    {
-                        IsAvailable = true,
-                        Model = gpuName,
-                        MemoryGb = memoryGb,
-                        MaxModelSizeB = maxModelSize,
-                    };
+                    process.Kill(true);
                 }
+                catch
+                {
+                }
+
+                return false;
             }
+
+            string output = process.StandardOutput.ReadToEnd();
+            if (process.ExitCode != 0)
+            {
+                return false;
+            }
+
+            string? line = output
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            string[] parts = line.Split(',', 3, StringSplitOptions.TrimEntries);
+            if (parts.Length < 2 || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out int totalMb))
+            {
+                return false;
+            }
+
+            // memory.free is a newer column; tolerate drivers/nvidia-smi builds that only return
+            // name+memory.total by leaving memoryFreeMb null rather than failing detection outright.
+            int? freeMb = parts.Length >= 3 &&
+                          int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedFree)
+                ? parsedFree
+                : null;
+
+            name = parts[0];
+            memoryTotalMb = totalMb;
+            memoryFreeMb = freeMb;
+            return true;
         }
         catch
         {
-            // nvidia-smi not found or execution failed
+            return false;
+        }
+    }
+
+    private static GpuInfo DetectNvidiaGpu()
+    {
+        if (!TryDetectNvidiaGpuRaw(out string name, out int memoryTotalMb, out _))
+        {
+            return new GpuInfo { IsAvailable = false };
         }
 
-        return new GpuInfo { IsAvailable = false };
+        double memoryGb = memoryTotalMb / 1024.0;
+        return new GpuInfo
+        {
+            IsAvailable = true,
+            Model = name,
+            MemoryGb = memoryGb,
+            MaxModelSizeB = EstimateMaxModelSize(memoryGb),
+        };
     }
 
     private static GpuInfo DetectAppleMetal()
@@ -144,14 +186,19 @@ public static class GpuDetector
         return new GpuInfo { IsAvailable = false };
     }
 
+    /// <summary>
+    ///     Total unified memory on Apple Silicon, via <c>sysctl hw.memsize</c> (returns total
+    ///     physical RAM in bytes). Falls back to a conservative 16GB estimate if sysctl is
+    ///     unavailable or its output can't be parsed.
+    /// </summary>
     private static double GetAppleSiliconMemory()
     {
         try
         {
-            // Get unified memory size on Apple Silicon
             var processInfo = new ProcessStartInfo
             {
-                FileName = "/usr/bin/vm_stat",
+                FileName = "/usr/sbin/sysctl",
+                Arguments = "-n hw.memsize",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true,
@@ -160,23 +207,16 @@ public static class GpuDetector
             using var process = Process.Start(processInfo);
             if (process == null)
             {
-                return 8.0; // Default fallback
+                return 16.0; // Default fallback
             }
 
             using var reader = process.StandardOutput;
             var output = reader.ReadToEnd();
             process.WaitForExit();
 
-            // Try to parse physical memory (pages are typically 4KB)
-            var lines = output.Split('\n');
-            foreach (var line in lines)
+            if (long.TryParse(output.Trim(), out var totalBytes) && totalBytes > 0)
             {
-                if (line.Contains("Pages free:", StringComparison.Ordinal) && long.TryParse(line.Split(':')[1].Trim().Split()[0], out var freePages))
-                {
-                    // Total memory is harder to get, estimate based on common configs
-                    // Most Apple Silicon has 8GB, 16GB, or 24GB unified memory
-                    return 16.0; // Conservative estimate
-                }
+                return totalBytes / (1024.0 * 1024.0 * 1024.0);
             }
         }
         catch

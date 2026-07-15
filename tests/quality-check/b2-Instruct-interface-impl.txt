@@ -1,0 +1,29 @@
+ message.Recipient, cancellationToken);
+        }
+        catch (SmtpException ex)
+        {
+            // Handle transient errors by retrying once
+            await _smtpClient.SendAsync(template, message.Recipient, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Handle other exceptions
+            throw new NotificationException("Failed to send notification.", ex);
+        }
+    }
+
+    public bool CanHandle(NotificationChannel channel)
+    {
+        // Implement logic to determine if the channel is supported
+        return channel == NotificationChannel.Email;
+    }
+}
+```
+
+### Key Points:
+- **Exception Handling**: The `SendAsync` method handles exceptions that might occur during the rendering and sending process. It retries the send operation once for transient errors.
+- **Template Rendering**: The `EmailNotificationSender` uses an `ITemplateRenderer` to render the message body from a template.
+- **Channel Support**: The `CanHandle` method checks if the specified channel is supported by the sender.
+- **Transient Error Handling**: The `SendAsync` method retries the send operation once for transient `SmtpException` errors. This is a common approach to handle transient network issues. You can adjust the retry logic based on your specific requirements. 
+
+This implementation ensures that the `INotificationSender` interface is robust and can handle various edge cases, providing a reliable notification service.

@@ -1,0 +1,71 @@
+ufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw InsufficientStockException.
+- The method should not throw any exceptions.
+- The method should not throw Ins

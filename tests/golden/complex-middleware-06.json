@@ -1,0 +1,16 @@
+{
+  "id": "complex-middleware-06",
+  "category": "complex",
+  "prompt": "Write an ASP.NET Core middleware class RequestTimingMiddleware that measures end-to-end request duration using Stopwatch, adds an X-Response-Time-Ms response header with the elapsed milliseconds, and logs the method, path, status code, and duration at Information level using ILogger<RequestTimingMiddleware>. Register it via an extension method UseRequestTiming on IApplicationBuilder.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["RequestTimingMiddleware", "X-Response-Time-Ms", "ILogger<RequestTimingMiddleware>", "UseRequestTiming", "Stopwatch"],
+    "must_not_contain": ["TODO"]
+  },
+  "notes": "ASP.NET Core middleware with extension method registration. Tests RequestDelegate injection and the OnStarting/header-mutation pattern."
+}

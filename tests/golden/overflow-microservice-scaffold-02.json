@@ -1,0 +1,12 @@
+{
+  "id": "overflow-microservice-scaffold-02",
+  "category": "overflow",
+  "prompt": "Scaffold a complete .NET microservice for product catalog management: startup and DI configuration, domain model with domain events, EF Core persistence with migrations, a REST API covering CRUD and search, a BackgroundService for event publishing, health checks, and integration tests.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "low",
+    "routing_reason": "context_overflow_split"
+  },
+  "notes": "Full microservice with seven distinct concerns spanning multiple files and projects. 8k token budget exhausted well before all parts are generated."
+}

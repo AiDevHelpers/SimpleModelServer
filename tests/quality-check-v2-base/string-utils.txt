@@ -1,0 +1,34 @@
+ Here's a self-contained C# static method `ReverseWords` that meets your requirements:
+
+```csharp
+using System;
+using System.Text.RegularExpressions;
+
+public static class StringManipulation
+{
+    public static string ReverseWords(string sentence)
+    {
+        if (string.IsNullOrEmpty(sentence))
+        {
+            return sentence;
+        }
+
+        // Split the sentence into words, trimming whitespace
+        string[] words = Regex.Split(sentence.Trim(), @"\s+");
+
+        // Reverse the array of words
+        Array.Reverse(words);
+
+        // Join the reversed words back into a single string
+        return string.Join(" ", words);
+    }
+}
+```
+
+### Explanation:
+1. **Input Validation**: The method first checks if the input `sentence` is null or empty. If so, it returns the input unchanged.
+2. **Splitting Words**: It uses `Regex.Split` to split the sentence into an array of words. The regular expression `@"\s+"` matches one or more whitespace characters.
+3. **Reversing Words**: The `Array.Reverse` method is used to reverse the order of the words in the array.
+4. **Joining Words**: Finally, `string.Join` is used to combine the reversed words back into a single string, separated by spaces.
+
+This approach ensures that the input is handled correctly and that the output is formatted as required.

@@ -1,0 +1,12 @@
+{
+  "id": "adversarial-python-01",
+  "category": "adversarial",
+  "prompt": "Write a Python function that reads a CSV file and returns a list of dictionaries, one per row, using the csv module.",
+  "expected": {
+    "intent": "other",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Request for Python code, not C#. Router must classify as 'other' and not route to the C# codegen pipeline. Pipeline should respond that it handles C#/.NET only."
+}

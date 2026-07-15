@@ -1,0 +1,12 @@
+{
+  "id": "meta-pipeline-models-01",
+  "category": "meta",
+  "prompt": "Which models are running in this pipeline right now? Is the router model the same one that generates code, or are they different?",
+  "expected": {
+    "intent": "meta",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "local_answer"
+  },
+  "notes": "Explicitly about the pipeline's own model configuration. Phase 0 r15/r16: meta prompts misclassified as question. This prompt is clearly asking about the system itself, not C# in general — guards that misroute pattern."
+}

@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>SimpleModelServer.Server</AssemblyName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+    <!-- This app is Windows-only by design (Windows Service host, EventLog sink, WiX installer
+         — see CLAUDE.md/docs/architecture.md), but TargetFramework is plain net10.0 rather than
+         net10.0-windows so it can still be edited/analyzed from a non-Windows dev machine.
+         SupportedOSPlatform tells the CA1416 platform-compatibility analyzer this project only
+         ever runs on Windows, resolving warnings on EventLog/Windows-Service API calls without
+         per-call-site suppression. -->
+    <SupportedOSPlatform>windows</SupportedOSPlatform>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Kestrel/HttpContext/SignalR — RouterHttpServer hosts its own WebApplication internally
+         (see StartAsync) instead of a raw HttpListener. FrameworkReference is enough on
+         Microsoft.NET.Sdk; no need to switch to Microsoft.NET.Sdk.Web. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="10.0.10" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Serilog.Sinks.EventLog" Version="3.2.0" />
+    <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
+    <ProjectReference Include="..\..\Common\SimpleModelServer.Common\SimpleModelServer.Common.csproj" />
+    <ProjectReference Include="..\..\Hardware\SimpleModelServer.Hardware\SimpleModelServer.Hardware.csproj" />
+    <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.Common\SimpleModelServer.Providers.Common.csproj" />
+    <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.Ollama\SimpleModelServer.Providers.Ollama.csproj" />
+    <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.LMStudio\SimpleModelServer.Providers.LMStudio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copy admin UI files to output directory -->
+    <Content Include="admin\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!--
+    Opt in hook to run the Windows service installer immediately after "dotnet publish".
+
+    Deliberately NOT wired to run on every publish or on "dotnet build" (including a
+    solution wide build of DraftModel.slnx): install-draftmodel-service.ps1 self elevates
+    via UAC and stops/reconfigures/restarts a live Windows service, which would be a
+    surprising side effect of an ordinary build or of CI publishing this project. This only
+    fires when the caller explicitly opts in by setting the RunInstaller MSBuild property to
+    "true" on the publish command line (see the PropertyGroup below for the property names).
+    Any extra flags for install-draftmodel-service.ps1 (Clean, Local, InstallDir, etc.) can be
+    supplied via the InstallerArgs MSBuild property, passed through verbatim.
+
+    See SimpleModelServer.Loader/INSTALLER_REQUIREMENTS.md for what the installer does and why.
+  -->
+  <PropertyGroup>
+    <RunInstaller Condition="'$(RunInstaller)' == ''">false</RunInstaller>
+    <InstallerArgs Condition="'$(InstallerArgs)' == ''"></InstallerArgs>
+  </PropertyGroup>
+
+  <Target Name="RunDraftModelInstaller" AfterTargets="Publish" Condition="'$(RunInstaller)' == 'true'">
+    <Error Text="RunInstaller is only supported when publishing on Windows (install-draftmodel-service.ps1 is a Windows service installer)." Condition="'$(OS)' != 'Windows_NT'" />
+    <Message Importance="high" Text="RunInstaller=true — invoking install-draftmodel-service.ps1 $(InstallerArgs)" />
+    <!--
+      Deliberately does NOT pass -SkipBuild or -InstallDir pointing at $(PublishDir): that
+      directory is this project's own build-output/publish folder (e.g.
+      bin\Release\net10.0\win-x64\publish\), not the actual service install location
+      (%ProgramFiles%\DraftModel by default). install-draftmodel-service.ps1 owns publishing
+      to its own staging directory and copying to the real install directory — let it do that
+      itself, exactly as if it had been run manually, rather than trying to reuse this
+      MSBuild-triggered publish's output in place. This means the publish that produced
+      $(PublishDir) here is effectively redundant with the one the script performs, but that
+      keeps the install path correct and identical to a manual run of the script.
+    -->
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\build\scripts\install-draftmodel-service.ps1&quot; $(InstallerArgs)" Condition="'$(OS)' == 'Windows_NT'" />
+  </Target>
+</Project>

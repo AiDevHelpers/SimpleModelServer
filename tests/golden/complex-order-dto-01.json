@@ -1,0 +1,16 @@
+{
+  "id": "complex-order-dto-01",
+  "category": "complex",
+  "prompt": "Write a C# record type named OrderDto for an e-commerce order. Include OrderId (Guid), CustomerId (Guid), LineItems (IReadOnlyList<OrderLineItemDto>), Subtotal, Tax, and Total (all decimal), and CreatedAtUtc (DateTimeOffset). Add an OrderLineItemDto record with ProductId (Guid), Sku (string), Quantity (int), and UnitPrice (decimal). No comments, just the code.",
+  "expected": {
+    "intent": "code_generation",
+    "quality": "good",
+    "ambiguity": "none",
+    "routing_reason": "codegen",
+    "must_compile": true,
+    "latency_class": "normal",
+    "must_contain": ["record OrderDto", "record OrderLineItemDto", "IReadOnlyList<OrderLineItemDto>", "CreatedAtUtc"],
+    "must_not_contain": ["class OrderDto", "class OrderLineItemDto", "TODO"]
+  },
+  "notes": "Verbatim from tests/prompts/csharp-tasks.json (dto). must_contain 'record' guards the Phase 0 finding where the 3B emitted a mutable class instead of the requested record type."
+}

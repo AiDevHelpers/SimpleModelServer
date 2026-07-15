@@ -1,0 +1,35 @@
+ Here is a self-contained C# static method `List<int> FlattenDepthFirst(TreeNode root)` that returns all node values in depth-first pre-order:
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public class TreeNode
+{
+    public int Value { get; set; }
+    public List<TreeNode> Children { get; set; } = new List<TreeNode>();
+}
+
+public static class TreeTraversal
+{
+    public static List<int> FlattenDepthFirst(TreeNode root)
+    {
+        if (root == null)
+        {
+            return new List<int>();
+        }
+
+        var result = new List<int>();
+        result.Add(root.Value);
+
+        foreach (var child in root.Children)
+        {
+            result.AddRange(FlattenDepthFirst(child));
+        }
+
+        return result;
+    }
+}
+```
+
+This method uses recursion to traverse the tree in depth-first pre-order. It starts by checking if the root is null, in which case it returns an empty list. Otherwise, it adds the root's value to the result list and then recursively calls itself on each child node, adding their values to the result list. The `AddRange` method is used to concatenate the results of the recursive calls.

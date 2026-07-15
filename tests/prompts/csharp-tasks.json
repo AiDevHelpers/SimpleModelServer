@@ -1,0 +1,27 @@
+[
+  {
+    "id": "dto",
+    "label": "DTO",
+    "prompt": "Write a C# record type named OrderDto for an e-commerce order. Include OrderId (Guid), CustomerId (Guid), LineItems (IReadOnlyList<OrderLineItemDto>), Subtotal, Tax, and Total (all decimal), and CreatedAtUtc (DateTimeOffset). Add an OrderLineItemDto record with ProductId (Guid), Sku (string), Quantity (int), and UnitPrice (decimal). No comments, just the code."
+  },
+  {
+    "id": "service-class",
+    "label": "Service class",
+    "prompt": "Write a C# class OrderPricingService with a constructor taking ITaxRateProvider and IDiscountRepository. Add a method CalculateTotal(Order order) that sums line items, applies any active discount from the repository, then applies tax from the provider based on the customer's region. Return an OrderTotal record with Subtotal, DiscountAmount, Tax, and Total. Assume Order, ITaxRateProvider, IDiscountRepository already exist with reasonable members; declare them if needed."
+  },
+  {
+    "id": "async-method",
+    "label": "Async method",
+    "prompt": "Write an async C# method Task<InventoryReservation> ReserveStockAsync(Guid productId, int quantity, CancellationToken cancellationToken) on a class InventoryService that: checks current stock via an injected IStockRepository, throws InsufficientStockException if not enough is available, otherwise decrements stock transactionally and returns an InventoryReservation with a reservation Id and ExpiresAtUtc 15 minutes out. Use proper async/await and pass the cancellation token through."
+  },
+  {
+    "id": "linq-heavy",
+    "label": "LINQ-heavy",
+    "prompt": "Write a C# static method List<CustomerSpendSummary> SummarizeTopCustomers(IEnumerable<Order> orders, int topN) that groups orders by CustomerId, computes total spend and order count per customer, filters out customers with fewer than 2 orders, orders by total spend descending, and returns the top N as CustomerSpendSummary records (CustomerId, OrderCount, TotalSpend, AverageOrderValue). Use LINQ method syntax throughout, no foreach loops."
+  },
+  {
+    "id": "interface-impl",
+    "label": "Interface impl",
+    "prompt": "Given this interface:\n\npublic interface INotificationSender\n{\n    Task SendAsync(NotificationMessage message, CancellationToken cancellationToken = default);\n    bool CanHandle(NotificationChannel channel);\n}\n\nImplement EmailNotificationSender using an injected ISmtpClient and ITemplateRenderer. CanHandle should return true only for NotificationChannel.Email. SendAsync should render the message body from a template keyed by message.TemplateId, then send via the SMTP client, retrying once on transient SmtpException."
+  }
+]
