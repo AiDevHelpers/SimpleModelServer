@@ -19,8 +19,8 @@ public class LlamaChatClientTests
         // Arrange
         var type = typeof(ILlamaChatClient);
 
-        // Act & Assert - Interface must be IAsyncDisposable and IDisposable
-        Assert.True(typeof(IAsyncDisposable).IsAssignableFrom(type));
+        // Act & Assert - Interface must be IDisposable (not IAsyncDisposable — it's a plain
+        // Dispose(), not an async-cleanup type)
         Assert.True(typeof(IDisposable).IsAssignableFrom(type));
 
         // Verify methods exist
@@ -41,7 +41,7 @@ public class LlamaChatClientTests
         // Act & Assert
         Assert.NotNull(method);
         var parameters = method!.GetParameters();
-        Assert.Equal(5, parameters.Length); // baseUrl, messages, temperature, maxTokens, optional jsonSchema
+        Assert.Equal(6, parameters.Length); // baseUrl, messages, temperature, maxTokens, optional jsonSchema, cancellationToken
     }
 
     [Fact]

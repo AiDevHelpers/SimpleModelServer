@@ -7,6 +7,8 @@ namespace SimpleModelServer.Contracts.Providers;
 ///     LM Studio is a local inference engine with a user-friendly interface for model management.
 ///     Default port: 1234
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1056",
+    Justification = "BaseUrl is a plain string used directly in HTTP client construction and string interpolation; changing to System.Uri would complicate call sites for no functional benefit.")]
 public interface ILMStudioProvider
 {
     /// <summary>

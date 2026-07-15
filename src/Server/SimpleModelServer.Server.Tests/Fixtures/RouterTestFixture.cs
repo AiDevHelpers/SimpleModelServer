@@ -144,7 +144,8 @@ internal sealed class RouterTestFixture : IAsyncDisposable
         ModelHealthMonitor health = new(config, NullLogger.Instance, process, sharedHttp, _ => null);
 
         IHardwareDetection hardwareDetection = new HardwareDetection();
-        SystemInfoService systemInfoService = new(config, hardwareDetection);
+        McpUpstreamRegistry mcpUpstreamRegistry = new(config.McpServers, NullLogger.Instance);
+        SystemInfoService systemInfoService = new(config, hardwareDetection, mcpUpstreamRegistry);
 
         // Stub implementations for test
         IConfigurationManager configManager = new StubConfigurationManager();
@@ -152,7 +153,6 @@ internal sealed class RouterTestFixture : IAsyncDisposable
         IAdminAuthenticationService adminAuth = new StubAdminAuthenticationService();
         ModelReloadCoordinator reloadCoordinator = new(process, health, NullLogger.Instance, TimeSpan.FromSeconds(5));
         AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth, reloadCoordinator);
-        McpUpstreamRegistry mcpUpstreamRegistry = new(config.McpServers, NullLogger.Instance);
 
         RouterHttpServer router = new(
             config, NullLogger.Instance, process, health, generation, agentTypeResolver, sharedHttp,

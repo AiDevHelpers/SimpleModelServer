@@ -46,11 +46,11 @@ public static class GpuDetector
     ///     in MB for GPU-layer/concurrency decisions) so the process-launch and parsing logic isn't
     ///     maintained twice with the two copies free to drift out of sync.
     /// </summary>
-    public static bool TryDetectNvidiaGpuRaw(out string name, out int memoryTotalMb, out int? memoryFreeMb)
+    public static (bool Success, string Name, int MemoryTotalMb, int? MemoryFreeMb) TryDetectNvidiaGpuRaw()
     {
-        name = "";
-        memoryTotalMb = 0;
-        memoryFreeMb = null;
+        string name = "";
+        int memoryTotalMb = 0;
+        int? memoryFreeMb = null;
 
         try
         {
@@ -67,7 +67,7 @@ public static class GpuDetector
             using Process? process = Process.Start(startInfo);
             if (process is null)
             {
-                return false;
+                return (false, name, memoryTotalMb, memoryFreeMb);
             }
 
             if (!process.WaitForExit(1500))
@@ -80,13 +80,13 @@ public static class GpuDetector
                 {
                 }
 
-                return false;
+                return (false, name, memoryTotalMb, memoryFreeMb);
             }
 
             string output = process.StandardOutput.ReadToEnd();
             if (process.ExitCode != 0)
             {
-                return false;
+                return (false, name, memoryTotalMb, memoryFreeMb);
             }
 
             string? line = output
@@ -94,14 +94,14 @@ public static class GpuDetector
                 .FirstOrDefault();
             if (string.IsNullOrWhiteSpace(line))
             {
-                return false;
+                return (false, name, memoryTotalMb, memoryFreeMb);
             }
 
             string[] parts = line.Split(',', 3, StringSplitOptions.TrimEntries);
             if (parts.Length < 2 || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture,
                     out int totalMb))
             {
-                return false;
+                return (false, name, memoryTotalMb, memoryFreeMb);
             }
 
             // memory.free is a newer column; tolerate drivers/nvidia-smi builds that only return
@@ -114,17 +114,18 @@ public static class GpuDetector
             name = parts[0];
             memoryTotalMb = totalMb;
             memoryFreeMb = freeMb;
-            return true;
+            return (true, name, memoryTotalMb, memoryFreeMb);
         }
         catch
         {
-            return false;
+            return (false, name, memoryTotalMb, memoryFreeMb);
         }
     }
 
     private static GpuInfo DetectNvidiaGpu()
     {
-        if (!TryDetectNvidiaGpuRaw(out string name, out int memoryTotalMb, out _))
+        (bool success, string name, int memoryTotalMb, _) = TryDetectNvidiaGpuRaw();
+        if (!success)
         {
             return new GpuInfo { IsAvailable = false };
         }

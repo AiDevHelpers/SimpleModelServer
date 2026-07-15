@@ -14,20 +14,39 @@ SimpleModelServer is a local HTTP API server that provides AI model inference ca
 Start here if you're new to SimpleModelServer.
 
 - **[Architecture Overview](architecture.md)** - System design and components
-- **[Model Configuration Guide](model-configuration.md)** - How to configure models and providers
-- **[Quick Reference](model-config-quick-ref.md)** - Quick lookup for configuration options
-- **[mDNS Discovery Guide](mdns-discovery.md)** - Network discovery configuration
+- **[Model Configuration Guide](Config/model-configuration.md)** - How to configure models and providers (Ollama / LM Studio)
+- **[Quick Reference](Config/model-config-quick-ref.md)** - Quick lookup for configuration options
+- **[mDNS Discovery Guide](Server/mdns-discovery.md)** - Network discovery configuration
 
 ### Developer Guide
 Resources for developers integrating SimpleModelServer into applications.
 
 - **[API Guide](archive/DEVELOPER_GUIDE/API_GUIDE.md)** - Complete REST API reference and examples
-- **[Router Contract](router-contract.md)** - Understanding the request routing system
+- **[Router Contract](Server/router-contract.md)** - Understanding the request routing system
+
+### Admin Configuration
+The web-based admin panel and REST API for managing server settings at runtime.
+
+- **[Admin Config Overview](Server/ADMIN_CONFIG.md)** - Configuration management & admin API (includes agent prompt editing)
+- **[Admin Quick Start](Server/ADMIN_QUICKSTART.md)** - One-minute setup for the admin panel
+- **[Admin System Guide](Server/README_ADMIN.md)** - Complete guide to the admin configuration system
+
+### Extensions & Integration
+Documentation for IDE integrations and client tools.
+
+- **[VS Extension Settings Panel](Extensions/VS_EXTENSION_SETTINGS.md)** - Configure connection, edit agent prompts, run golden set validation
+- **[TokenSaver Integration](Server/TOKENSAVER_INTEGRATION.md)** - Connect TokenSaver.MCP to SimpleModelServer router for shared inference
+- **[TokenSaver SignalR Integration](Server/TOKENSAVER_SIGNALR_INTEGRATION.md)** - Real-time model reload coordination between TokenSaver and SimpleModelServer
+
+### Logging
+- **[Logging Configuration](Config/LOGGING.md)** - Serilog-based structured logging (console, Event Log, named pipes, file)
+- **[Logging Config Examples](Config/LOGGING_CONFIG_EXAMPLES.md)** - Worked examples for common logging setups
+- **[Serilog Migration Notes](Config/SERILOG_MIGRATION.md)** - Migration from Microsoft.Extensions.Logging to Serilog
 
 ### Features
 Detailed documentation of key features.
 
-- **[Model Family Feature](model-family-feature.md)** - Model family, variant, and size configuration
+- **[Model Family Feature](Config/model-family-feature.md)** - Model family, variant, and size configuration
 - **[Chat Suffix Feature](archive/FEATURES/CHAT_SUFFIX_FEATURE.md)** - Chat suffix configuration for model naming
 - **[KeepAlive Minutes Feature](archive/FEATURES/KEEPALIVE_MINUTES_UPDATE.md)** - Connection keepalive configuration
 
@@ -43,12 +62,15 @@ Deep dives into system architecture and design decisions.
 ### Staged Pipeline
 Documentation of the staged pipeline architecture for inference optimization.
 
-- **[Pipeline Goals](staged-pipeline-goals.md)** - Strategic objectives
-- **[Pipeline Design](staged-pipeline-design.md)** - Architecture and design
-- **[Pipeline Concerns](staged-pipeline-concerns.md)** - Technical considerations
-- **[Pipeline Plan](staged-pipeline-plan.md)** - Implementation plan
-- **[Pipeline Review](staged-pipeline-review.md)** - Design review
-- **[Pipeline Test Plan](staged-pipeline-test-plan.md)** - Testing strategy
+- **[Pipeline Goals](Common/staged-pipeline-goals.md)** - Strategic objectives
+- **[Pipeline Design](Common/staged-pipeline-design.md)** - Architecture and design
+- **[Pipeline Concerns](Common/staged-pipeline-concerns.md)** - Technical considerations
+- **[Pipeline Plan](Common/staged-pipeline-plan.md)** - Implementation plan
+- **[Pipeline Review](Common/staged-pipeline-review.md)** - Design review
+- **[Pipeline Test Plan](Common/staged-pipeline-test-plan.md)** - Testing strategy
+
+### Extensions
+- **[VS Code Extension Plan](VSCODE_EXTENSION_PLAN.md)** - Porting the VS extension to VS Code as a Copilot model provider
 
 ### Implementation Notes
 Development and implementation documentation.
@@ -87,16 +109,19 @@ Performance and evaluation resources.
 
 ### For Users
 - [Main README](../README.md) - Project overview and quick start
-- [Model Configuration](model-configuration.md) - Configure your models
+- [Model Configuration](Config/model-configuration.md) - Configure your models and inference provider
 - [Architecture Overview](architecture.md) - Understand the system
+- [Admin Quick Start](Server/ADMIN_QUICKSTART.md) - Manage server settings from the web UI
 
 ### For Developers
 - [API Guide](archive/DEVELOPER_GUIDE/API_GUIDE.md) - Integrate with the API
-- [Router Contract](router-contract.md) - Understanding routing
+- [Router Contract](Server/router-contract.md) - Understanding routing
 - [VS Extension Guide](../src/Extensions/SimpleModelServer.Extensions.VS/README.md) - Extension development
 
 ### For System Administrators
 - [Build Guide](../build/BUILD_GUIDE.md) - Build and deploy
+- [Admin Config Overview](Server/ADMIN_CONFIG.md) - Runtime configuration management
+- [Logging Configuration](Config/LOGGING.md) - Structured logging setup
 - [Infrastructure Summary](../build/INFRASTRUCTURE_SUMMARY.md) - System infrastructure
 - [Versioning](../build/VERSIONING.md) - Version management
 
@@ -104,49 +129,27 @@ Performance and evaluation resources.
 
 ## Document Organization
 
+Documentation is organized under `docs/` by the project it documents, mirroring `src/`'s layout, with legacy/superseded documents kept under `archive/` for reference:
+
 ```
 docs/
 ├── INDEX.md (this file)
 ├── CHANGELOG.md
-├── README.md (links to this hub)
+├── architecture.md
+├── VSCODE_EXTENSION_PLAN.md
 │
-├── ARCHITECTURE/
-│   ├── CLEAN_ARCHITECTURE_SUMMARY.md
-│   ├── FAMILY_PAIR_STRUCTURE.md
-│   ├── AGENTS_EXTERNALIZED.md
-│   ├── MULTI_CONFIG_SYSTEM.md
-│   └── MODELFAMILY_ENUM.md
+├── Common/               — staged-pipeline-*.md (6 files)
+├── Config/                — model-configuration.md, model-config-quick-ref.md, model-family-feature.md,
+│                             LOGGING.md, LOGGING_CONFIG_EXAMPLES.md, SERILOG_MIGRATION.md
+├── Server/                — router-contract.md, mdns-discovery.md, ADMIN_CONFIG.md, ADMIN_QUICKSTART.md, README_ADMIN.md
 │
-├── DEVELOPER_GUIDE/
-│   └── API_GUIDE.md
-│
-├── FEATURES/
-│   ├── CHAT_SUFFIX_FEATURE.md
-│   └── KEEPALIVE_MINUTES_UPDATE.md
-│
-├── IMPLEMENTATION_NOTES/
-│   ├── IMPLEMENTATION_SUMMARY.md
-│   ├── IMPLEMENTATION_COMPLETE.md
-│   ├── EXTENSION_IMPLEMENTATION_COMPLETE.md
-│   ├── FAMILYPAIR_IMPLEMENTATION_SUMMARY.md
-│   └── DEFAULT_CONFIG_UPDATED.md
-│
-├── benchmarks/
-│   └── phase0-results.md
-│
-├── prompts/
-│   ├── eval-harness-prompt.md
-│   └── golden-set-authoring-prompt.md
-│
-├── *.md (main documentation files)
-│   ├── architecture.md
-│   ├── model-configuration.md
-│   ├── model-config-quick-ref.md
-│   ├── model-family-feature.md
-│   ├── mdns-discovery.md
-│   ├── router-contract.md
-│   └── staged-pipeline-*.md
+├── archive/                — superseded docs, kept for reference (ARCHITECTURE/, DEVELOPER_GUIDE/,
+│                             FEATURES/, IMPLEMENTATION_NOTES/, and standalone files)
+├── benchmarks/            — phase0-results.md
+└── prompts/                — eval-harness-prompt.md, golden-set-authoring-prompt.md
 ```
+
+`Client/`, `Contracts/`, `Evals/`, `Extensions/`, `Hardware/`, `Providers/`, and `UI/` subdirectories also exist under `docs/` for future project-specific documentation but are currently empty.
 
 ---
 
@@ -154,20 +157,21 @@ docs/
 
 1. **New to SimpleModelServer?** Start with the [Main README](../README.md)
 2. **Want to integrate the API?** Go to [API Guide](archive/DEVELOPER_GUIDE/API_GUIDE.md)
-3. **Need configuration help?** See [Model Configuration](model-configuration.md)
-4. **Interested in system design?** Check out [Architecture Overview](architecture.md)
-5. **Looking for implementation details?** Browse [Implementation Notes](IMPLEMENTATION_NOTES/)
+3. **Need configuration help?** See [Model Configuration](Config/model-configuration.md)
+4. **Managing server settings at runtime?** See [Admin Quick Start](Server/ADMIN_QUICKSTART.md)
+5. **Interested in system design?** Check out [Architecture Overview](architecture.md)
+6. **Looking for implementation details?** Browse [Implementation Notes](archive/IMPLEMENTATION_NOTES/)
 
 ---
 
 ## Contributing
 
 When adding new documentation:
-1. Create files in the appropriate category subdirectory
-2. Update this INDEX.md to include links to new documents
-3. Use consistent markdown formatting
-4. Include a brief description of the document content
+1. Create files under the `docs/<ProjectName>/` subdirectory matching the `src/` project it documents (e.g. `docs/Server/` for `src/Server/`), or at `docs/` top-level for cross-cutting docs.
+2. Update this INDEX.md to include links to new documents.
+3. Use consistent markdown formatting.
+4. Include a brief description of the document content.
 
 ---
 
-**Last Updated**: 2024-07-14
+**Last Updated**: 2026-07-15

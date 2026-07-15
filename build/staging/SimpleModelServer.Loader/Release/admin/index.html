@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleModelServer Admin - Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .note {
+            background: #fffacd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-danger {
+            background: #dc3545;
+        }
+
+        .button-danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .setting-name {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .requires-restart {
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .can-reload {
+            color: #28a745;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .current-value {
+            color: #666;
+            font-size: 13px;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .array-input {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .help-text {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .section-description {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 SimpleModelServer Configuration</h1>
+            <p class="subtitle">Admin panel for managing server settings</p>
+            <div class="note">
+                <strong>ℹ️ Note:</strong> Localhost (127.0.0.1 / ::1) is always trusted and requires no authentication.
+                Remote requests must provide a Bearer token: <code>Authorization: Bearer YOUR_API_KEY</code>
+            </div>
+        </header>
+
+        <div id="authPrompt" class="card" style="display: none;">
+            <h2>Authentication Required</h2>
+            <div class="form-group">
+                <label for="apiKey">API Key (Bearer Token)</label>
+                <input type="password" id="apiKey" placeholder="Enter your Bearer token">
+            </div>
+            <button onclick="authenticate()">Authenticate</button>
+            <div id="authStatus"></div>
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <div class="grid">
+                <!-- Network & Auth Settings -->
+                <div class="card">
+                    <h2>🔐 Network & Security</h2>
+                    <p class="section-description">Configure network binding, trusted networks, and API key authentication.</p>
+
+                    <div class="form-group">
+                        <label for="routerHost">Router Host</label>
+                        <input type="text" id="routerHost" placeholder="localhost">
+                        <div class="current-value" id="routerHostValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.routerHost</div>
+                        <div class="help-text">Host the router binds to. Use * for all interfaces (requires admin).</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trustedNetworks">Trusted Networks (one per line)</label>
+                        <textarea id="trustedNetworks" class="array-input" placeholder="192.168.1.0&#10;10.0.0.0/8"></textarea>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.trustedNetworks</div>
+                        <div class="help-text">CIDR notation or dotted-quad (trailing zeros imply mask). Localhost always trusted.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trustedApiKeys">Trusted API Keys (one per line)</label>
+                        <textarea id="trustedApiKeys" class="array-input" placeholder="key-1&#10;key-2"></textarea>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.trustedApiKeys</div>
+                        <div class="help-text">API keys for Bearer token authentication. Never exposed in GET requests.</div>
+                    </div>
+
+                    <button onclick="updateSetting('trustedNetworks')">Update Trusted Networks</button>
+                    <button onclick="updateSetting('trustedApiKeys')">Update API Keys</button>
+                    <div id="securityStatus"></div>
+                </div>
+
+                <!-- Port Settings -->
+                <div class="card">
+                    <h2>🔌 Port Configuration</h2>
+                    <p class="section-description">Configure router and Ollama server ports.</p>
+
+                    <div class="form-group">
+                        <label for="routerPort">Router Port</label>
+                        <input type="number" id="routerPort" min="1" max="65535">
+                        <div class="current-value" id="routerPortValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.routerPort</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ollamaPort">Ollama Port</label>
+                        <input type="number" id="ollamaPort" min="1" max="65535">
+                        <div class="current-value" id="ollamaPortValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.ollamaPort</div>
+                    </div>
+
+                    <button onclick="updateSetting('routerPort')">Update Router Port</button>
+                    <button onclick="updateSetting('ollamaPort')">Update Ollama Port</button>
+                    <div id="portStatus"></div>
+                </div>
+
+                <!-- Model Settings -->
+                <div class="card">
+                    <h2>🤖 Model Configuration</h2>
+                    <p class="section-description">Configure draft and main models, embedding model, and context size.</p>
+
+                    <div class="form-group">
+                        <label for="draftModel">Draft Model</label>
+                        <input type="text" id="draftModel" placeholder="qwen2.5-coder-0.5b">
+                        <div class="current-value" id="draftModelValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.draftModel</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mainModel">Main Model</label>
+                        <input type="text" id="mainModel" placeholder="qwen2.5-coder-3b">
+                        <div class="current-value" id="mainModelValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.mainModel</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="embedModel">Embed Model</label>
+                        <input type="text" id="embedModel" placeholder="nomic-embed-text">
+                        <div class="current-value" id="embedModelValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.embedModel</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contextSize">Context Size (tokens)</label>
+                        <input type="number" id="contextSize" min="128">
+                        <div class="current-value" id="contextSizeValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.contextSize</div>
+                    </div>
+
+                    <button onclick="updateSetting('draftModel')">Update Draft Model</button>
+                    <button onclick="updateSetting('mainModel')">Update Main Model</button>
+                    <button onclick="updateSetting('embedModel')">Update Embed Model</button>
+                    <button onclick="updateSetting('contextSize')">Update Context Size</button>
+                    <div id="modelStatus"></div>
+                </div>
+
+                <!-- Agent & Generation Settings -->
+                <div class="card">
+                    <h2>🎯 Agent & Generation</h2>
+                    <p class="section-description">Configure default agent type, draft mode, and handoff timing.</p>
+
+                    <div class="form-group">
+                        <label for="defaultAgentType">Default Agent Type</label>
+                        <select id="defaultAgentType">
+                            <option value="code">code</option>
+                            <option value="ask">ask</option>
+                            <option value="debug">debug</option>
+                            <option value="planning">planning</option>
+                        </select>
+                        <div class="current-value" id="defaultAgentTypeValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.defaultAgentType</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="agentType">Force Agent Type</label>
+                        <select id="agentType">
+                            <option value="">(disabled)</option>
+                            <option value="code">code</option>
+                            <option value="ask">ask</option>
+                            <option value="debug">debug</option>
+                            <option value="planning">planning</option>
+                        </select>
+                        <div class="current-value" id="agentTypeValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.agentType</div>
+                        <div class="help-text">When set, overrides defaultAgentType for all requests.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="draftMode">Draft Mode</label>
+                        <select id="draftMode">
+                            <option value="Preview">Preview (default)</option>
+                            <option value="Cleanup">Cleanup</option>
+                            <option value="Both">Both</option>
+                        </select>
+                        <div class="current-value" id="draftModeValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.draftMode</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="draftHandoffTimeoutMs">Draft Handoff Timeout (ms)</label>
+                        <input type="number" id="draftHandoffTimeoutMs" min="0" step="100">
+                        <div class="current-value" id="draftHandoffTimeoutMsValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.draftHandoffTimeoutMs</div>
+                    </div>
+
+                    <button onclick="updateSetting('defaultAgentType')">Update Default Agent</button>
+                    <button onclick="updateSetting('agentType')">Update Agent Type Override</button>
+                    <button onclick="updateSetting('draftMode')">Update Draft Mode</button>
+                    <button onclick="updateSetting('draftHandoffTimeoutMs')">Update Handoff Timeout</button>
+                    <div id="agentStatus"></div>
+                </div>
+
+                <!-- mDNS Settings -->
+                <div class="card">
+                    <h2>📡 mDNS Discovery</h2>
+                    <p class="section-description">Configure multicast DNS advertisement for LAN discovery.</p>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="mdnsEnabled">
+                            <label for="mdnsEnabled" style="margin-bottom: 0;">Enable mDNS</label>
+                        </div>
+                        <div class="current-value" id="mdnsEnabledValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.mdnsEnabled</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mdnsServiceName">mDNS Service Name</label>
+                        <input type="text" id="mdnsServiceName" placeholder="SimpleModelServer hostname">
+                        <div class="current-value" id="mdnsServiceNameValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.mdnsServiceName</div>
+                        <div class="help-text">Leave empty to use hostname. Instance name for _draftmodel._tcp.local.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="routerModelName">Router Model Name</label>
+                        <input type="text" id="routerModelName" placeholder="HelperModel">
+                        <div class="current-value" id="routerModelNameValue"></div>
+                        <div class="requires-restart">⚠️ Requires Restart</div>
+                        <div class="setting-name">global.routerModelName</div>
+                    </div>
+
+                    <button onclick="updateSetting('mdnsEnabled')">Update mDNS</button>
+                    <button onclick="updateSetting('mdnsServiceName')">Update Service Name</button>
+                    <button onclick="updateSetting('routerModelName')">Update Model Name</button>
+                    <div id="mdnsStatus"></div>
+                </div>
+
+                <!-- Hardware Settings -->
+                <div class="card">
+                    <h2>💻 Hardware Tuning</h2>
+                    <p class="section-description">Configure GPU and CPU resource allocation.</p>
+
+                    <div class="form-group">
+                        <label for="gpuLayers">GPU Layers</label>
+                        <input type="text" id="gpuLayers" placeholder="auto or number">
+                        <div class="current-value" id="gpuLayersValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.gpuLayers</div>
+                        <div class="help-text">Use 'auto' for automatic allocation, or specify a number.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cpuThreads">CPU Threads</label>
+                        <input type="text" id="cpuThreads" placeholder="auto or number">
+                        <div class="current-value" id="cpuThreadsValue"></div>
+                        <div class="can-reload">✓ Hot Reload</div>
+                        <div class="setting-name">global.cpuThreads</div>
+                        <div class="help-text">Use 'auto' for automatic allocation, or specify a number.</div>
+                    </div>
+
+                    <button onclick="updateSetting('gpuLayers')">Update GPU Layers</button>
+                    <button onclick="updateSetting('cpuThreads')">Update CPU Threads</button>
+                    <div id="hardwareStatus"></div>
+                </div>
+
+                <!-- MCP Servers (read-only — config-file-only, not hot-reloadable) -->
+                <div class="card">
+                    <h2>🔗 MCP Servers</h2>
+                    <p class="section-description">Upstream MCP servers aggregated behind the /mcp gateway endpoint. Configured via global.mcpServers in config.json — restart required to change.</p>
+                    <div id="mcpServersContainer">
+                        <div class="current-value">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card" style="margin-top: 30px;">
+                <h2>⚡ Actions</h2>
+                <p class="section-description">Apply configuration changes and manage server state.</p>
+                <div class="button-group">
+                    <button onclick="reloadConfig()">Reload Hot-Reloadable Settings</button>
+                    <button onclick="refreshConfig()">Refresh Configuration</button>
+                    <button class="button-danger" onclick="logout()">Logout</button>
+                </div>
+                <div id="actionStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let authToken = null;
+        let config = null;
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            checkAuthentication();
+        });
+
+        function checkAuthentication() {
+            // Check if we're on localhost
+            const isLocalhost = window.location.hostname === 'localhost' ||
+                               window.location.hostname === '127.0.0.1' ||
+                               window.location.hostname === '::1';
+
+            if (isLocalhost) {
+                // Localhost is always trusted
+                authToken = 'localhost';
+                loadConfig();
+                showMainContent();
+            } else {
+                // Check if we have a stored token
+                const stored = sessionStorage.getItem('adminToken');
+                if (stored) {
+                    authToken = stored;
+                    loadConfig();
+                    showMainContent();
+                } else {
+                    showAuthPrompt();
+                }
+            }
+        }
+
+        function showAuthPrompt() {
+            document.getElementById('authPrompt').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+        }
+
+        function showMainContent() {
+            document.getElementById('authPrompt').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        function authenticate() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showStatus('authStatus', 'Please enter an API key', 'error');
+                return;
+            }
+
+            authToken = apiKey;
+            sessionStorage.setItem('adminToken', apiKey);
+
+            loadConfig();
+            showMainContent();
+        }
+
+        function logout() {
+            authToken = null;
+            sessionStorage.removeItem('adminToken');
+            document.getElementById('apiKey').value = '';
+            showAuthPrompt();
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/config`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.status === 401) {
+                    showAuthPrompt();
+                    showStatus('authStatus', 'Authentication failed. Please try again.', 'error');
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                config = await response.json();
+                populateForm();
+            } catch (error) {
+                console.error('Error loading config:', error);
+                showStatus('actionStatus', `Failed to load configuration: ${error.message}`, 'error');
+            }
+
+            loadMcpServers();
+        }
+
+        async function loadMcpServers() {
+            const container = document.getElementById('mcpServersContainer');
+            try {
+                // /api/system/info serializes with default (PascalCase) property naming, unlike
+                // /admin/config's hand-built lowercase JSON — different endpoint, different shape.
+                const response = await fetch(`${API_BASE}/api/system/info`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const info = await response.json();
+                const servers = (info.Configuration && info.Configuration.McpServers) || {};
+                const names = Object.keys(servers);
+
+                if (names.length === 0) {
+                    container.innerHTML = '<div class="current-value">No MCP servers configured.</div>';
+                    return;
+                }
+
+                container.innerHTML = names.map(name => {
+                    const s = servers[name];
+                    const statusLabel = s.Connected ? `✓ Connected (${s.ToolCount} tool${s.ToolCount === 1 ? '' : 's'})` : '✗ Not connected';
+                    const statusClass = s.Connected ? 'can-reload' : 'requires-restart';
+                    return `
+                        <div class="form-group">
+                            <label>${name}</label>
+                            <div class="current-value">${s.Url}</div>
+                            <div class="${statusClass}">${statusLabel}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading MCP servers:', error);
+                container.innerHTML = '<div class="current-value">Failed to load MCP server status.</div>';
+            }
+        }
+
+        function populateForm() {
+            if (!config || !config.global) return;
+
+            const g = config.global;
+
+            setValue('routerPort', g.routerPort);
+            setValue('ollamaPort', g.ollamaPort);
+            setValue('routerHost', g.routerHost);
+            setValue('routerModelName', g.routerModelName);
+            setValue('draftModel', g.draftModel);
+            setValue('mainModel', g.mainModel);
+            setValue('embedModel', g.embedModel);
+            setValue('contextSize', g.contextSize);
+            setValue('defaultAgentType', g.defaultAgentType);
+            setValue('agentType', g.agentType);
+            setValue('draftMode', g.draftMode);
+            setValue('draftHandoffTimeoutMs', g.draftHandoffTimeoutMs);
+            setValue('mdnsEnabled', g.mdnsEnabled === true);
+            setValue('mdnsServiceName', g.mdnsServiceName);
+            setValue('gpuLayers', g.gpuLayers);
+            setValue('cpuThreads', g.cpuThreads);
+
+            // Array fields
+            if (g.trustedNetworks && g.trustedNetworks.length > 0) {
+                document.getElementById('trustedNetworks').value = g.trustedNetworks.join('\n');
+            }
+
+            // Update current value displays
+            updateValueDisplay('routerPortValue', g.routerPort);
+            updateValueDisplay('ollamaPortValue', g.ollamaPort);
+            updateValueDisplay('routerHostValue', g.routerHost);
+            updateValueDisplay('routerModelNameValue', g.routerModelName);
+            updateValueDisplay('draftModelValue', g.draftModel);
+            updateValueDisplay('mainModelValue', g.mainModel);
+            updateValueDisplay('embedModelValue', g.embedModel);
+            updateValueDisplay('contextSizeValue', g.contextSize);
+            updateValueDisplay('defaultAgentTypeValue', g.defaultAgentType);
+            updateValueDisplay('agentTypeValue', g.agentType || '(not set)');
+            updateValueDisplay('draftModeValue', g.draftMode);
+            updateValueDisplay('draftHandoffTimeoutMsValue', g.draftHandoffTimeoutMs + ' ms');
+            updateValueDisplay('mdnsEnabledValue', g.mdnsEnabled ? 'enabled' : 'disabled');
+            updateValueDisplay('mdnsServiceNameValue', g.mdnsServiceName || '(auto)');
+            updateValueDisplay('gpuLayersValue', g.gpuLayers);
+            updateValueDisplay('cpuThreadsValue', g.cpuThreads);
+        }
+
+        function setValue(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            if (el.type === 'checkbox') {
+                el.checked = value === true;
+            } else {
+                el.value = value || '';
+            }
+        }
+
+        function updateValueDisplay(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = `Current: ${value}`;
+        }
+
+        async function updateSetting(settingName) {
+            const el = document.getElementById(settingName);
+            if (!el) return;
+
+            let value;
+            if (el.type === 'checkbox') {
+                value = el.checked;
+            } else if (el.tagName === 'TEXTAREA') {
+                // Parse textarea as array
+                value = el.value.trim().split('\n').filter(line => line.trim());
+            } else if (el.type === 'number') {
+                value = el.value ? parseInt(el.value) : null;
+            } else {
+                value = el.value;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/config`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        setting: `global.${settingName}`,
+                        value: value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showStatus('actionStatus', `Error: ${data.message || data.error}`, 'error');
+                    return;
+                }
+
+                if (data.requiresRestart) {
+                    showStatus('actionStatus',
+                        `✓ Setting updated. Server restart required to apply changes.`,
+                        'warning');
+                } else {
+                    showStatus('actionStatus',
+                        `✓ Setting updated and reloaded.`,
+                        'success');
+                }
+
+                // Refresh config to show updated value
+                setTimeout(loadConfig, 500);
+            } catch (error) {
+                console.error('Error updating setting:', error);
+                showStatus('actionStatus', `Failed to update setting: ${error.message}`, 'error');
+            }
+        }
+
+        async function reloadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/reload`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showStatus('actionStatus', `Error: ${data.message || data.error}`, 'error');
+                    return;
+                }
+
+                showStatus('actionStatus', `✓ Configuration reloaded.`, 'success');
+            } catch (error) {
+                console.error('Error reloading config:', error);
+                showStatus('actionStatus', `Failed to reload: ${error.message}`, 'error');
+            }
+        }
+
+        async function refreshConfig() {
+            showStatus('actionStatus', 'Refreshing...', 'info');
+            await loadConfig();
+            showStatus('actionStatus', 'Configuration refreshed.', 'success');
+        }
+
+        function getAuthHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken && authToken !== 'localhost') {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            return headers;
+        }
+
+        function showStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            el.className = `status ${type}`;
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

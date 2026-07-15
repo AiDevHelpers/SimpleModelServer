@@ -1,5 +1,7 @@
 namespace SimpleModelServer.Contracts.Models;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716",
+    Justification = "Stop is domain vocabulary (LLM stop sequences) used consistently across this C#-only codebase; renaming for cross-language interop that doesn't apply here would ripple across many call sites for no functional benefit.")]
 public interface IModelConfig
 {
     string Name { get; set; }

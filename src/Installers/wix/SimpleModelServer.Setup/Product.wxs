@@ -15,9 +15,10 @@
   -p:MyAppVersion=x.y.z, see SimpleModelServer.Setup.wixproj).
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
-  <Package Name="SimpleModelServer Loader"
+  <Package Name="Simple Model Server"
             Manufacturer="Richard Sperry"
             Version="$(MyAppVersion)"
             UpgradeCode="7ADD086D-EE7B-462C-958D-C56FF654F123"
@@ -40,14 +41,70 @@
          upgrade as a fresh install. See docs/versioning.md and
          https://learn.microsoft.com/windows/win32/msi/majorupgrade-table for the
          RemoveExistingProducts scheduling this controls. -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of SimpleModelServer Loader is already installed."
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Simple Model Server is already installed."
                   Schedule="afterInstallExecute" />
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
+    <!-- Pending-restart check: a prior Windows Update / MSI install that queued a file
+         replace-on-reboot (or component servicing) can leave the target files this package
+         needs to overwrite locked, or a stale in-use SimpleModelServerLoader binary in place after
+         install. Each RegistrySearch below tests one of the three well-known "reboot is
+         pending" markers Windows itself uses:
+           - PendingFileRenameOperations: Session Manager queues file moves/deletes here that
+             run on next boot (any in-progress delayed file operation, not update-specific).
+           - Component Based Servicing\RebootPending: set by CBS (servicing stack) after a
+             feature/update install that hasn't been finalized by a restart yet.
+           - WindowsUpdate\Auto Update\RebootRequired: set specifically by Windows Update.
+         The Launch condition is scoped with "Installed OR NOT (...)" so it only blocks a
+         fresh install/upgrade — it must never block Uninstall, or a machine stuck with a
+         pending reboot could no longer remove this product either.
+
+         These use the core (non-util-namespaced) RegistrySearch nested in Property — this is
+         plain MSI AppSearch, not Burn/Bundle's util:RegistrySearch (which only compiles inside
+         a Bundle, not a Package — confirmed by WIX0005 when tried here). Per the MSI SDK's
+         RegLocator docs, omitting Name checks the KEY's existence itself (not a value under
+         it), which is exactly right for CbsRebootPending/WuRebootRequired below — both are
+         marker keys Windows creates with no meaningful values underneath. -->
+    <Property Id="PENDINGFILERENAME">
+      <RegistrySearch Id="PendingFileRenameOperationsSearch"
+                       Root="HKLM"
+                       Key="SYSTEM\CurrentControlSet\Control\Session Manager"
+                       Name="PendingFileRenameOperations"
+                       Type="raw" />
+    </Property>
+    <Property Id="CBSREBOOTPENDING">
+      <RegistrySearch Id="CbsRebootPendingSearch"
+                       Root="HKLM"
+                       Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
+                       Type="raw" />
+    </Property>
+    <Property Id="WUREBOOTREQUIRED">
+      <RegistrySearch Id="WuRebootRequiredSearch"
+                       Root="HKLM"
+                       Key="SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+                       Type="raw" />
+    </Property>
+
+    <Launch Condition="Installed OR NOT (PENDINGFILERENAME OR CBSREBOOTPENDING OR WUREBOOTREQUIRED)"
+            Message="A Windows restart is pending from a previous update or install. Please restart your computer, then run this setup again." />
+
+    <!-- Feature-tree UI so VsExtensionFeature / VsCodeExtensionFeature (both Level="1000",
+         optional — see below) can be checked/unchecked interactively instead of only via the
+         ADDLOCAL command-line property. This is the first UI this package has had — a silent
+         `msiexec /quiet` install (see install-support.ps1 / the existing automated install
+         flow) is unaffected, since /quiet suppresses all UI regardless of what's authored here.
+         WixUI_FeatureTree requires a license RTF; WixUILicenseRtf points at License.rtf
+         (sibling of this file) rather than embedding text inline, since WiX only accepts a
+         file path here, not markup. -->
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(WixProjDir)License.rtf" />
+
     <!-- {autopf}\SimpleModelServer equivalent -->
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="SimpleModelServer" />
+      <Directory Id="INSTALLFOLDER" Name="SimpleModelServer">
+        <Directory Id="EXTENSIONSFOLDER" Name="Extensions" />
+      </Directory>
     </StandardDirectory>
 
     <!-- %ProgramData%\SimpleModelServer — holds SimpleModelServer.config.json and the Ollama model store
@@ -61,12 +118,31 @@
       <Directory Id="APPDATAFOLDER" Name="SimpleModelServer" />
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="SimpleModelServer Loader" Level="1">
+    <Feature Id="MainFeature" Title="Simple Model Server" Level="1">
       <ComponentGroupRef Id="SimpleModelServerFiles" />
       <ComponentRef Id="AppDataFolderComponent" />
       <ComponentRef Id="AiInstructionsComponent" />
       <ComponentRef Id="InstallSupportScriptComponent" />
       <ComponentRef Id="ServiceComponent" />
+    </Feature>
+
+    <!-- Optional, not installed by default (Level="1000" — any level above the installer's
+         default INSTALLLEVEL of 1000 is excluded unless explicitly selected). There is no
+         WixUI feature-selection dialog wired up for this package (see Product.wxs header /
+         install-support.ps1 — install is driven by a silent msiexec invocation), so these are
+         selected via the public ADDLOCAL property instead, e.g.
+           msiexec /i SimpleModelServer-Setup-x.y.z.msi ADDLOCAL=MainFeature,VsExtensionFeature,VsCodeExtensionFeature
+         Each just drops its .vsix into INSTALLFOLDER\Extensions — it is NOT auto-installed into
+         Visual Studio / VS Code, since that would need VSIXInstaller.exe / the `code` CLI to be
+         locatable and would fail unpredictably depending on what's installed on the target
+         machine. Double-clicking the bundled .vsix afterward installs it via the OS's normal
+         file association. -->
+    <Feature Id="VsExtensionFeature" Title="Visual Studio Extension" Level="1000">
+      <ComponentRef Id="VsExtensionVsixComponent" />
+    </Feature>
+
+    <Feature Id="VsCodeExtensionFeature" Title="VS Code Extension" Level="1000">
+      <ComponentRef Id="VsCodeExtensionVsixComponent" />
     </Feature>
 
     <!-- Mirrors install-draftmodel-service.ps1's robocopy /MIR of the published output into
@@ -118,6 +194,25 @@
       <Component Id="InstallSupportScriptComponent" Guid="A1B2C3D4-5E6F-4788-9A0B-1C2D3E4F5061">
         <File Id="InstallSupportPs1"
               Source="$(WixProjDir)install-support.ps1"
+              KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Optional-feature payloads: see VsExtensionFeature / VsCodeExtensionFeature above.
+         VsExtensionVsix / VsCodeExtensionVsix are WiX preprocessor variables defined in
+         SimpleModelServer.Setup.wixproj's DefineConstants, produced by that project's
+         BuildVsExtensionVsix / PackVsCodeExtensionVsix InitialTargets. -->
+    <DirectoryRef Id="EXTENSIONSFOLDER">
+      <Component Id="VsExtensionVsixComponent" Guid="E1F2A3B4-5C6D-4E7F-8091-A2B3C4D5E6F1">
+        <File Id="VsExtensionVsixFile"
+              Source="$(VsExtensionVsix)"
+              Name="SimpleModelServer.Extensions.VS.vsix"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="VsCodeExtensionVsixComponent" Guid="F2A3B4C5-6D7E-4F80-91A2-B3C4D5E6F1A2">
+        <File Id="VsCodeExtensionVsixFile"
+              Source="$(VsCodeExtensionVsix)"
+              Name="SimpleModelServer.Extensions.VSCode.vsix"
               KeyPath="yes" />
       </Component>
     </DirectoryRef>

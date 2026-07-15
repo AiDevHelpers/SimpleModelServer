@@ -21,9 +21,16 @@ namespace SimpleModelServer.Extensions.VS.Features
         private readonly DiagnosticLogger _logger;
         private readonly IClientContext? _clientContext;
 
+        private static readonly Dictionary<string, string> ProviderLabels = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ollama"] = "Ollama",
+            ["lmstudio"] = "LM Studio"
+        };
+
         private string _connectionStatus = "Checking...";
         private string _currentAgent = "Ready";
         private bool _isOperationInProgress = false;
+        private string? _provider;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -64,7 +71,14 @@ namespace SimpleModelServer.Extensions.VS.Features
                 {
                     return $"SimpleModelServer: {CurrentAgent} (Processing...)";
                 }
-                return $"SimpleModelServer: {ConnectionStatus}";
+
+                string? providerLabel = _provider is not null && ProviderLabels.TryGetValue(_provider, out string? label)
+                    ? label
+                    : _provider;
+
+                return ConnectionStatus == "Connected" && providerLabel is not null
+                    ? $"SimpleModelServer: {ConnectionStatus} ({providerLabel})"
+                    : $"SimpleModelServer: {ConnectionStatus}";
             }
         }
 
@@ -79,6 +93,10 @@ namespace SimpleModelServer.Extensions.VS.Features
                 var isConnected = await _chatService.TestConnectionAsync();
                 ConnectionStatus = isConnected ? "Connected" : "Disconnected";
                 CurrentAgent = _settingsManager.DefaultAgentType;
+                // Only worth asking for the provider when the server is actually reachable —
+                // avoids a second doomed request on every failed connection check.
+                _provider = isConnected ? await _chatService.GetProviderAsync() : null;
+                OnPropertyChanged(nameof(StatusBarText));
 
                 _logger.Info($"Status bar initialized: {ConnectionStatus}");
 
@@ -105,6 +123,7 @@ namespace SimpleModelServer.Extensions.VS.Features
 
                     var isConnected = await _chatService.TestConnectionAsync();
                     ConnectionStatus = isConnected ? "Connected" : "Disconnected";
+                    _provider = isConnected ? await _chatService.GetProviderAsync() : null;
 
                     OnPropertyChanged(nameof(StatusBarText));
                 }

@@ -7,8 +7,12 @@ using ModelContextProtocol.Server;
 using Microsoft.Extensions.Logging;
 
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace SimpleModelServer.Server;
+
+/// <summary>Point-in-time status of one configured MCP upstream — see <see cref="McpUpstreamRegistry.GetStatus" />.</summary>
+internal readonly record struct McpUpstreamStatus(string Url, bool Connected, int ToolCount);
 
 /// <summary>
 ///     Aggregates tools from multiple upstream MCP servers behind one gateway endpoint
@@ -73,6 +77,25 @@ internal sealed partial class McpUpstreamRegistry(
                 LogUpstreamUnreachable(logger, ex, serverName, upstreamConfig.Url);
             }
         }
+    }
+
+    /// <summary>
+    ///     Per-upstream status for display purposes (system info API, admin UI) — configured URL,
+    ///     whether <see cref="InitializeAsync" /> successfully connected to it, and how many of
+    ///     its tools got aggregated. Reflects a point-in-time snapshot from the initial connect
+    ///     attempt; an upstream that goes down afterward still reports as connected here (no
+    ///     periodic health re-check for MCP upstreams, unlike Ollama/LM Studio's own health
+    ///     monitoring).
+    /// </summary>
+    public IReadOnlyDictionary<string, McpUpstreamStatus> GetStatus()
+    {
+        return upstreams.ToDictionary(
+            kvp => kvp.Key,
+            kvp => new McpUpstreamStatus(
+                kvp.Value.Url,
+                clientsByServer.ContainsKey(kvp.Key),
+                aggregatedTools.Keys.Count(name => name.StartsWith(kvp.Key + ".", StringComparison.OrdinalIgnoreCase))),
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Matches <see cref="Microsoft.Extensions.DependencyInjection.McpServerBuilderExtensions.WithListToolsHandler" />'s delegate shape.</summary>

@@ -249,6 +249,46 @@ namespace SimpleModelServer.UI.Core
             return models;
         }
 
+        /// <summary>
+        /// Gets the active inference provider ("ollama" or "lmstudio"), for display purposes
+        /// only — provider selection is entirely server-side (config.json), not something this
+        /// extension configures. Returns null if the server is unreachable or the field is
+        /// absent (older server builds predate this field).
+        /// </summary>
+        public async Task<string?> GetProviderAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var infoUrl = $"{_settings.GetServerUrl()}/api/system/info";
+                using var request = new HttpRequestMessage(HttpMethod.Get, infoUrl);
+                AddApiKeyIfConfigured(request);
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var document = JsonDocument.Parse(json);
+
+                // Server serializes with default (PascalCase) property naming — no camelCase
+                // policy configured — unlike /v1/models's hand-built lowercase anonymous object.
+                if (document.RootElement.TryGetProperty("Configuration", out var configuration) &&
+                    configuration.TryGetProperty("Global", out var global) &&
+                    global.TryGetProperty("Provider", out var provider))
+                {
+                    return provider.GetString();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning($"Failed to get provider: {ex.Message}");
+            }
+
+            return null;
+        }
+
         private void AddApiKeyIfConfigured(HttpRequestMessage request)
         {
             if (!string.IsNullOrWhiteSpace(_settings.ApiKey))

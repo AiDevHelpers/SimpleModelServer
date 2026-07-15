@@ -75,7 +75,7 @@ internal sealed partial class SimpleModelPairApp : IDisposable
     [LoggerMessage(Level = LogLevel.Information, Message = "Trusted networks: unrestricted (global.trustedNetworks is empty)")]
     private static partial void LogTrustedNetworksUnrestricted(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "ERROR: 'ollama' not found.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "'ollama' not found.")]
     private static partial void LogOllamaNotFound(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Ollama not responsive. Killing stuck processes and restarting...")]
@@ -158,7 +158,8 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         health = new ModelHealthMonitor(config, logger, process, http, GpuLayersFor) { OnRecovered = OnHealthRecoveredAsync };
         generation = new SimpleModelPairGenerationService(config, logger, generationBackend, () => HardwareSettings, GpuLayersFor, ReloadModelForAgentAsync, ollamaHelpers, consoleHelper);
         agentTypeResolver = new AgentTypeResolver(config);
-        var systemInfoService = new SystemInfoService(config, hardwareDetection);
+        var mcpUpstreamRegistry = new McpUpstreamRegistry(config.McpServers, logger);
+        var systemInfoService = new SystemInfoService(config, hardwareDetection, mcpUpstreamRegistry);
 
         // Configuration management services for admin API
         IConfigurationManager configurationManager = new ConfigurationManager();
@@ -166,7 +167,6 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         IAdminAuthenticationService adminAuthenticationService = new AdminAuthenticationService(config);
         var reloadCoordinator = new ModelReloadCoordinator(process, health, logger, TimeSpan.FromSeconds(5));
         var admin = new AdminEndpointHandler(config, logger, configurationManager, configurationUpdater, adminAuthenticationService, reloadCoordinator);
-        var mcpUpstreamRegistry = new McpUpstreamRegistry(config.McpServers, logger);
 
         router = new RouterHttpServer(config, logger, process, health, generation, agentTypeResolver, http, () => HardwareSettings, () => CurrentAgentType, ollamaHelpers, systemInfoService, admin, reloadCoordinator, mcpUpstreamRegistry);
         mdns = new MdnsAdvertiser(

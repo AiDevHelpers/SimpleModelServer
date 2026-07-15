@@ -228,6 +228,79 @@ Example:
 - CPU thread count for inference
 - Same options as gpuLayers
 
+### Agent Configuration
+
+Agent prompts and settings can be edited at runtime via the admin API. Each agent (code, debug, planning) has:
+- `systemPrompt`: The system instruction given to the model
+- `temperature`: Model sampling temperature (0–2 range)
+
+#### Editing Agent Settings
+
+Use `agents.<agentName>.<field>` as the setting path:
+
+```bash
+# Update the code agent's system prompt
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "setting": "agents.code.systemPrompt",
+    "value": "You are a C# coding expert. Provide clear, idiomatic solutions."
+  }'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "setting": "agents.code.systemPrompt",
+  "requiresRestart": false,
+  "suggestGoldenSet": true,
+  "message": "Agent 'code' prompt updated and reloaded. Consider running the golden set (SimpleModelServer.Evals --mode router) to validate the change."
+}
+```
+
+When a prompt is changed, the response includes `suggestGoldenSet: true`, indicating you should validate the change against the golden set test suite before trusting it in production.
+
+#### Available Agents
+
+- **code** – Specialized in code generation, explanation, and optimization
+- **debug** – Focused on troubleshooting and error analysis
+- **planning** – Designed for task decomposition and planning
+
+#### Running the Golden Set
+
+After changing an agent prompt, validate it with the golden set:
+
+```bash
+# Terminal: run the golden set eval against the modified prompt
+SimpleModelServer.Evals --mode router --router-url http://localhost:11435
+```
+
+Or via the **VS Extension Settings Panel**:
+1. Open Settings → Agent Prompts
+2. Select an agent and edit its system prompt
+3. Click "Save Prompt"
+4. If prompted, click "Yes" to run the golden set
+5. Review the results — all tests should pass
+
+#### Example: Optimizing Code Agent
+
+Original prompt (generic):
+```
+You are a code assistant.
+```
+
+Improved prompt (domain-specific):
+```
+You are an expert C# developer. When suggesting code:
+1. Prioritize idiomatic patterns over generic solutions
+2. Assume .NET 8+ features are available
+3. Reference best practices from Microsoft's .NET docs
+4. Provide concrete examples with error handling
+```
+
+Update via API and run the golden set to ensure the new prompt maintains routing accuracy without regressing on other agents.
+
 ## Authentication
 
 ### Localhost (Always Trusted)

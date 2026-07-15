@@ -150,6 +150,8 @@ internal sealed class TestMcpServer : IAsyncDisposable
 }
 
 [McpServerToolType]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812",
+    Justification = "Instantiated via reflection by the MCP SDK's WithTools<EchoTool>() registration, not by application code.")]
 internal sealed class EchoTool
 {
     [McpServerTool, Description("Echoes the input message back, prefixed with 'echo: '.")]

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace SimpleModelServer.Extensions.VS.Tests.ViewModels
 {
-    public class ChatViewModelTests
+    public class ChatViewModelTests : IDisposable
     {
         private readonly ChatService _chatService;
         private readonly SettingsManager _settingsManager;
@@ -17,6 +17,11 @@ namespace SimpleModelServer.Extensions.VS.Tests.ViewModels
         {
             _settingsManager = new SettingsManager();
             _chatService = new ChatService(_settingsManager);
+        }
+
+        public void Dispose()
+        {
+            _chatService.Dispose();
         }
 
         [Fact]

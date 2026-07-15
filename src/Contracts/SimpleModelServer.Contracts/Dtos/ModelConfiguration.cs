@@ -1,5 +1,6 @@
 using SimpleModelServer.Contracts;
 
+using System.Collections.ObjectModel;
 
 namespace SimpleModelServer.Contracts.Dtos;
 
@@ -25,7 +26,7 @@ public class ModelConfiguration
     public string? Description { get; set; }
 
     /// <summary>Model family pairs for this configuration (defaults only; system builds actual models)</summary>
-    public List<FamilyPair> Families { get; set; } = new();
+    public Collection<FamilyPair> Families { get; set; } = new();
 
     /// <summary>Embedding model for this configuration (defaults only; system builds actual model if missing)</summary>
     public EmbedConfig? Embed { get; set; }

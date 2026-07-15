@@ -1,5 +1,6 @@
 using SimpleModelServer.Contracts;
 
+using System.Collections.ObjectModel;
 
 namespace SimpleModelServer.Contracts.Dtos;
 
@@ -16,7 +17,7 @@ public class ModelDefinitions
     ///     Each configuration represents a different use case (e.g., "fast", "accurate", "balanced").
     ///     The configuration with IsDefault=true will be used when none is explicitly selected.
     /// </summary>
-    public List<ModelConfiguration> Configurations { get; set; } = new();
+    public Collection<ModelConfiguration> Configurations { get; set; } = new();
 }
 
 

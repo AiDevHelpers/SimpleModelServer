@@ -63,7 +63,8 @@ public sealed class HardwareDetection : IHardwareDetection
     // reading for its own (GB-based) GpuInfo shape.
     private static GpuInfo DetectGpu()
     {
-        return GpuDetector.TryDetectNvidiaGpuRaw(out string name, out int memoryTotalMb, out int? memoryFreeMb)
+        (bool success, string name, int memoryTotalMb, int? memoryFreeMb) = GpuDetector.TryDetectNvidiaGpuRaw();
+        return success
             ? new GpuInfo { Detected = true, Name = name, MemoryMb = memoryTotalMb, FreeMemoryMb = memoryFreeMb }
             : GpuInfo.None;
     }

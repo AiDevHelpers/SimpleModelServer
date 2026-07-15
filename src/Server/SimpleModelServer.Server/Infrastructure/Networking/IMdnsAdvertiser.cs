@@ -1,5 +1,7 @@
 namespace SimpleModelServer.Server.Infrastructure.Networking;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716",
+    Justification = "Stop() matches the conventional start/stop lifecycle naming used throughout this codebase (e.g. TcpListener.Stop, Stopwatch.Stop); renaming for cross-language interop that doesn't apply here would be inconsistent with that convention for no functional benefit.")]
 public interface IMdnsAdvertiser : IDisposable
 {
     /// <summary>True once <see cref="Advertise" /> has succeeded and <see cref="Stop" /> hasn't been called since.</summary>

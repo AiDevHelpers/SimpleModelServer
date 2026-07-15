@@ -38,8 +38,8 @@
   </Folder>
 
   <Folder Name="/Wix/">
-    <File Path="build/scripts/publish-simplemodelserver-for-wix.ps1" />
-    <Project Path="build/wix/SimpleModelServer.Setup/SimpleModelServer.Setup.wixproj" Type="b7dd6f7e-def8-4e67-b5b7-07ef123db6f0">
+    <File Path="build/scripts/publish-draftmodel-for-wix.ps1" />
+    <Project Path="src/Installers/wix/SimpleModelServer.Setup/SimpleModelServer.Setup.wixproj" Type="b7dd6f7e-def8-4e67-b5b7-07ef123db6f0">
       <BuildDependency Project="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
       <BuildDependency Project="src/Server/SimpleModelServer.Server/SimpleModelServer.Server.csproj" />
       <Platform Project="x64" />

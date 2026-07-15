@@ -3,17 +3,13 @@ namespace SimpleModelServer.Contracts.Dtos;
 /// <summary>
 ///     Complete system information response including capabilities and configuration.
 /// </summary>
-public class SystemInfoResponse : ISystemInfoResponse
+public class SystemInfoResponse
 {
     /// <summary>System capabilities including models, agents, hardware, and features.</summary>
     public SystemCapabilities Capabilities { get; set; } = new();
 
-    ISystemCapabilities ISystemInfoResponse.Capabilities => Capabilities;
-
     /// <summary>Current global and model configuration.</summary>
     public SystemConfiguration Configuration { get; set; } = new();
-
-    ISystemConfiguration ISystemInfoResponse.Configuration => Configuration;
 
     /// <summary>Timestamp when this information was gathered (UTC).</summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -22,7 +18,7 @@ public class SystemInfoResponse : ISystemInfoResponse
 /// <summary>
 ///     Available system capabilities.
 /// </summary>
-public class SystemCapabilities : ISystemCapabilities
+public class SystemCapabilities
 {
     /// <summary>Names of available models configured in the system.</summary>
     public string[] Models { get; set; } = [];
@@ -33,8 +29,6 @@ public class SystemCapabilities : ISystemCapabilities
     /// <summary>Hardware capabilities and resource information.</summary>
     public HardwareCapabilities Hardware { get; set; } = new();
 
-    IHardwareCapabilities ISystemCapabilities.Hardware => Hardware;
-
     /// <summary>Feature flags and capabilities enabled in this system.</summary>
     public string[] Features { get; set; } = [];
 }
@@ -42,7 +36,7 @@ public class SystemCapabilities : ISystemCapabilities
 /// <summary>
 ///     Hardware capabilities and resource information.
 /// </summary>
-public class HardwareCapabilities : IHardwareCapabilities
+public class HardwareCapabilities
 {
     /// <summary>Whether a GPU is detected and available.</summary>
     public bool GpuAvailable { get; set; }
@@ -69,35 +63,45 @@ public class HardwareCapabilities : IHardwareCapabilities
 /// <summary>
 ///     Current system configuration.
 /// </summary>
-public class SystemConfiguration : ISystemConfiguration
+public class SystemConfiguration
 {
     /// <summary>Global router and system settings.</summary>
     public GlobalConfigInfo Global { get; set; } = new();
 
-    IGlobalConfigInfo ISystemConfiguration.Global => Global;
-
     /// <summary>Model role assignments (e.g., draft, main, embed).</summary>
     public Dictionary<string, string> ModelRoles { get; set; } = new();
-
-    IReadOnlyDictionary<string, string> ISystemConfiguration.ModelRoles => ModelRoles;
 
     /// <summary>Model source configurations.</summary>
     public Dictionary<string, ModelSourceInfo> ModelSources { get; set; } = new();
 
-    IReadOnlyDictionary<string, IModelSourceInfo> ISystemConfiguration.ModelSources =>
-        ModelSources.ToDictionary(kvp => kvp.Key, kvp => (IModelSourceInfo)kvp.Value);
-
     /// <summary>Agent configurations.</summary>
     public Dictionary<string, AgentInfo> Agents { get; set; } = new();
 
-    IReadOnlyDictionary<string, IAgentInfo> ISystemConfiguration.Agents =>
-        Agents.ToDictionary(kvp => kvp.Key, kvp => (IAgentInfo)kvp.Value);
+    /// <summary>Configured MCP upstream servers aggregated behind the /mcp gateway endpoint.</summary>
+    public Dictionary<string, McpServerInfo> McpServers { get; set; } = new();
+}
+
+/// <summary>
+///     Status of one configured MCP upstream server (see /mcp gateway).
+/// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1056",
+    Justification = "Url is a plain string surfaced verbatim from config/JSON for display purposes; changing to System.Uri would complicate serialization for no functional benefit.")]
+public class McpServerInfo
+{
+    /// <summary>The upstream server's URL.</summary>
+    public string? Url { get; set; }
+
+    /// <summary>Whether the router successfully connected to this upstream at startup.</summary>
+    public bool Connected { get; set; }
+
+    /// <summary>How many of this upstream's tools were aggregated into the /mcp gateway.</summary>
+    public int ToolCount { get; set; }
 }
 
 /// <summary>
 ///     Global configuration settings.
 /// </summary>
-public class GlobalConfigInfo : IGlobalConfigInfo
+public class GlobalConfigInfo
 {
     /// <summary>Router host address (typically 127.0.0.1 or 0.0.0.0).</summary>
     public string? RouterHost { get; set; }
@@ -110,6 +114,9 @@ public class GlobalConfigInfo : IGlobalConfigInfo
 
     /// <summary>Ollama server port.</summary>
     public int OllamaPort { get; set; }
+
+    /// <summary>Which inference backend serves generation requests: "ollama" or "lmstudio".</summary>
+    public string? Provider { get; set; }
 
     /// <summary>Draft model name.</summary>
     public string? DraftModel { get; set; }
@@ -139,7 +146,9 @@ public class GlobalConfigInfo : IGlobalConfigInfo
 /// <summary>
 ///     Model source configuration information.
 /// </summary>
-public class ModelSourceInfo : IModelSourceInfo
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1056",
+    Justification = "Url is a plain string surfaced verbatim from config/JSON for display purposes; changing to System.Uri would complicate serialization for no functional benefit.")]
+public class ModelSourceInfo
 {
     /// <summary>Source type (e.g., ollama, huggingface, local).</summary>
     public string? Type { get; set; }
@@ -149,14 +158,12 @@ public class ModelSourceInfo : IModelSourceInfo
 
     /// <summary>Source-specific settings.</summary>
     public Dictionary<string, object?> Settings { get; set; } = new();
-
-    IReadOnlyDictionary<string, object?> IModelSourceInfo.Settings => Settings;
 }
 
 /// <summary>
 ///     Agent configuration information.
 /// </summary>
-public class AgentInfo : IAgentInfo
+public class AgentInfo
 {
     /// <summary>Agent display name.</summary>
     public string? Name { get; set; }
@@ -172,6 +179,4 @@ public class AgentInfo : IAgentInfo
 
     /// <summary>Agent-specific settings.</summary>
     public Dictionary<string, object?> Settings { get; set; } = new();
-
-    IReadOnlyDictionary<string, object?> IAgentInfo.Settings => Settings;
 }

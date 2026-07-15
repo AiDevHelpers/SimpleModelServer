@@ -262,6 +262,51 @@ This configuration:
 }
 ```
 
+## Inference Provider (Ollama / LM Studio)
+
+`global.provider` selects which backend actually generates tokens for the draft and main models. It's optional — every existing config without a `"provider"` section keeps working unchanged, defaulting to Ollama on `127.0.0.1:11434`.
+
+```json
+{
+  "global": {
+    "provider": {
+      "type": "ollama",
+      "host": "127.0.0.1",
+      "port": 11434
+    }
+  }
+}
+```
+
+To use LM Studio instead:
+
+```json
+{
+  "global": {
+    "provider": {
+      "type": "lmstudio",
+      "host": "127.0.0.1",
+      "port": 1234,
+      "apiKey": "optional-if-your-lmstudio-server-requires-one"
+    }
+  }
+}
+```
+
+Fields:
+- `type` — `"ollama"` (default) or `"lmstudio"`.
+- `host` — defaults to `127.0.0.1`.
+- `port` — defaults to `11434` for Ollama, `1234` for LM Studio (LM Studio's conventional default) if omitted.
+- `apiKey` — optional; sent as `Authorization: Bearer <apiKey>` if your LM Studio server has API-key auth enabled.
+
+**Ollama vs. LM Studio, what's different:**
+- Both draft and main models run through whichever provider is selected — there's no per-model mixing of backends.
+- **LM Studio is health-check-only.** SimpleModelServer never starts, kills, or pulls models for LM Studio the way it does for Ollama — LM Studio is expected to already be running with its local server enabled (Developer tab → "Start Server" in the LM Studio app). SimpleModelServer only probes reachability (`GET /v1/models`).
+- Ollama's per-request `num_gpu`/`num_thread`/`keep_alive` controls (from your model definitions above) have no equivalent in LM Studio's OpenAI-compatible API and are silently ignored when `type` is `"lmstudio"` — configure GPU offload and idle-unload behavior in LM Studio's own model settings instead.
+- Because LM Studio has no keep-alive/warmup control, there's no "warming up, retry in a few seconds" response for it — a cold LM Studio model load is just a slower first request.
+- Ollama's model-management endpoints (`/api/pull`, `/api/create`, `/api/tags`, `/api/ps`, `/api/show`, `/api/embed`, etc.) are Ollama-native passthrough and are not currently wired to work against LM Studio — only chat/completion generation through the draft-pair pipeline is supported for `type: "lmstudio"`.
+- **Provider selection is config-file-only.** It's read once at startup (`global.provider`) and isn't exposed through the `/admin/config` hot-reload API — changing it requires a server restart, since it determines the whole generation/health-monitoring wiring constructed at startup.
+
 ## Configuration Resolution Order
 
 When generating model information, SimpleModelServer follows this priority:

@@ -45,9 +45,14 @@ public class EvalInterfacesContractTests
     {
         var type = typeof(ICodegenCaseResult);
         Assert.NotNull(type.GetProperty("CaseId", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("ParseResult", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("CompileResult", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("Summary", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("GenerationSucceeded", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("ExtractedCode", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("ParsePassed", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("ParseDiagnostics", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("CompilePassed", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("CompileDiagnostics", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("AssertionsPassed", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Assertions", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -82,8 +87,12 @@ public class EvalInterfacesContractTests
     public void IExpectedResult_HasAllRequiredMembers()
     {
         var type = typeof(IExpectedResult);
-        Assert.NotNull(type.GetProperty("Content", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("AssertionIds", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Intent", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Quality", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Ambiguity", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("RoutingReason", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("MustCompile", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("LatencyClass", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -100,7 +109,11 @@ public class EvalInterfacesContractTests
     {
         var type = typeof(IRouterCaseResult);
         Assert.NotNull(type.GetProperty("CaseId", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("Passed", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("SchemaValid", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("IntentMatch", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("QualityMatch", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("AmbiguityMatch", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("RoutingReasonMatch", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -108,14 +121,19 @@ public class EvalInterfacesContractTests
     {
         var type = typeof(IRouterSummary);
         Assert.NotNull(type.GetProperty("TotalCases", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("PassedCases", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("SchemaValidCount", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("IntentAccuracyPct", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("RoutingReasonAccuracyPct", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
     public void IRouterResponse_HasAllRequiredMembers()
     {
         var type = typeof(IRouterResponse);
-        Assert.NotNull(type.GetProperty("Summary", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Intent", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Quality", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("Response", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("RoutingReason", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -124,7 +142,7 @@ public class EvalInterfacesContractTests
         var type = typeof(IReportMetadata);
         Assert.NotNull(type.GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
         Assert.NotNull(type.GetProperty("Label", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("Timestamp", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("TimestampUtc", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -138,8 +156,14 @@ public class EvalInterfacesContractTests
     [Fact]
     public void IDirectGenerationPipeline_HasAllRequiredMembers()
     {
+        // IDirectGenerationPipeline is a marker interface extending IGenerationPipeline — no
+        // members of its own, so verify the inherited contract instead of a nonexistent property.
+        // Type.GetMethod on a derived interface doesn't surface members inherited from an
+        // extended interface (that only works reliably for classes), so check IGenerationPipeline
+        // itself rather than IDirectGenerationPipeline.
         var type = typeof(IDirectGenerationPipeline);
-        Assert.NotNull(type.GetProperty("PipelineId", BindingFlags.Public | BindingFlags.Instance));
+        Assert.True(typeof(IGenerationPipeline).IsAssignableFrom(type));
+        Assert.NotNull(typeof(IGenerationPipeline).GetMethod("GenerateAsync", BindingFlags.Public | BindingFlags.Instance));
     }
 
     [Fact]
@@ -147,6 +171,6 @@ public class EvalInterfacesContractTests
     {
         var type = typeof(IGenerationOutcome);
         Assert.NotNull(type.GetProperty("Succeeded", BindingFlags.Public | BindingFlags.Instance));
-        Assert.NotNull(type.GetProperty("Output", BindingFlags.Public | BindingFlags.Instance));
+        Assert.NotNull(type.GetProperty("RawResponse", BindingFlags.Public | BindingFlags.Instance));
     }
 }

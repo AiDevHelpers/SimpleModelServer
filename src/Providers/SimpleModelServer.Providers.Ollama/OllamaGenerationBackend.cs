@@ -56,6 +56,22 @@ public sealed class OllamaGenerationBackend(IOllamaProcessManager process, HttpC
         return json?["response"]?.GetValue<string>()?.Trim() ?? "";
     }
 
+    public async Task<JsonArray?> GenerateEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default)
+    {
+        JsonObject requestBody = new() { ["model"] = model, ["input"] = input?.DeepClone() };
+        using JsonContent content = JsonContent.Create(requestBody);
+        using HttpResponseMessage response = await http.PostAsync(
+            new Uri($"http://127.0.0.1:{process.ServerPort}/api/embed"), content, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        JsonNode? json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        return json?["embeddings"]?.AsArray();
+    }
+
     private static JsonObject BuildRequestBody(string model, string prompt, GenerationOptions options, bool stream)
     {
         JsonObject requestBody = new()

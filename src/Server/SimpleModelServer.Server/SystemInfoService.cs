@@ -13,11 +13,13 @@ internal sealed class SystemInfoService
 {
     private readonly IAppConfig config;
     private readonly IHardwareDetection hardwareDetection;
+    private readonly McpUpstreamRegistry mcpUpstreamRegistry;
 
-    public SystemInfoService(IAppConfig config, IHardwareDetection hardwareDetection)
+    public SystemInfoService(IAppConfig config, IHardwareDetection hardwareDetection, McpUpstreamRegistry mcpUpstreamRegistry)
     {
         this.config = config ?? throw new ArgumentNullException(nameof(config));
         this.hardwareDetection = hardwareDetection ?? throw new ArgumentNullException(nameof(hardwareDetection));
+        this.mcpUpstreamRegistry = mcpUpstreamRegistry ?? throw new ArgumentNullException(nameof(mcpUpstreamRegistry));
     }
 
     /// <summary>
@@ -128,8 +130,25 @@ internal sealed class SystemInfoService
             Global = BuildGlobalConfig(),
             ModelRoles = new Dictionary<string, string>(config.ModelRoles, StringComparer.OrdinalIgnoreCase),
             ModelSources = BuildModelSources(),
-            Agents = BuildAgentInfo()
+            Agents = BuildAgentInfo(),
+            McpServers = BuildMcpServers()
         };
+    }
+
+    private Dictionary<string, McpServerInfo> BuildMcpServers()
+    {
+        var result = new Dictionary<string, McpServerInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, McpUpstreamStatus> kvp in mcpUpstreamRegistry.GetStatus())
+        {
+            result[kvp.Key] = new McpServerInfo
+            {
+                Url = kvp.Value.Url,
+                Connected = kvp.Value.Connected,
+                ToolCount = kvp.Value.ToolCount
+            };
+        }
+
+        return result;
     }
 
     private GlobalConfigInfo BuildGlobalConfig()
@@ -140,6 +159,7 @@ internal sealed class SystemInfoService
             RouterPort = config.Global.RouterPort,
             RouterModelName = config.Global.RouterModelName,
             OllamaPort = config.Global.OllamaPort,
+            Provider = config.Global.Provider.Type.ToString().ToLowerInvariant(),
             DraftModel = config.Global.DraftModel,
             MainModel = config.Global.MainModel,
             EmbedModel = !string.IsNullOrWhiteSpace(config.Global.EmbedModel)

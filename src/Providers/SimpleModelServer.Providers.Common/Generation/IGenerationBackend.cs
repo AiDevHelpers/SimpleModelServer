@@ -1,5 +1,7 @@
 using SimpleModelServer.Contracts.Models;
 
+using System.Text.Json.Nodes;
+
 namespace SimpleModelServer.Providers.Common.Generation;
 
 /// <summary>
@@ -17,6 +19,16 @@ public interface IGenerationBackend
 
     /// <summary>Single-shot, non-streaming generation — returns the full response text (or "" on failure).</summary>
     Task<string> GenerateAsync(string model, string prompt, GenerationOptions options, CancellationToken ct = default);
+
+    /// <summary>
+    ///     Generates embeddings for <paramref name="input" /> (a JSON string or array of strings,
+    ///     matching Ollama's/OpenAI's shared "input" shape). Returns one float-array embedding
+    ///     vector per input item, in order — or <see langword="null" /> on failure. Each backend
+    ///     translates to its own native embeddings endpoint (Ollama's <c>/api/embed</c>, LM
+    ///     Studio's OpenAI-compatible <c>/v1/embeddings</c>) and normalizes the response back to
+    ///     this shared shape.
+    /// </summary>
+    Task<JsonArray?> GenerateEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default);
 }
 
 /// <summary>

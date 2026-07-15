@@ -26,7 +26,7 @@ public sealed class CodegenRunner(IGenerationPipeline pipeline) : ICodegenRunner
     }
 
     async Task<(IReadOnlyList<ICodegenCaseResult> Cases, ICodegenSummary Summary)> ICodegenRunner.RunAsync(
-        IReadOnlyList<IGoldenCase> cases, int timeoutSeconds, CancellationToken cancellationToken = default)
+        IReadOnlyList<IGoldenCase> cases, int timeoutSeconds, CancellationToken cancellationToken)
     {
         var concreteCase = cases.Cast<GoldenCase>().ToList();
         return await RunAsync(concreteCase, timeoutSeconds, cancellationToken);

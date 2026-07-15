@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SimpleModelServer.Common.Configuration;
@@ -12,7 +13,7 @@ public static class DefaultConfig
     ///     Kept for backward compatibility — written only if the legacy file is missing and
     ///     callers explicitly need it. New installations use <see cref="StockJson" /> which embeds models.
     /// </summary>
-    public static readonly string StockModelSourcesJson = StockJson;
+    public static string StockModelSourcesJson => StockJson;
 
     private static string SerializeStockConfig()
     {
@@ -59,7 +60,7 @@ public static class DefaultConfig
             },
             Models = new ModelDefinitions
             {
-                Configurations = new List<ModelConfiguration>
+                Configurations = new Collection<ModelConfiguration>
                 {
                     // Fast & Responsive: Small models for quick responses
                     new ModelConfiguration
@@ -68,7 +69,7 @@ public static class DefaultConfig
                         Nickname = "Fast & Responsive",
                         IsDefault = true,
                         Description = "Small, fast models optimized for quick responses and low latency",
-                        Families = new List<FamilyPair>
+                        Families = new Collection<FamilyPair>
                         {
                             new FamilyPair
                             {
@@ -109,7 +110,7 @@ public static class DefaultConfig
                         Nickname = "Accurate & Thorough",
                         IsDefault = false,
                         Description = "Larger models optimized for accuracy and quality, accepts higher latency",
-                        Families = new List<FamilyPair>
+                        Families = new Collection<FamilyPair>
                         {
                             new FamilyPair
                             {

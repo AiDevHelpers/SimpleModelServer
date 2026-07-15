@@ -52,7 +52,7 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
     [LoggerMessage(Level = LogLevel.Information, Message = "Server READY.")]
     private static partial void LogServerReady(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "ERROR: Server did not start.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Server did not start.")]
     private static partial void LogServerDidNotStart(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not unload model '{Model}' ({StatusCode}). Continuing.")]

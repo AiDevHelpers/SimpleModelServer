@@ -131,7 +131,7 @@ public class AppConfigTests
     }
 
     [Fact]
-    public void DefaultAgentType_FallsBackToCodeWhenGlobalIsEmpty()
+    public void DefaultAgentType_FallsBackToAskWhenGlobalIsEmpty()
     {
         // Arrange
         var config = new AppConfig
@@ -142,8 +142,10 @@ public class AppConfigTests
         // Act
         var result = config.DefaultAgentType;
 
-        // Assert
-        Assert.Equal("code", result);
+        // Assert — "ask" matches DefaultConfig.cs's shipped out-of-the-box default; GlobalConfig's
+        // own bare-constructor default ("code") is a separate, deliberately different fallback
+        // used when no explicit config value is provided at all (see GlobalConfig.DefaultAgentType).
+        Assert.Equal("ask", result);
     }
 
     [Fact]

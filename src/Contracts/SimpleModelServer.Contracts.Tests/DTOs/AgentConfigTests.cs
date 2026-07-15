@@ -127,7 +127,7 @@ public class AgentConfigTests
 
         // Assert
         Assert.NotNull(config.Sampling);
-        Assert.Contains("new_param", config.Sampling.AsObject().Keys);
+        Assert.True(config.Sampling.AsObject().ContainsKey("new_param"));
     }
 
     [Fact]

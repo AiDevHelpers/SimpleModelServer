@@ -515,6 +515,15 @@
                     <button onclick="updateSetting('cpuThreads')">Update CPU Threads</button>
                     <div id="hardwareStatus"></div>
                 </div>
+
+                <!-- MCP Servers (read-only — config-file-only, not hot-reloadable) -->
+                <div class="card">
+                    <h2>🔗 MCP Servers</h2>
+                    <p class="section-description">Upstream MCP servers aggregated behind the /mcp gateway endpoint. Configured via global.mcpServers in config.json — restart required to change.</p>
+                    <div id="mcpServersContainer">
+                        <div class="current-value">Loading…</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Actions -->
@@ -617,6 +626,48 @@
             } catch (error) {
                 console.error('Error loading config:', error);
                 showStatus('actionStatus', `Failed to load configuration: ${error.message}`, 'error');
+            }
+
+            loadMcpServers();
+        }
+
+        async function loadMcpServers() {
+            const container = document.getElementById('mcpServersContainer');
+            try {
+                // /api/system/info serializes with default (PascalCase) property naming, unlike
+                // /admin/config's hand-built lowercase JSON — different endpoint, different shape.
+                const response = await fetch(`${API_BASE}/api/system/info`, {
+                    headers: getAuthHeaders()
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const info = await response.json();
+                const servers = (info.Configuration && info.Configuration.McpServers) || {};
+                const names = Object.keys(servers);
+
+                if (names.length === 0) {
+                    container.innerHTML = '<div class="current-value">No MCP servers configured.</div>';
+                    return;
+                }
+
+                container.innerHTML = names.map(name => {
+                    const s = servers[name];
+                    const statusLabel = s.Connected ? `✓ Connected (${s.ToolCount} tool${s.ToolCount === 1 ? '' : 's'})` : '✗ Not connected';
+                    const statusClass = s.Connected ? 'can-reload' : 'requires-restart';
+                    return `
+                        <div class="form-group">
+                            <label>${name}</label>
+                            <div class="current-value">${s.Url}</div>
+                            <div class="${statusClass}">${statusLabel}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading MCP servers:', error);
+                container.innerHTML = '<div class="current-value">Failed to load MCP server status.</div>';
             }
         }
 

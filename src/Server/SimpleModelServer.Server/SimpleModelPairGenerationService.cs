@@ -86,6 +86,13 @@ internal sealed partial class SimpleModelPairGenerationService(
             ? e
             : "nomic-embed-text";
 
+    /// <summary>
+    ///     Generates embeddings via whichever backend is configured (Ollama's <c>/api/embed</c> or
+    ///     LM Studio's <c>/v1/embeddings</c>) — see <see cref="IGenerationBackend.GenerateEmbeddingsAsync" />.
+    /// </summary>
+    public Task<JsonArray?> GetEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default)
+        => backend.GenerateEmbeddingsAsync(model, input, ct);
+
     private int? EffectiveContextSize => config.Global.ContextSize;
 
     /// <summary>

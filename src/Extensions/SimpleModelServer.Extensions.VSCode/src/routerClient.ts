@@ -52,6 +52,15 @@ export interface HealthResponse {
   status: string;
 }
 
+// Server serializes with default (PascalCase) property naming — no camelCase policy configured.
+export interface SystemInfoResponse {
+  Configuration: {
+    Global: {
+      Provider?: string;
+    };
+  };
+}
+
 export class RouterClient {
   private baseUrl: string;
   private apiKey: string;
@@ -80,6 +89,35 @@ export class RouterClient {
       }
     } catch (err) {
       return false;
+    }
+  }
+
+  /**
+   * Get the active inference provider ("ollama" or "lmstudio"), for display purposes only —
+   * provider selection is entirely server-side (config.json), not something this extension
+   * configures. Returns undefined if the server is unreachable or the field is absent (older
+   * server builds predate this field).
+   */
+  async getProvider(signal?: AbortSignal): Promise<string | undefined> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      try {
+        const response = await fetch(`${this.baseUrl}/api/system/info`, {
+          method: "GET",
+          signal: signal || controller.signal,
+        });
+        if (!response.ok) {
+          return undefined;
+        }
+        const info = (await response.json()) as SystemInfoResponse;
+        return info.Configuration?.Global?.Provider;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } catch (err) {
+      return undefined;
     }
   }
 

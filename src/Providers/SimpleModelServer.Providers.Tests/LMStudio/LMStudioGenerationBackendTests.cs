@@ -115,6 +115,48 @@ public class LMStudioGenerationBackendTests
         Assert.Equal("", result);
     }
 
+    [Fact]
+    public async Task GenerateEmbeddingsAsync_NormalResponse_ReturnsEmbeddingsInIndexOrder()
+    {
+        // Arrange — OpenAI's embeddings response format, deliberately out of index order to
+        // confirm the backend sorts by "index" rather than trusting array order.
+        string body = """
+            {
+                "data": [
+                    { "embedding": [0.4, 0.5], "index": 1 },
+                    { "embedding": [0.1, 0.2], "index": 0 }
+                ],
+                "model": "test-embed-model"
+            }
+            """;
+        LMStudioGenerationBackend backend = CreateBackend(body, "application/json");
+
+        // Act
+        System.Text.Json.Nodes.JsonArray? result = await backend.GenerateEmbeddingsAsync(
+            "test-embed-model", System.Text.Json.Nodes.JsonValue.Create("hello"), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal(0.1, result[0]?[0]?.GetValue<double>());
+        Assert.Equal(0.4, result[1]?[0]?.GetValue<double>());
+    }
+
+    [Fact]
+    public async Task GenerateEmbeddingsAsync_ErrorStatusCode_ReturnsNull()
+    {
+        // Arrange
+        LMStudioGenerationBackend backend = CreateBackend(
+            """{"error":"model not loaded"}""", "application/json", HttpStatusCode.BadRequest);
+
+        // Act
+        System.Text.Json.Nodes.JsonArray? result = await backend.GenerateEmbeddingsAsync(
+            "test-embed-model", System.Text.Json.Nodes.JsonValue.Create("hello"), CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+
     private sealed class CannedResponseHandler(string body, string contentType, HttpStatusCode statusCode) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

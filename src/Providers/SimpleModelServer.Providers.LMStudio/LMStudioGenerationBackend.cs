@@ -1,6 +1,7 @@
 using SimpleModelServer.Contracts.Providers;
 using SimpleModelServer.Providers.Common.Generation;
 
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace SimpleModelServer.Providers.LMStudio;
@@ -42,6 +43,34 @@ public sealed class LMStudioGenerationBackend(ILMStudioProvider provider) : IGen
         string body = await response.Content.ReadAsStringAsync(ct);
         JsonNode? json = JsonNode.Parse(body);
         return json?["choices"]?[0]?["message"]?["content"]?.GetValue<string>()?.Trim() ?? "";
+    }
+
+    public async Task<JsonArray?> GenerateEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default)
+    {
+        JsonObject requestBody = new() { ["model"] = model, ["input"] = input?.DeepClone() };
+        using HttpResponseMessage response = await provider.PostEmbeddingsAsync(requestBody, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        JsonNode? json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        JsonArray? data = json?["data"]?.AsArray();
+        if (data is null)
+        {
+            return null;
+        }
+
+        // The OpenAI embeddings response doesn't strictly guarantee ordering — each item carries
+        // its own "index", so sort defensively rather than trusting array order.
+        JsonArray embeddings = [];
+        foreach (JsonNode? item in data.OrderBy(entry => entry?["index"]?.GetValue<int>() ?? 0))
+        {
+            embeddings.Add(item?["embedding"]?.DeepClone());
+        }
+
+        return embeddings;
     }
 
     private static JsonObject BuildRequestBody(string model, string prompt, GenerationOptions options, bool stream)

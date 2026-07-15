@@ -477,10 +477,7 @@ internal sealed partial class RouterHttpServer(
                 await HandleOpenAiCompletionAsync(context, ct);
                 return;
             case "/API/EMBED":
-                // ollamaPath is forwarded verbatim to Ollama's own (case-sensitive) HTTP router,
-                // so it must be the real lowercase route, not the uppercased string used for
-                // switch-matching just above.
-                await ProxyToOllamaAsync(context, "/api/embed", HttpMethod.Post, ct);
+                await HandleEmbedAsync(context, ct);
                 return;
             case "/API/EMBEDDINGS":
             case "/V1/EMBEDDINGS":
@@ -1174,7 +1171,30 @@ internal sealed partial class RouterHttpServer(
     }
 
     /// <summary>
-    ///     Handle OpenAI-compatible /v1/embeddings by translating to Ollama /api/embed and back.
+    ///     Handle Ollama-native POST /api/embed via the configured generation backend, so it works
+    ///     the same under LM Studio as it does under Ollama (previously this proxied the request
+    ///     body verbatim straight to Ollama's own HTTP router, which only ever worked for Ollama).
+    /// </summary>
+    private async Task HandleEmbedAsync(HttpContext context, CancellationToken ct = default)
+    {
+        string body = await ReadBodyAsync(context.Request);
+        JsonNode? json = JsonNode.Parse(body);
+        JsonNode? input = json?["input"];
+        string model = json?["model"]?.GetValue<string>() ?? generation.EmbedModelName;
+
+        JsonArray? embeddings = await generation.GetEmbeddingsAsync(model, input, ct);
+        if (embeddings is null)
+        {
+            await WriteJsonAsync(context, 502, new { error = "Embed model unavailable" });
+            return;
+        }
+
+        await WriteJsonAsync(context, 200, new { model, embeddings });
+    }
+
+    /// <summary>
+    ///     Handle OpenAI-compatible /v1/embeddings via the configured generation backend (Ollama's
+    ///     /api/embed or LM Studio's /v1/embeddings — see <see cref="SimpleModelPairGenerationService.GetEmbeddingsAsync" />).
     /// </summary>
     private async Task ProxyEmbeddingsAsync(HttpContext context, CancellationToken ct = default)
     {
@@ -1183,33 +1203,22 @@ internal sealed partial class RouterHttpServer(
         JsonNode? input = json?["input"];
         string model = json?["model"]?.GetValue<string>() ?? generation.EmbedModelName;
 
-        // Translate OpenAI → Ollama format
-        JsonObject ollamaPayload = new() { ["model"] = model, ["input"] = input?.DeepClone() };
-        using StringContent content = new(ollamaPayload.ToJsonString(), Encoding.UTF8, "application/json");
-
-        using HttpResponseMessage ollamaResponse = await http.PostAsync(new Uri($"http://127.0.0.1:{process.ServerPort}/api/embed"), content, ct);
-        if (!ollamaResponse.IsSuccessStatusCode)
+        JsonArray? embeddings = await generation.GetEmbeddingsAsync(model, input, ct);
+        if (embeddings is null)
         {
-            await WriteJsonAsync(context, (int)ollamaResponse.StatusCode,
-                new { error = $"Embed model unavailable ({(int)ollamaResponse.StatusCode})" });
+            await WriteJsonAsync(context, 502, new { error = "Embed model unavailable" });
             return;
         }
 
-        JsonNode? ollamaJson = JsonNode.Parse(await ollamaResponse.Content.ReadAsStringAsync(ct));
-        JsonArray? embeddings = ollamaJson?["embeddings"]?.AsArray();
-
         JsonArray dataArray = [];
-        if (embeddings is not null)
+        for (int i = 0; i < embeddings.Count; i++)
         {
-            for (int i = 0; i < embeddings.Count; i++)
+            dataArray.Add(new JsonObject
             {
-                dataArray.Add(new JsonObject
-                {
-                    ["object"] = "embedding",
-                    ["embedding"] = embeddings[i]?.DeepClone(),
-                    ["index"] = i
-                });
-            }
+                ["object"] = "embedding",
+                ["embedding"] = embeddings[i]?.DeepClone(),
+                ["index"] = i
+            });
         }
 
         await WriteJsonAsync(context, 200, new

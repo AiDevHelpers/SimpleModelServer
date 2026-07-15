@@ -3,6 +3,8 @@ using SimpleModelServer.Contracts.Configuration;
 
 namespace SimpleModelServer.Config.Configuration;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716",
+    Justification = "Global (the global settings section) is used as config.Global.* across hundreds of call sites in this C#-only codebase; renaming for cross-language interop that doesn't apply here would be a large, high-risk change for no functional benefit.")]
 public interface IAppConfig
 {
     IGlobalConfig Global { get; }

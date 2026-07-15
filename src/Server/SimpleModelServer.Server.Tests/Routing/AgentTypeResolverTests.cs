@@ -59,7 +59,7 @@ public sealed class AgentTypeResolverTests
         AgentTypeResolver resolver = new(ConfigWithAgents());
 
         string result = await ResolveAsync(resolver, "/", null, "irrelevant prompt", "CODE",
-            req => req.Headers.Add("X-Agent-Type", "debug"));
+            req => req.Headers["X-Agent-Type"] = "debug");
 
         Assert.Equal("DEBUG", result);
     }
@@ -70,7 +70,7 @@ public sealed class AgentTypeResolverTests
         AgentTypeResolver resolver = new(ConfigWithAgents());
 
         string result = await ResolveAsync(resolver, "/", null, "this mentions PLANNING and DEBUG", "RESEARCH",
-            req => req.Headers.Add("X-Agent-Type", "passthrough"));
+            req => req.Headers["X-Agent-Type"] = "passthrough");
 
         Assert.Equal("RESEARCH", result);
     }
@@ -81,7 +81,7 @@ public sealed class AgentTypeResolverTests
         AgentTypeResolver resolver = new(ConfigWithAgents());
 
         string result = await ResolveAsync(resolver, "/", null, "", "CODE",
-            req => req.Headers.Add("X-CP-Chat-Agent", "planning"));
+            req => req.Headers["X-CP-Chat-Agent"] = "planning");
 
         Assert.Equal("PLANNING", result);
     }
@@ -102,7 +102,7 @@ public sealed class AgentTypeResolverTests
         AgentTypeResolver resolver = new(ConfigWithAgents());
 
         string result = await ResolveAsync(resolver, "/?agent_type=planning", null, "", "CODE",
-            req => req.Headers.Add("X-Agent-Type", "debug"));
+            req => req.Headers["X-Agent-Type"] = "debug");
 
         Assert.Equal("DEBUG", result);
     }
@@ -243,7 +243,7 @@ public sealed class AgentTypeResolverTests
         AgentTypeResolver resolver = new(ConfigWithAgents("custom-agent"));
 
         string result = await ResolveAsync(resolver, "/", null, "", "CODE",
-            req => req.Headers.Add("X-Agent-Type", "custom-agent"));
+            req => req.Headers["X-Agent-Type"] = "custom-agent");
 
         Assert.Equal("CUSTOM-AGENT", result);
     }

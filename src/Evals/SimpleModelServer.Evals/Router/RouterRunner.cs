@@ -54,7 +54,7 @@ public sealed class RouterRunner(LlamaChatClient client) : IRouterRunner
         string systemPrompt,
         int maxTokens,
         int timeoutSeconds,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var concreteCases = cases.Cast<GoldenCase>().ToList();
         return await RunAsync(routerUrl, concreteCases, schema, systemPrompt, maxTokens, timeoutSeconds, cancellationToken);

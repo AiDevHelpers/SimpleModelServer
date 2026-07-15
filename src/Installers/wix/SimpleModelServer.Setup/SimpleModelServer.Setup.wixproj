@@ -1,4 +1,4 @@
-<Project Sdk="WixToolset.Sdk/6.0.0" InitialTargets="ResolveMyAppVersionFromNbgv;PublishSimpleModelServerLoader">
+<Project Sdk="WixToolset.Sdk/6.0.0" InitialTargets="ResolveMyAppVersionFromNbgv;PublishSimpleModelServerLoader;BuildVsExtensionVsix;PackVsCodeExtensionVsix">
   <!--
     SimpleModelServer.Loader Windows installer (WiX v6, SDK-style project).
 
@@ -63,17 +63,22 @@
       GitCommitHash=$(GitCommitHash);
       PublishDir=$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Loader\$(Configuration);
       WixProjDir=$(MSBuildThisFileDirectory);
-      RepoRoot=$(MSBuildThisFileDirectory)..\..\..\..\..\
+      RepoRoot=$(MSBuildThisFileDirectory)..\..\..\..\..\;
+      VsExtensionVsix=$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VS\bin\$(Configuration)\SimpleModelServer.Extensions.VS.vsix;
+      VsCodeExtensionVsix=$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Extensions.VSCode\simplemodelserver-vscode.vsix
     </DefineConstants>
     <SuppressPdbOutput>true</SuppressPdbOutput>
   </PropertyGroup>
   <PropertyGroup>
     <SimpleModelServerLoaderCsproj>$(MSBuildThisFileDirectory)..\..\..\..\src\Server\SimpleModelServer.Server\SimpleModelServer.Server.csproj</SimpleModelServerLoaderCsproj>
-    <SimpleModelServerLoaderStagedExe>$(MSBuildThisFileDirectory)..\..\staging\SimpleModelServer.Loader\$(Configuration)\SimpleModelServer.Server.exe</SimpleModelServerLoaderStagedExe>
+    <SimpleModelServerLoaderStagedExe>$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Loader\$(Configuration)\SimpleModelServer.Server.exe</SimpleModelServerLoaderStagedExe>
+    <VsExtensionCsproj>$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VS\SimpleModelServer.Extensions.VS.csproj</VsExtensionCsproj>
+    <VsCodeExtensionDir>$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VSCode\</VsCodeExtensionDir>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
     <PackageReference Include="WixToolset.Util.wixext" Version="6.0.0" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.0" />
   </ItemGroup>
   <!-- WixToolset.Sdk auto-globs *.wxs in the project directory — Product.wxs and Service.wxs
        are picked up automatically. An explicit <Compile Include> here would double-include
@@ -161,7 +166,28 @@
   </Target>
   <Target Name="PublishSimpleModelServerLoader" Inputs="$(SimpleModelServerLoaderCsproj);@(_SimpleModelServerLoaderPublishInputs)" Outputs="$(SimpleModelServerLoaderStagedExe)">
     <Message Importance="high" Text="SimpleModelServer.Setup: publishing SimpleModelServer.Loader to build\staging\SimpleModelServer.Loader\$(Configuration) ..." />
-    <Exec Command="dotnet publish &quot;$(SimpleModelServerLoaderCsproj)&quot; --configuration $(Configuration) --runtime win-x64 --self-contained true --output &quot;$(MSBuildThisFileDirectory)..\..\staging\SimpleModelServer.Loader\$(Configuration)&quot;" />
+    <Exec Command="dotnet publish &quot;$(SimpleModelServerLoaderCsproj)&quot; --configuration $(Configuration) --runtime win-x64 --self-contained true --output &quot;$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Loader\$(Configuration)&quot;" />
     <Error Condition="!Exists('$(SimpleModelServerLoaderStagedExe)')" Text="PublishSimpleModelServerLoader ran but $(SimpleModelServerLoaderStagedExe) still doesn't exist. Run build\scripts\publish-draftmodel-for-wix.ps1 manually and check its output for the real dotnet publish failure." />
+  </Target>
+  <!-- Builds the VS extension's .vsix so it can be bundled as an optional MSI feature (see
+       VsExtensionFeature in Product.wxs). GenerateVsixPackage is already enabled in
+       SimpleModelServer.Extensions.VS.csproj, so a plain `dotnet build` in $(Configuration)
+       produces the .vsix at the VsExtensionVsix path defined above — no separate packaging
+       step needed, unlike the VS Code extension (which has no MSBuild-driven build). -->
+  <Target Name="BuildVsExtensionVsix" Inputs="$(VsExtensionCsproj)" Outputs="$(VsExtensionVsix)">
+    <Message Importance="high" Text="SimpleModelServer.Setup: building VS extension vsix ($(Configuration)) ..." />
+    <Exec Command="dotnet build &quot;$(VsExtensionCsproj)&quot; --configuration $(Configuration)" />
+    <Error Condition="!Exists('$(VsExtensionVsix)')" Text="BuildVsExtensionVsix ran but $(VsExtensionVsix) still doesn't exist. Build SimpleModelServer.Extensions.VS.csproj manually and check its output for the real failure." />
+  </Target>
+  <!-- Packages the VS Code extension's .vsix via `npm run package` (vsce), which this project's
+       package.json defines to output straight to VsCodeExtensionVsix below (see that project's
+       package.json "package" script and .vscodeignore). Requires Node/npm on PATH and
+       `npm install` to have been run at least once in that directory — this target does not
+       run `npm install` itself since node_modules is developer-machine state, not something
+       every MSI build should touch. -->
+  <Target Name="PackVsCodeExtensionVsix" Inputs="$(VsCodeExtensionDir)package.json;$(VsCodeExtensionDir)src\**\*.ts" Outputs="$(VsCodeExtensionVsix)">
+    <Message Importance="high" Text="SimpleModelServer.Setup: packaging VS Code extension vsix ..." />
+    <Exec Command="npm run package" WorkingDirectory="$(VsCodeExtensionDir)" />
+    <Error Condition="!Exists('$(VsCodeExtensionVsix)')" Text="PackVsCodeExtensionVsix ran but $(VsCodeExtensionVsix) still doesn't exist. Run `npm install &amp;&amp; npm run package` manually in $(VsCodeExtensionDir) and check its output for the real failure." />
   </Target>
 </Project>
