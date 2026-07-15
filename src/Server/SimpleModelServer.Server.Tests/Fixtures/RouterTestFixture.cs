@@ -152,6 +152,7 @@ internal sealed class RouterTestFixture : IAsyncDisposable
         IAdminAuthenticationService adminAuth = new StubAdminAuthenticationService();
         ModelReloadCoordinator reloadCoordinator = new(process, health, NullLogger.Instance, TimeSpan.FromSeconds(5));
         AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth, reloadCoordinator);
+        McpUpstreamRegistry mcpUpstreamRegistry = new(config.McpServers, NullLogger.Instance);
 
         RouterHttpServer router = new(
             config, NullLogger.Instance, process, health, generation, agentTypeResolver, sharedHttp,
@@ -160,7 +161,8 @@ internal sealed class RouterTestFixture : IAsyncDisposable
             ollamaHelpers,
             systemInfoService,
             admin,
-            reloadCoordinator);
+            reloadCoordinator,
+            mcpUpstreamRegistry);
 
         int routerPort = GetFreeTcpPort();
 

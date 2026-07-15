@@ -12,10 +12,12 @@ public sealed class AppConfig : IAppConfig
     public Dictionary<string, IAgentConfig> Agents { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, IModelSourceConfig> ModelSources { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> ModelRoles { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, IMcpUpstreamConfig> McpServers { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
     IReadOnlyDictionary<string, IAgentConfig> IAppConfig.Agents => Agents;
     IReadOnlyDictionary<string, IModelSourceConfig> IAppConfig.ModelSources => ModelSources;
     IReadOnlyDictionary<string, string> IAppConfig.ModelRoles => ModelRoles;
+    IReadOnlyDictionary<string, IMcpUpstreamConfig> IAppConfig.McpServers => McpServers;
 
     public string DefaultAgentType => string.IsNullOrWhiteSpace(Global.DefaultAgentType)
         ? "ask"
@@ -45,8 +47,33 @@ public sealed class AppConfig : IAppConfig
             Global = global,
             Agents = ParseAgents(GetObject(json, "agents") ?? GetObject(json, "modes") ?? []),
             ModelSources = modelSources,
-            ModelRoles = modelRoles
+            ModelRoles = modelRoles,
+            McpServers = ParseMcpServers(GetObject(json, "mcpServers") ?? [])
         };
+    }
+
+    /// <summary>Parse the "mcpServers" JsonObject — upstream MCP servers the gateway aggregates.</summary>
+    private static Dictionary<string, IMcpUpstreamConfig> ParseMcpServers(JsonObject mcpServersNode)
+    {
+        Dictionary<string, IMcpUpstreamConfig> servers = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (KeyValuePair<string, JsonNode?> pair in mcpServersNode)
+        {
+            if (pair.Value is not JsonObject serverObj)
+            {
+                continue;
+            }
+
+            string? url = GetString(serverObj, "url");
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                continue;
+            }
+
+            servers[pair.Key] = new McpUpstreamConfig { Url = url };
+        }
+
+        return servers;
     }
 
     public IAgentConfig Agent(string agentType)
@@ -615,6 +642,11 @@ public sealed class AgentConfig : IAgentConfig
     public string SystemPrompt { get; set; } = "";
     public double? Temperature { get; set; }
     public JsonNode? Sampling { get; set; }
+}
+
+public sealed class McpUpstreamConfig : IMcpUpstreamConfig
+{
+    public string Url { get; init; } = "";
 }
 
 public sealed class ModelSourceConfig : IModelSourceConfig

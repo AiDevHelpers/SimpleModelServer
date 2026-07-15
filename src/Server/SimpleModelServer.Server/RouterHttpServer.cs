@@ -47,7 +47,8 @@ internal sealed partial class RouterHttpServer(
     IOllamaHelpers ollamaHelpers,
     SystemInfoService systemInfoService,
     AdminEndpointHandler admin,
-    ModelReloadCoordinator reloadCoordinator) : IRouter
+    ModelReloadCoordinator reloadCoordinator,
+    McpUpstreamRegistry mcpUpstreamRegistry) : IRouter
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "[{Method}] {Path}")]
     private static partial void LogRequest(ILogger logger, string method, string path);
@@ -194,11 +195,24 @@ internal sealed partial class RouterHttpServer(
         builder.WebHost.UseUrls($"http://{RouterHost}:{port}");
         builder.Services.AddSignalR();
         builder.Services.AddSingleton(reloadCoordinator);
+        builder.Services.AddMcpServer()
+            .WithHttpTransport()
+            .WithListToolsHandler(mcpUpstreamRegistry.ListToolsAsync)
+            .WithCallToolHandler(mcpUpstreamRegistry.CallToolAsync);
 
         await using WebApplication app = builder.Build();
         reloadCoordinator.Hub = app.Services.GetRequiredService<IHubContext<ModelStatusHub>>();
         app.MapHub<ModelStatusHub>("/hubs/model-status");
-        app.Run(context => HandleRequestAsync(context, ct));
+        await mcpUpstreamRegistry.InitializeAsync(ct);
+        app.MapMcp("/mcp");
+
+        // MapFallback rather than Run(...): a plain terminal Run(...) middleware's position in
+        // the pipeline relative to the Map* endpoints above depends on ASP.NET Core's implicit
+        // middleware auto-ordering, which does NOT reliably run endpoint matching first — MapMcp
+        // and MapHub requests were falling through to this catch-all instead of their real
+        // handlers. MapFallback is an explicit "only if nothing else matched" endpoint, so
+        // precedence is guaranteed regardless of call-site ordering.
+        app.MapFallback(context => HandleRequestAsync(context, ct));
 
         try
         {

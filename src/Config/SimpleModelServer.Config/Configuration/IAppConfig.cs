@@ -9,6 +9,7 @@ public interface IAppConfig
     IReadOnlyDictionary<string, IAgentConfig> Agents { get; }
     IReadOnlyDictionary<string, IModelSourceConfig> ModelSources { get; }
     IReadOnlyDictionary<string, string> ModelRoles { get; }
+    IReadOnlyDictionary<string, IMcpUpstreamConfig> McpServers { get; }
     string DefaultAgentType { get; }
 
     string ResolveEmbedModelName();
