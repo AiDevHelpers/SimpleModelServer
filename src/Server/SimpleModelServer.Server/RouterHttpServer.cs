@@ -1,7 +1,9 @@
+using SimpleModelServer.Contracts.Configuration;
 using SimpleModelServer.Contracts.Models;
 using SimpleModelServer.Contracts.Utilities;
 using SimpleModelServer.Config.Configuration;
 using SimpleModelServer.Hardware;
+using SimpleModelServer.Mcp;
 using SimpleModelServer.Providers.Ollama;
 using SimpleModelServer.Server.Interfaces;
 using SimpleModelServer.Server.Infrastructure.Networking;
@@ -195,8 +197,16 @@ internal sealed partial class RouterHttpServer(
         builder.WebHost.UseUrls($"http://{RouterHost}:{port}");
         builder.Services.AddSignalR();
         builder.Services.AddSingleton(reloadCoordinator);
+        // IAppConfig/IMcpUpstreamRegistry are resolved per call for McpAdminTools (WithTools<T>()
+        // constructs a fresh instance per tool invocation) — the SDK combines these
+        // reflection-registered tools with the WithListToolsHandler/WithCallToolHandler pair
+        // below rather than one replacing the other, so McpAdminTools's list/add/remove tools and
+        // the proxied upstream tools both show up in the same gateway's tool list.
+        builder.Services.AddSingleton(config);
+        builder.Services.AddSingleton<IMcpUpstreamRegistry>(mcpUpstreamRegistry);
         builder.Services.AddMcpServer()
             .WithHttpTransport()
+            .WithTools<McpAdminTools>()
             .WithListToolsHandler(mcpUpstreamRegistry.ListToolsAsync)
             .WithCallToolHandler(mcpUpstreamRegistry.CallToolAsync);
 
@@ -404,9 +414,8 @@ internal sealed partial class RouterHttpServer(
             case "/ADMIN/CONFIG":
                 await admin.HandleGetConfigAsync(context);
                 return;
-            case "/ADMIN":
-            case "/ADMIN/":
-                await admin.ServeAdminUIAsync(context);
+            case "/ADMIN/MCP-SERVERS":
+                await admin.HandleListMcpServersAsync(context);
                 return;
         }
 
@@ -489,6 +498,12 @@ internal sealed partial class RouterHttpServer(
                 return;
             case "/ADMIN/RELOAD":
                 await admin.HandleReloadAsync(context);
+                return;
+            case "/ADMIN/MCP-SERVERS":
+                await admin.HandleAddMcpServerAsync(context);
+                return;
+            case "/ADMIN/MCP-SERVERS/REMOVE":
+                await admin.HandleRemoveMcpServerAsync(context);
                 return;
             default:
                 string body = await ReadBodyAsync(context.Request);

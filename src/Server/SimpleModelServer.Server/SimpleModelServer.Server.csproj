@@ -35,6 +35,7 @@
     <PackageReference Include="Serilog.Sinks.EventLog" Version="3.2.0" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
     <ProjectReference Include="..\..\Common\SimpleModelServer.Common\SimpleModelServer.Common.csproj" />
+    <ProjectReference Include="..\..\MCP\SimpleModelServer.Mcp\SimpleModelServer.Mcp.csproj" />
     <ProjectReference Include="..\..\Hardware\SimpleModelServer.Hardware\SimpleModelServer.Hardware.csproj" />
     <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.Common\SimpleModelServer.Providers.Common.csproj" />
     <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.Ollama\SimpleModelServer.Providers.Ollama.csproj" />
@@ -42,13 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Copy admin UI files to output directory -->
-    <Content Include="admin\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <!--

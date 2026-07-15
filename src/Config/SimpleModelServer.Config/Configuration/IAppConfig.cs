@@ -18,4 +18,10 @@ public interface IAppConfig
     bool IsEmbedModel(string model);
     bool IsKnownAgentType(string agentType);
     IAgentConfig Agent(string agentType);
+
+    /// <summary>Adds a new MCP upstream or replaces an existing one with the same name (case-insensitive).</summary>
+    void AddOrUpdateMcpServer(string name, IMcpUpstreamConfig serverConfig);
+
+    /// <summary>Removes the named MCP upstream. Returns false if no upstream with that name was configured.</summary>
+    bool RemoveMcpServer(string name);
 }

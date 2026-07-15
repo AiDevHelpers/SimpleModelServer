@@ -63,7 +63,7 @@ public sealed class McpUpstreamRegistryTests
             ModelRoles = config.ModelRoles,
             McpServers = new Dictionary<string, IMcpUpstreamConfig>(StringComparer.OrdinalIgnoreCase)
             {
-                ["unreachable"] = new McpUpstreamConfig { Url = $"http://127.0.0.1:{closedPort}/mcp" }
+                ["unreachable"] = new McpUpstreamConfig { Path = $"http://127.0.0.1:{closedPort}/mcp" }
             }
         });
 
@@ -71,7 +71,11 @@ public sealed class McpUpstreamRegistryTests
         // /api/version) — an unreachable upstream must not take down the whole gateway.
         await using McpClient client = await ConnectAsync(fixture.BaseAddress);
         IList<McpClientTool> tools = await client.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Empty(tools);
+
+        // No tools from the unreachable upstream, but the always-on self-management tools
+        // (McpAdminTools, see McpAdminToolsGatewayTests) are still present — they're
+        // reflection-registered via WithTools<McpAdminTools>(), independent of any upstream.
+        Assert.DoesNotContain(tools, t => t.Name.StartsWith("unreachable.", StringComparison.Ordinal));
     }
 
     private static async Task<RouterTestFixture> CreateFixtureWithUpstreamAsync(TestMcpServer upstream)
@@ -84,7 +88,7 @@ public sealed class McpUpstreamRegistryTests
             ModelRoles = config.ModelRoles,
             McpServers = new Dictionary<string, IMcpUpstreamConfig>(StringComparer.OrdinalIgnoreCase)
             {
-                ["echo-server"] = new McpUpstreamConfig { Url = upstream.McpUrl }
+                ["echo-server"] = new McpUpstreamConfig { Path = upstream.McpUrl }
             }
         });
     }

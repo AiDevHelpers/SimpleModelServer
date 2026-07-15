@@ -1,24 +1,16 @@
 # Admin Configuration - Quick Start
 
-**⚡ TL;DR:** Visit `http://localhost:11435/admin/` to manage your server configuration.
-
-## One-Minute Setup
-
-1. **Start the server** (if not already running)
-2. **Open browser:** `http://localhost:11435/admin/`
-3. **You're in!** Localhost is always trusted, no authentication needed.
+**⚡ TL;DR:** `curl http://localhost:11435/admin/config` to read config, `POST` the same path to change a setting. Localhost is always trusted, no authentication needed. The server is JSON-only — there is no web UI.
 
 ## Common Tasks
 
 ### Change Draft/Main Model
 
 ```
-Web UI: Admin Panel → Model Configuration → Update Draft/Main Model
 Requires: Server Restart
-API:
-  curl -X POST http://localhost:11435/admin/config \
-    -H "Content-Type: application/json" \
-    -d '{"setting": "global.draftModel", "value": "deepseek-coder-1.3b"}'
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{"setting": "global.draftModel", "value": "deepseek-coder-1.3b"}'
 ```
 
 ### Enable Remote Access with API Key
@@ -26,11 +18,9 @@ API:
 ```
 1. Get an API key (e.g., from your password manager or generate one)
 2. Add it to trusted keys:
-   - Via Web UI: Go to Network & Security → Update API Keys
-   - Or via API:
-     curl -X POST http://localhost:11435/admin/config \
-       -H "Content-Type: application/json" \
-       -d '{"setting": "global.trustedApiKeys", "value": ["your-key-here"]}'
+   curl -X POST http://localhost:11435/admin/config \
+     -H "Content-Type: application/json" \
+     -d '{"setting": "global.trustedApiKeys", "value": ["your-key-here"]}'
 3. Use from remote:
    curl -H "Authorization: Bearer your-key-here" \
      http://server:11435/admin/config
@@ -39,8 +29,10 @@ API:
 ### Allow a Specific Network
 
 ```
-Web UI: Admin Panel → Network & Security → Update Trusted Networks
 Requires: Hot Reload (no restart needed!)
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{"setting": "global.trustedNetworks", "value": ["192.168.1.0/24"]}'
 
 Example trusted networks:
 - 192.168.1.0/24 (entire 192.168.1.x subnet)
@@ -52,43 +44,44 @@ Example trusted networks:
 
 ```
 ⚠️ Requires: Server Restart
-
-Web UI:
-  1. Admin Panel → Port Configuration → Router Port
-  2. Change value
-  3. Click "Update Router Port"
-  4. Restart server (Windows Service, systemd, or process)
-
-Or via API:
-  curl -X POST http://localhost:11435/admin/config \
-    -H "Content-Type: application/json" \
-    -d '{"setting": "global.routerPort", "value": 11436}'
-  # Server will report requiresRestart: true
-  # Then restart the service
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{"setting": "global.routerPort", "value": 11436}'
+# Server will report requiresRestart: true
+# Then restart the service
 ```
 
 ### Adjust Context Size (No Restart)
 
 ```
-Web UI: Admin Panel → Model Configuration → Context Size
 Requires: No restart! Takes effect immediately.
-API:
-  curl -X POST http://localhost:11435/admin/config \
-    -H "Content-Type: application/json" \
-    -d '{"setting": "global.contextSize", "value": 4096}'
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{"setting": "global.contextSize", "value": 4096}'
 ```
 
 ### Switch Agent Type Globally
 
 ```
-Web UI: Admin Panel → Agent & Generation → Force Agent Type
 Requires: No restart!
-API:
-  curl -X POST http://localhost:11435/admin/config \
-    -H "Content-Type: application/json" \
-    -d '{"setting": "global.agentType", "value": "debug"}'
+curl -X POST http://localhost:11435/admin/config \
+  -H "Content-Type: application/json" \
+  -d '{"setting": "global.agentType", "value": "debug"}'
 
 Options: ask, code, debug, planning (or empty to disable forcing)
+```
+
+### Add/Remove an MCP Upstream Server
+
+```
+Requires: No restart! HTTP upstreams connect immediately.
+curl -X POST http://localhost:11435/admin/mcp-servers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver", "transportType": "Http", "path": "http://localhost:11500/mcp"}'
+
+curl -X POST http://localhost:11435/admin/mcp-servers/remove \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver"}'
 ```
 
 ## What's Hot-Reloadable?
@@ -100,6 +93,7 @@ These settings take effect immediately without restarting:
 - ✓ Embedding model
 - ✓ Hardware tuning (GPU layers, CPU threads)
 - ✓ mDNS settings
+- ✓ MCP upstream servers (HTTP transport)
 
 ## What Requires Restart? ⚠️
 
@@ -109,20 +103,6 @@ These require a server restart:
 - ⚠️ Router host binding (localhost vs all interfaces)
 - ⚠️ Model names (draft/main model selection)
 - ⚠️ Virtual model name
-
-## Web UI Overview
-
-**Section Breakdown:**
-
-| Section | Settings | Reload Type |
-|---------|----------|------------|
-| 🔐 Network & Security | Host, networks, API keys | Mixed |
-| 🔌 Port Configuration | Router & Ollama ports | ⚠️ Restart |
-| 🤖 Model Configuration | Draft, main, embed models, context | Mixed |
-| 🎯 Agent & Generation | Agent type, draft mode, handoff | ✓ Hot |
-| 📡 mDNS Discovery | mDNS enable, service name | ✓ Hot |
-| 💻 Hardware Tuning | GPU layers, CPU threads | ✓ Hot |
-| ⚡ Actions | Reload, refresh, logout | — |
 
 ## API Cheat Sheet
 
@@ -137,6 +117,9 @@ curl -X POST http://localhost:11435/admin/config \
 
 # Reload hot-reloadable settings
 curl -X POST http://localhost:11435/admin/reload
+
+# List MCP upstream servers
+curl http://localhost:11435/admin/mcp-servers
 
 # Remote access with API key
 curl -H "Authorization: Bearer YOUR_KEY" \
@@ -156,13 +139,10 @@ done
 → Check router host is `*` (not just `localhost`) or server firewall allows the port
 
 ### "Unauthorized" Error
-→ Localhost? Check your browser. Remote? Include Bearer token in Authorization header
+→ Localhost? Verify your request actually originates from 127.0.0.1/::1. Remote? Include Bearer token in Authorization header
 
 ### Setting Not Taking Effect
 → Check if it requires restart (⚠️ indicator). If so, restart the server.
-
-### Admin UI Won't Load
-→ Try accessing `/admin/config` API first to verify server is running. Check network connectivity.
 
 ### Can't Add API Key
 → Make sure you're using the correct format: `{"setting": "global.trustedApiKeys", "value": ["key1", "key2"]}`

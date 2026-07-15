@@ -24,6 +24,7 @@
           "SimpleModelServer.Common": "1.0.0",
           "SimpleModelServer.Config": "1.0.0",
           "SimpleModelServer.Hardware": "1.0.0",
+          "SimpleModelServer.Mcp": "1.0.0",
           "SimpleModelServer.Providers.Common": "1.0.0",
           "SimpleModelServer.Providers.LMStudio": "1.0.0",
           "SimpleModelServer.Providers.Ollama": "1.0.0",
@@ -2302,6 +2303,19 @@
           }
         }
       },
+      "SimpleModelServer.Mcp/1.0.0": {
+        "dependencies": {
+          "ModelContextProtocol": "1.4.1",
+          "SimpleModelServer.Config": "1.0.0",
+          "SimpleModelServer.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "SimpleModelServer.Mcp.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "SimpleModelServer.Providers.Common/1.0.0": {
         "dependencies": {
           "Microsoft.CodeAnalysis": "5.6.0",
@@ -2673,6 +2687,11 @@
       "sha512": ""
     },
     "SimpleModelServer.Hardware/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SimpleModelServer.Mcp/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

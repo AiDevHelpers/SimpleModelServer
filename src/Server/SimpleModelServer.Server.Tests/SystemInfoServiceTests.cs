@@ -75,7 +75,7 @@ public sealed class SystemInfoServiceTests
         // mirroring how GetSystemInfo can be queried before/without a successful connect attempt.
         var mcpServers = new Dictionary<string, IMcpUpstreamConfig>(StringComparer.OrdinalIgnoreCase)
         {
-            ["tokensaver"] = new McpUpstreamConfig { Url = "http://127.0.0.1:9999/mcp" }
+            ["tokensaver"] = new McpUpstreamConfig { Path = "http://127.0.0.1:9999/mcp" }
         };
         SystemInfoService service = CreateService(mcpServers: mcpServers);
 
@@ -83,7 +83,7 @@ public sealed class SystemInfoServiceTests
 
         Assert.True(info.Configuration.McpServers.ContainsKey("tokensaver"));
         var status = info.Configuration.McpServers["tokensaver"];
-        Assert.Equal("http://127.0.0.1:9999/mcp", status.Url);
+        Assert.Equal("http://127.0.0.1:9999/mcp", status.Path);
         Assert.False(status.Connected);
         Assert.Equal(0, status.ToolCount);
     }

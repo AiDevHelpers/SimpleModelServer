@@ -117,6 +117,7 @@ if (WindowsServiceHelpers.IsWindowsService())
             services.AddSingleton<IConfigurationUpdater>(sp =>
                 new ConfigurationUpdater(sp.GetRequiredService<IConfigurationManager>()));
             services.AddSingleton<IAdminAuthenticationService, AdminAuthenticationService>();
+            services.AddSingleton(sp => new McpUpstreamRegistry(svcConfig.McpServers, sp.GetRequiredService<ILogger<McpUpstreamRegistry>>()));
             services.AddSingleton<AdminEndpointHandler>();
             services.AddHostedService<SimpleModelServerWorker>();
         })
@@ -151,11 +152,13 @@ if (options.Help)
                         --config <path>          Config JSON path (default: .tokensaver/SimpleModelServer.config.json
                                                  under SIMPLEMODELSERVER_WORKSPACE, or alongside the exe)
 
-                      ADMIN INTERFACE
-                        GET  /admin/              Admin web UI (configuration dashboard)
-                        GET  /admin/config        Get current configuration (JSON)
-                        POST /admin/config        Update a configuration setting
-                        POST /admin/reload        Reload hot-reloadable settings
+                      ADMIN API
+                        GET  /admin/config          Get current configuration (JSON)
+                        POST /admin/config          Update a configuration setting
+                        POST /admin/reload          Reload hot-reloadable settings
+                        GET  /admin/mcp-servers     List configured MCP upstream servers
+                        POST /admin/mcp-servers     Add/update an MCP upstream server
+                        POST /admin/mcp-servers/remove  Remove an MCP upstream server
 
                         Localhost (127.0.0.1) is always trusted.
                         Remote access requires Bearer token: Authorization: Bearer <key>

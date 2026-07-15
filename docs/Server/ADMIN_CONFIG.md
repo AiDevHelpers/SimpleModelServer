@@ -1,16 +1,8 @@
 # Configuration Management & Admin API
 
-SimpleModelServer provides a comprehensive configuration management system with a web-based admin panel and REST API for managing server settings.
+SimpleModelServer provides a comprehensive configuration management system with a JSON REST API for managing server settings. The server has no web UI — every admin interaction goes through this API.
 
 ## Quick Start
-
-### Web Admin Panel
-
-Access the admin configuration interface in your browser:
-- **Localhost:** `http://localhost:11435/admin/`
-- **Remote:** `http://<server>:11435/admin/` (requires Bearer token authentication)
-
-The localhost is **always trusted** — no authentication required when accessing from 127.0.0.1 or ::1.
 
 ### API Endpoints
 
@@ -84,6 +76,58 @@ Response:
   "success": true,
   "message": "Hot-reloadable configuration reloaded.",
   "note": "For settings marked requiresRestart, restart the server to apply changes."
+}
+```
+
+#### GET /admin/mcp-servers
+Lists every configured MCP upstream server and its live connection status.
+
+```bash
+curl http://localhost:11435/admin/mcp-servers
+```
+
+Response:
+```json
+{
+  "mcpServers": {
+    "tokensaver": { "transportType": "Http", "path": "http://localhost:11500/mcp", "connected": true, "toolCount": 4 }
+  }
+}
+```
+
+#### POST /admin/mcp-servers
+Adds a new MCP upstream server, or replaces an existing one with the same name. `transportType` defaults to `"Http"` when omitted; `args` is optional and only meaningful for `"Stdio"`. HTTP upstreams are connected immediately — no restart required. `name` cannot contain `.` (the gateway namespaces tools as `<name>.<toolName>`).
+
+```bash
+curl -X POST http://localhost:11435/admin/mcp-servers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver", "transportType": "Http", "path": "http://localhost:11500/mcp"}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "name": "tokensaver",
+  "message": "MCP server 'tokensaver' added."
+}
+```
+
+#### POST /admin/mcp-servers/remove
+Removes a configured MCP upstream server and disconnects it from the live gateway. Returns 404 if no server with that name is configured.
+
+```bash
+curl -X POST http://localhost:11435/admin/mcp-servers/remove \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver"}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "name": "tokensaver",
+  "message": "MCP server 'tokensaver' removed."
 }
 ```
 
@@ -421,20 +465,6 @@ Settings can also be specified in `SimpleModelServer.config.json`:
 }
 ```
 
-## Web UI Features
-
-The `/admin/` web interface provides:
-
-- ✓ Real-time configuration display
-- ✓ Form-based setting updates with validation
-- ✓ Clear indication of which settings require restart
-- ✓ Current value display for comparison
-- ✓ Status messages for successful/failed updates
-- ✓ Automatic Bearer token authentication for remote access
-- ✓ Organized by setting category (Network, Models, Agent, etc.)
-
-Access at: `http://localhost:11435/admin/`
-
 ## Security Best Practices
 
 1. **Use Strong API Keys**
@@ -477,11 +507,6 @@ Access at: `http://localhost:11435/admin/`
 - Check if the setting requires restart (`requiresRestart: true`)
 - For hot-reloadable settings, call `/admin/reload` or wait for next request
 - Check server logs for error messages
-
-### Admin UI Not Loading
-- Ensure the server is running and accessible
-- Check that admin files are in the output directory
-- Verify the path: `/admin/` (with trailing slash)
 
 ## Examples
 

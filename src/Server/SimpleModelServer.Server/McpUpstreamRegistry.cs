@@ -11,9 +11,6 @@ using System.Linq;
 
 namespace SimpleModelServer.Server;
 
-/// <summary>Point-in-time status of one configured MCP upstream — see <see cref="McpUpstreamRegistry.GetStatus" />.</summary>
-internal readonly record struct McpUpstreamStatus(string Url, bool Connected, int ToolCount);
-
 /// <summary>
 ///     Aggregates tools from multiple upstream MCP servers behind one gateway endpoint
 ///     (mapped at /mcp by <see cref="RouterHttpServer.StartAsync" />). HTTP upstreams only —
@@ -25,10 +22,14 @@ internal readonly record struct McpUpstreamStatus(string Url, bool Connected, in
 ///     is built; an upstream that's unreachable at that point is logged and skipped rather than
 ///     failing the whole router's startup, matching this codebase's existing graceful-degradation
 ///     style (e.g. LM Studio's no-process-control path in <see cref="ModelHealthMonitor" />).
+///     Implements the public <see cref="IMcpUpstreamRegistry" /> so
+///     <c>SimpleModelServer.Mcp</c>'s self-management tools (list/add/remove MCP servers, injected
+///     into this same gateway via <c>WithTools&lt;McpAdminTools&gt;()</c>) can drive it without a
+///     dependency on this internal type.
 /// </summary>
 internal sealed partial class McpUpstreamRegistry(
     IReadOnlyDictionary<string, IMcpUpstreamConfig> upstreams,
-    ILogger logger)
+    ILogger logger) : IMcpUpstreamRegistry
 {
     private readonly ConcurrentDictionary<string, McpClient> clientsByServer =
         new(StringComparer.OrdinalIgnoreCase);
@@ -42,40 +43,87 @@ internal sealed partial class McpUpstreamRegistry(
     [LoggerMessage(Level = LogLevel.Information, Message = "MCP upstream '{ServerName}' connected — {ToolCount} tool(s).")]
     private static partial void LogUpstreamConnected(ILogger logger, string serverName, int toolCount);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "MCP upstream '{ServerName}' ({Url}) unreachable at startup — skipped.")]
-    private static partial void LogUpstreamUnreachable(ILogger logger, Exception ex, string serverName, string url);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MCP upstream '{ServerName}' ({Path}) unreachable — skipped.")]
+    private static partial void LogUpstreamUnreachable(ILogger logger, Exception ex, string serverName, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MCP upstream '{ServerName}' configured with transport {TransportType} — not yet supported, skipped.")]
+    private static partial void LogUpstreamTransportUnsupported(ILogger logger, string serverName, McpTransportType transportType);
 
     /// <summary>Connects to every configured upstream and caches its tool list, namespaced as "serverName.toolName".</summary>
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         foreach ((string serverName, IMcpUpstreamConfig upstreamConfig) in upstreams)
         {
-            try
-            {
-                McpClient client = await McpClient.CreateAsync(
-                    new HttpClientTransport(new HttpClientTransportOptions { Endpoint = new Uri(upstreamConfig.Url) }),
-                    cancellationToken: ct);
+            await ConnectAsync(serverName, upstreamConfig, ct);
+        }
+    }
 
-                IList<McpClientTool> tools = await client.ListToolsAsync(cancellationToken: ct);
-                foreach (McpClientTool tool in tools)
+    /// <summary>
+    ///     Connects to a single upstream and aggregates its tools — the same logic
+    ///     <see cref="InitializeAsync" /> runs for every configured upstream at startup, exposed
+    ///     separately so the admin "add MCP server" endpoint can bring a newly configured upstream
+    ///     online immediately instead of requiring a restart. An unreachable upstream, or one
+    ///     configured with a transport this registry doesn't yet support (see
+    ///     <see cref="McpTransportType" />), is logged and left disconnected rather than throwing —
+    ///     matching <see cref="InitializeAsync" />'s graceful-degradation behavior.
+    /// </summary>
+    public async Task ConnectAsync(string serverName, IMcpUpstreamConfig upstreamConfig, CancellationToken ct = default)
+    {
+        if (upstreamConfig.TransportType != McpTransportType.Http)
+        {
+            LogUpstreamTransportUnsupported(logger, serverName, upstreamConfig.TransportType);
+            return;
+        }
+
+        try
+        {
+            McpClient client = await McpClient.CreateAsync(
+                new HttpClientTransport(new HttpClientTransportOptions { Endpoint = new Uri(upstreamConfig.Path) }),
+                cancellationToken: ct);
+
+            IList<McpClientTool> tools = await client.ListToolsAsync(cancellationToken: ct);
+            foreach (McpClientTool tool in tools)
+            {
+                string fullName = $"{serverName}.{tool.Name}";
+                toolRoutes[fullName] = (serverName, tool.Name);
+                aggregatedTools[fullName] = new Tool
                 {
-                    string fullName = $"{serverName}.{tool.Name}";
-                    toolRoutes[fullName] = (serverName, tool.Name);
-                    aggregatedTools[fullName] = new Tool
-                    {
-                        Name = fullName,
-                        Description = tool.Description,
-                        InputSchema = tool.JsonSchema
-                    };
-                }
+                    Name = fullName,
+                    Description = tool.Description,
+                    InputSchema = tool.JsonSchema
+                };
+            }
 
-                clientsByServer[serverName] = client;
-                LogUpstreamConnected(logger, serverName, tools.Count);
-            }
-            catch (Exception ex)
-            {
-                LogUpstreamUnreachable(logger, ex, serverName, upstreamConfig.Url);
-            }
+            clientsByServer[serverName] = client;
+            LogUpstreamConnected(logger, serverName, tools.Count);
+        }
+        catch (Exception ex)
+        {
+            LogUpstreamUnreachable(logger, ex, serverName, upstreamConfig.Path);
+        }
+    }
+
+    /// <summary>
+    ///     Disconnects and removes an upstream's client and aggregated tools — the counterpart to
+    ///     <see cref="ConnectAsync" />, used by the admin "remove MCP server" endpoint so a removed
+    ///     upstream's tools stop being routable immediately. Safe to call for an upstream that was
+    ///     never connected (e.g. it was unreachable at startup or is a stdio upstream) — it's just a
+    ///     no-op in that case.
+    /// </summary>
+    public async Task DisconnectAsync(string serverName)
+    {
+        foreach (string fullName in toolRoutes
+                     .Where(kv => kv.Value.ServerName.Equals(serverName, StringComparison.OrdinalIgnoreCase))
+                     .Select(kv => kv.Key)
+                     .ToList())
+        {
+            toolRoutes.TryRemove(fullName, out _);
+            aggregatedTools.TryRemove(fullName, out _);
+        }
+
+        if (clientsByServer.TryRemove(serverName, out McpClient? client))
+        {
+            await client.DisposeAsync();
         }
     }
 
@@ -92,7 +140,8 @@ internal sealed partial class McpUpstreamRegistry(
         return upstreams.ToDictionary(
             kvp => kvp.Key,
             kvp => new McpUpstreamStatus(
-                kvp.Value.Url,
+                kvp.Value.TransportType,
+                kvp.Value.Path,
                 clientsByServer.ContainsKey(kvp.Key),
                 aggregatedTools.Keys.Count(name => name.StartsWith(kvp.Key + ".", StringComparison.OrdinalIgnoreCase))),
             StringComparer.OrdinalIgnoreCase);

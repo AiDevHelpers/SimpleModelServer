@@ -152,7 +152,7 @@ internal sealed class RouterTestFixture : IAsyncDisposable
         IConfigurationUpdater configUpdater = new StubConfigurationUpdater();
         IAdminAuthenticationService adminAuth = new StubAdminAuthenticationService();
         ModelReloadCoordinator reloadCoordinator = new(process, health, NullLogger.Instance, TimeSpan.FromSeconds(5));
-        AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth, reloadCoordinator);
+        AdminEndpointHandler admin = new(config, NullLogger.Instance, configManager, configUpdater, adminAuth, reloadCoordinator, mcpUpstreamRegistry);
 
         RouterHttpServer router = new(
             config, NullLogger.Instance, process, health, generation, agentTypeResolver, sharedHttp,

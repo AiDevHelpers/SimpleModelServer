@@ -1,6 +1,6 @@
 # SimpleModelServer Admin Configuration System
 
-Complete guide to the new admin configuration API, web UI, and configuration management.
+Complete guide to the admin configuration API and configuration management. The server is JSON-only — there is no admin web UI.
 
 ## 📚 Documentation Files
 
@@ -16,12 +16,6 @@ Start here based on your needs:
 
 ## 🚀 Quick Start
 
-### Web Interface
-1. Open browser to: `http://localhost:11435/admin/`
-2. Localhost is automatically trusted (no login needed)
-3. Update settings via forms
-4. See current values and whether restart is required
-
 ### API
 ```bash
 # Get config
@@ -34,6 +28,19 @@ curl -X POST http://localhost:11435/admin/config \
 
 # Reload hot-reloadable settings
 curl -X POST http://localhost:11435/admin/reload
+
+# List configured MCP upstream servers
+curl http://localhost:11435/admin/mcp-servers
+
+# Add/update an MCP upstream server
+curl -X POST http://localhost:11435/admin/mcp-servers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver", "transportType": "Http", "path": "http://localhost:11500/mcp"}'
+
+# Remove an MCP upstream server
+curl -X POST http://localhost:11435/admin/mcp-servers/remove \
+  -H "Content-Type: application/json" \
+  -d '{"name": "tokensaver"}'
 ```
 
 ## 🎯 Key Features
@@ -43,8 +50,7 @@ curl -X POST http://localhost:11435/admin/reload
 ✅ **Smart Reload** — Only restart when necessary  
 ✅ **Type Validation** — All inputs validated before applying  
 ✅ **20+ Settings** — Configure every aspect of the server  
-✅ **Web UI** — Modern, responsive admin dashboard  
-✅ **REST API** — Programmatic configuration management  
+✅ **REST API** — Programmatic configuration management, JSON only (no HTML UI)  
 
 ## 📋 Settings Overview
 
@@ -118,15 +124,13 @@ The admin system integrates seamlessly with:
 
 Settings can be configured via:
 1. JSON config file (before startup)
-2. Web UI (after startup, in-memory only)
-3. REST API (after startup, in-memory only)
+2. REST API (after startup, in-memory only)
 
-Note: Web UI and API changes are not persisted to disk. To make them permanent, update the config file.
+Note: API changes are not persisted to disk. To make them permanent, update the config file.
 
 ## 🧪 Testing
 
 ### Manual Testing Checklist
-- [ ] Web UI loads at `/admin/`
 - [ ] Localhost needs no authentication
 - [ ] Can retrieve config via GET /admin/config
 - [ ] Can update hot-reloadable setting
@@ -166,9 +170,6 @@ curl -H "Authorization: Bearer your-key" \
 
 ## 📡 Endpoints
 
-### GET /admin/
-Returns the admin web UI (HTML)
-
 ### GET /admin/config
 Returns current configuration as JSON
 
@@ -179,6 +180,29 @@ Updates a single configuration setting
 
 ### POST /admin/reload
 Reloads hot-reloadable settings
+
+### GET /admin/mcp-servers
+Lists configured MCP upstream servers and their live connection status
+- Output: `{"mcpServers": {"<name>": {"transportType": string, "path": string, "connected": bool, "toolCount": number}}}`
+
+### POST /admin/mcp-servers
+Adds a new MCP upstream server, or replaces an existing one with the same name
+- Input: `{"name": string, "transportType": "Http"|"Stdio", "path": string, "args": string[]}` (`transportType` defaults to "Http", `args` is optional)
+- Output: `{"success": bool, "name": string, "message": string}`
+- HTTP upstreams are connected immediately — no restart required.
+
+### POST /admin/mcp-servers/remove
+Removes a configured MCP upstream server and disconnects it from the live gateway
+- Input: `{"name": string}`
+- Output: `{"success": bool, "name": string, "message": string}` (404 if the name isn't configured)
+
+### The same three operations as MCP tools, at /mcp
+
+The gateway itself (mapped at `/mcp`) also exposes `list_mcp_servers`, `add_mcp_server`, and
+`remove_mcp_server` as MCP tools — the `SimpleModelServer.Mcp` project's `McpAdminTools`, always
+registered alongside the proxied upstream tools (no config needed, no restart to pick them up).
+Same behavior and JSON response shape as the HTTP endpoints above, just reachable by any MCP
+client connected to `/mcp` instead of a plain HTTP call to `/admin/mcp-servers`.
 
 ## 🔧 Configuration Examples
 
@@ -285,7 +309,7 @@ Reloads hot-reloadable settings
 A: Only for restart-required settings. The API tells you via `requiresRestart: true/false`.
 
 **Q: How do I make configuration changes permanent?**  
-A: Edit the JSON config file. Web UI/API changes are in-memory only.
+A: Edit the JSON config file. API changes are in-memory only.
 
 **Q: Can I configure multiple API keys?**  
 A: Yes, pass an array: `"value": ["key1", "key2", "key3"]`
@@ -296,8 +320,8 @@ A: The API returns a validation error and doesn't apply the change.
 **Q: Is localhost always trusted?**  
 A: Yes, 127.0.0.1 and ::1 bypass authentication entirely.
 
-**Q: Can I access the admin panel from a mobile phone?**  
-A: Yes if you add its network to `trustedNetworks` or provide an API key. The web UI is responsive.
+**Q: Can I access the admin API from a mobile phone?**  
+A: Yes if you add its network to `trustedNetworks` or provide an API key — it's a plain JSON API, so any HTTP client works.
 
 **Q: How do I rotate API keys?**  
 A: Add new keys to `trustedApiKeys`, then remove old ones via the same API.
@@ -315,11 +339,10 @@ Check server logs to monitor configuration changes and access attempts.
 
 ## 🚀 Next Steps
 
-1. Try the web UI: `http://localhost:11435/admin/`
-2. Read [ADMIN_QUICKSTART.md](ADMIN_QUICKSTART.md) for common tasks
-3. Explore [ADMIN_CONFIG.md](ADMIN_CONFIG.md) for complete reference
-4. Set up API keys for remote access if needed
-5. Monitor logs for security and debugging
+1. Read [ADMIN_QUICKSTART.md](ADMIN_QUICKSTART.md) for common tasks
+2. Explore [ADMIN_CONFIG.md](ADMIN_CONFIG.md) for complete reference
+3. Set up API keys for remote access if needed
+4. Monitor logs for security and debugging
 
 ## 📞 Support
 

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+    <IsPackable>true</IsPackable>
+    <PackageId>SimpleModelServer.Mcp</PackageId>
+    <Description>Self-management MCP tools (list/add/remove upstream MCP servers) injected into the SimpleModelServer.Server gateway by default.</Description>
+    <Authors>rsperry79</Authors>
+    <RepositoryUrl>https://github.com/rsperry79/DraftModel</RepositoryUrl>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\build\dist\$(Configuration.ToLower())\nuget</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+  </ItemGroup>
+</Project>

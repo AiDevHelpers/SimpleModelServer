@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/Client/">
-    <Project Path="src/Clients/SimpleModelServer.Chat/SimpleModelServer.Chat.csproj" />
+    <Project Path="src/Clients/SimpleModelServer.Chat.Maui/SimpleModelServer.Chat.Maui.csproj" />
   </Folder>
   <Folder Name="/Common/">
     <Project Path="src/Common/SimpleModelServer.Common/SimpleModelServer.Common.csproj" />
+    <Project Path="src/Common/SimpleModelServer.Discovery/SimpleModelServer.Discovery.csproj" />
+    <Project Path="src/Common/SimpleModelServer.Discovery.Tests/SimpleModelServer.Discovery.Tests.csproj" />
   </Folder>
   <Folder Name="/Config/">
     <Project Path="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
@@ -22,6 +24,10 @@
   <Folder Name="/Hardware/">
     <Project Path="src/Hardware/SimpleModelServer.Hardware/SimpleModelServer.Hardware.csproj" Id="15c4ea83-743e-4a78-8241-1438d80a5ce3" />
     <Project Path="src/Hardware/SimpleModelServer.Hardware.Tests/SimpleModelServer.Hardware.Tests.csproj" />
+  </Folder>
+  <Folder Name="/MCP/">
+    <Project Path="src/MCP/SimpleModelServer.Mcp/SimpleModelServer.Mcp.csproj" />
+    <Project Path="src/MCP/SimpleModelServer.Mcp.Tests/SimpleModelServer.Mcp.Tests.csproj" />
   </Folder>
   <Folder Name="/Providers/">
     <Project Path="src/Providers/SimpleModelServer.Providers.Common/SimpleModelServer.Providers.Common.csproj" Id="fe46816c-fef6-45e2-a60b-d2f6f3f23d4f" />

@@ -1,4 +1,5 @@
 using SimpleModelServer.Config.Configuration;
+using SimpleModelServer.Contracts.Configuration;
 using SimpleModelServer.Contracts.Dtos;
 using SimpleModelServer.Hardware;
 using SimpleModelServer.Hardware.Interfaces;
@@ -142,7 +143,8 @@ internal sealed class SystemInfoService
         {
             result[kvp.Key] = new McpServerInfo
             {
-                Url = kvp.Value.Url,
+                TransportType = kvp.Value.TransportType.ToString(),
+                Path = kvp.Value.Path,
                 Connected = kvp.Value.Connected,
                 ToolCount = kvp.Value.ToolCount
             };

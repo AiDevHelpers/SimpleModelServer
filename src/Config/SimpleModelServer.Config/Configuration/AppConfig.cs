@@ -64,21 +64,61 @@ public sealed class AppConfig : IAppConfig
                 continue;
             }
 
-            string? url = GetString(serverObj, "url");
-            if (string.IsNullOrWhiteSpace(url))
+            // "url" is the legacy key name from before stdio upstreams were configurable;
+            // "path" is the current, transport-agnostic name — either is accepted.
+            string? path = GetString(serverObj, "path", "url");
+            if (string.IsNullOrWhiteSpace(path))
             {
                 continue;
             }
 
-            servers[pair.Key] = new McpUpstreamConfig { Url = url };
+            servers[pair.Key] = new McpUpstreamConfig
+            {
+                TransportType = ParseMcpTransportType(GetString(serverObj, "transportType", "transport_type", "transport")),
+                Path = path,
+                Args = ParseStringArray(GetNode(serverObj, "args"))
+            };
         }
 
         return servers;
     }
 
+    /// <summary>
+    ///     Parses an MCP upstream's <c>transportType</c>, defaulting to <see cref="McpTransportType.Http" />
+    ///     for any missing/unrecognized value — every upstream configured before
+    ///     <see cref="McpTransportType.Stdio" /> existed was HTTP, so this keeps those configs working
+    ///     unchanged.
+    /// </summary>
+    private static McpTransportType ParseMcpTransportType(string? value)
+    {
+        return value?.Trim().ToUpperInvariant() switch
+        {
+            "STDIO" => McpTransportType.Stdio,
+            _ => McpTransportType.Http
+        };
+    }
+
     public IAgentConfig Agent(string agentType)
     {
         return Agents.TryGetValue(agentType, out IAgentConfig? settings) ? settings : new SimpleModelServer.Contracts.Dtos.Agents.AgentConfig();
+    }
+
+    /// <summary>
+    ///     Adds or replaces an MCP upstream in the live <see cref="McpServers" /> dictionary — the
+    ///     backing store for the admin "list/add/remove MCP servers" API. Mutates the dictionary
+    ///     instance in place rather than replacing it, so callers holding a reference to
+    ///     <see cref="McpServers" /> (e.g. <c>SimpleModelServer.Server.McpUpstreamRegistry</c>'s
+    ///     constructor-captured <c>upstreams</c>) see the change without needing to be re-wired.
+    /// </summary>
+    public void AddOrUpdateMcpServer(string name, IMcpUpstreamConfig serverConfig)
+    {
+        McpServers[name] = serverConfig;
+    }
+
+    /// <summary>Removes the named MCP upstream. Returns false if no upstream with that name was configured.</summary>
+    public bool RemoveMcpServer(string name)
+    {
+        return McpServers.Remove(name);
     }
 
     /// <summary>
@@ -646,7 +686,9 @@ public sealed class AgentConfig : IAgentConfig
 
 public sealed class McpUpstreamConfig : IMcpUpstreamConfig
 {
-    public string Url { get; init; } = "";
+    public McpTransportType TransportType { get; init; } = McpTransportType.Http;
+    public string Path { get; init; } = "";
+    public IReadOnlyList<string> Args { get; init; } = [];
 }
 
 public sealed class ModelSourceConfig : IModelSourceConfig

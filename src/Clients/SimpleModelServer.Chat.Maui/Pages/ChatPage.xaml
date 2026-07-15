@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:syncfusion="clr-namespace:Syncfusion.Maui.Chat;assembly=Syncfusion.Maui.Chat"
+             x:Class="SimpleModelServer.Chat.Maui.Pages.ChatPage"
+             Title="Chat"
+             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}">
+
+    <Grid RowDefinitions="*,Auto" Padding="0" RowSpacing="0">
+        <!-- Message List -->
+        <ScrollView Grid.Row="0">
+            <CollectionView ItemsSource="{Binding Messages}"
+                           SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <StackLayout Padding="12,8" Spacing="4">
+                            <!-- User Message (right-aligned) -->
+                            <StackLayout IsVisible="{Binding IsUserMessage}"
+                                        HorizontalOptions="End"
+                                        MaximumWidthRequest="80"
+                                        Padding="0">
+                                <Frame CornerRadius="12"
+                                      Padding="12"
+                                      Margin="0"
+                                      BackgroundColor="#E3F2FD"
+                                      BorderColor="Transparent">
+                                    <Label Text="{Binding Text}"
+                                          TextColor="Black"
+                                          LineBreakMode="WordWrap"
+                                          FontSize="14" />
+                                </Frame>
+                                <Label Text="{Binding TimestampDisplay}"
+                                      TextColor="Gray"
+                                      FontSize="12"
+                                      Margin="0,4,12,0"
+                                      HorizontalTextAlignment="End" />
+                            </StackLayout>
+
+                            <!-- Assistant Message (left-aligned) -->
+                            <StackLayout IsVisible="{Binding IsAssistantMessage}"
+                                        HorizontalOptions="Start"
+                                        MaximumWidthRequest="80"
+                                        Padding="0">
+                                <Frame CornerRadius="12"
+                                      Padding="12"
+                                      Margin="0"
+                                      BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}"
+                                      BorderColor="Transparent">
+                                    <Label Text="{Binding Text}"
+                                          TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                                          LineBreakMode="WordWrap"
+                                          FontSize="14" />
+                                </Frame>
+                                <Label Text="{Binding TimestampDisplay}"
+                                      TextColor="Gray"
+                                      FontSize="12"
+                                      Margin="12,4,0,0"
+                                      HorizontalTextAlignment="Start" />
+                            </StackLayout>
+                        </StackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </ScrollView>
+
+        <!-- Input Area -->
+        <Grid Grid.Row="1"
+             RowDefinitions="Auto"
+             ColumnDefinitions="*,Auto,Auto"
+             Padding="12"
+             ColumnSpacing="8"
+             BackgroundColor="{AppThemeBinding Light=#F9F9F9, Dark=#1E1E1E}">
+
+            <!-- Text Editor for input -->
+            <Editor x:Name="InputEditor"
+                   Grid.Column="0"
+                   Placeholder="Type a message..."
+                   Text="{Binding InputText}"
+                   BackgroundColor="{AppThemeBinding Light=White, Dark=#2D2D2D}"
+                   TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                   PlaceholderColor="Gray"
+                   HeightRequest="60"
+                   AutoSize="TextChanges"
+                   MaximumHeightRequest="120" />
+
+            <!-- Attach File Button -->
+            <Button Grid.Column="1"
+                   Text="📎"
+                   Command="{Binding AttachFileCommand}"
+                   Padding="0"
+                   WidthRequest="44"
+                   HeightRequest="44"
+                   CornerRadius="22"
+                   BackgroundColor="{AppThemeBinding Light=#E3F2FD, Dark=#1E3A5F}" />
+
+            <!-- Send Button -->
+            <Button Grid.Column="2"
+                   Text="Send"
+                   Command="{Binding SendCommand}"
+                   Padding="12,0"
+                   CornerRadius="6"
+                   BackgroundColor="#2196F3"
+                   TextColor="White"
+                   FontAttributes="Bold" />
+        </Grid>
+    </Grid>
+</ContentPage>

@@ -85,11 +85,14 @@ public class SystemConfiguration
 ///     Status of one configured MCP upstream server (see /mcp gateway).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1056",
-    Justification = "Url is a plain string surfaced verbatim from config/JSON for display purposes; changing to System.Uri would complicate serialization for no functional benefit.")]
+    Justification = "Path is a plain string surfaced verbatim from config/JSON for display purposes; changing to System.Uri would complicate serialization for no functional benefit, and it doubles as a filesystem path for stdio upstreams.")]
 public class McpServerInfo
 {
-    /// <summary>The upstream server's URL.</summary>
-    public string? Url { get; set; }
+    /// <summary>How the gateway connects to this upstream — "Http" or "Stdio".</summary>
+    public string? TransportType { get; set; }
+
+    /// <summary>The upstream server's HTTP endpoint URL, or its executable file path for a stdio upstream.</summary>
+    public string? Path { get; set; }
 
     /// <summary>Whether the router successfully connected to this upstream at startup.</summary>
     public bool Connected { get; set; }
