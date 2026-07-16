@@ -9,4 +9,5 @@ src/Installers/staging/
 *.userprefs
 .DS_Store
 
-build/
+build/dist/
+build/staging/
