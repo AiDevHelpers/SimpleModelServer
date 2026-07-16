@@ -32,4 +32,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Discovery library for server connection management -->
+    <ProjectReference Include="..\..\Common\SimpleModelServer.Discovery\SimpleModelServer.Discovery.csproj" />
+  </ItemGroup>
 </Project>

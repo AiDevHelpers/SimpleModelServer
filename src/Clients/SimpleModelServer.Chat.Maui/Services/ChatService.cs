@@ -58,7 +58,7 @@ public class ChatService
             var requestBody = BuildGenerateRequest(modelName, builtPrompt);
 
             // Post the request to the server's /api/generate endpoint
-            var generateUri = new Uri(connection.BaseUrl).Append("/api/generate");
+            var generateUri = new Uri(connection.BaseUrl).AppendPath("/api/generate");
             using var jsonContent = JsonContent.Create(requestBody);
             using var response = await httpClient.PostAsync(generateUri, jsonContent, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -74,6 +74,39 @@ public class ChatService
                 onToken($"\n[Error: {ex.Message}]")
             );
         }
+    }
+
+    /// <summary>
+    /// Asks the server which models it has available (Ollama-compatible <c>/api/tags</c>) and
+    /// caches the first one for reuse — the router picks the actual draft/main pairing
+    /// server-side, so any listed model name is a valid <c>/api/generate</c> target.
+    /// </summary>
+    private async Task<string> ResolveModelNameAsync(HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        if (_cachedModelName is not null)
+        {
+            return _cachedModelName;
+        }
+
+        try
+        {
+            var tagsResponse = await httpClient.GetFromJsonAsync<JsonObject>("/api/tags", cancellationToken);
+            var firstModel = tagsResponse?["models"]?.AsArray()
+                .Select(m => m?["name"]?.GetValue<string>())
+                .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+
+            if (!string.IsNullOrWhiteSpace(firstModel))
+            {
+                return _cachedModelName = firstModel;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            // Fall through to the placeholder — the request below will surface a clearer
+            // error from the server than failing the tags lookup would.
+        }
+
+        return _cachedModelName = "default";
     }
 
     /// <summary>
@@ -176,18 +209,5 @@ public class ChatService
                 continue;
             }
         }
-    }
-}
-
-/// <summary>
-/// Extension methods for Uri to support appending paths.
-/// </summary>
-internal static class UriExtensions
-{
-    public static Uri Append(this Uri baseUri, string path)
-    {
-        var uriBuilder = new UriBuilder(baseUri);
-        uriBuilder.Path = (uriBuilder.Path.TrimEnd('/') + "/" + path.TrimStart('/')).Replace("//", "/");
-        return uriBuilder.Uri;
     }
 }

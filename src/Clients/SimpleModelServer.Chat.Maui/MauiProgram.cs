@@ -21,7 +21,10 @@ public static class MauiProgram
 				.AddSingleton<IServerConnectionStore, ServerConnectionStore>()
 				.AddSingleton<IServerLocator, ServerLocator>()
 				.AddSingleton<ChatService>()
-				.AddTransient<ChatPage>();
+				.AddSingleton<AppShell>()
+				.AddSingleton<App>()
+				.AddTransient<ChatPage>()
+				.AddTransient<Pages.SettingsPage>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

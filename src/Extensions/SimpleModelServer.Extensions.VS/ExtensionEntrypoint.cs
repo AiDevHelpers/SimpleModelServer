@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Extensibility;
 using SimpleModelServer.UI.Core;
+using SimpleModelServer.Discovery;
 using SimpleModelServer.Extensions.VS.Commands;
 using SimpleModelServer.Extensions.VS.UI.Chat;
 using SimpleModelServer.Extensions.VS.Features;
@@ -29,6 +31,13 @@ namespace SimpleModelServer.Extensions.VS
             serviceCollection.AddSingleton<SettingsManager>();
             serviceCollection.AddSingleton<ChatService>();
             serviceCollection.AddSingleton<DiagnosticLogger>();
+            serviceCollection.AddSingleton<HttpClient>();
+
+            // Register discovery services for server connection management
+            serviceCollection.AddSingleton<IServerConnectionStore>(sp =>
+                new SettingsManagerConnectionStore(sp.GetRequiredService<SettingsManager>()));
+            serviceCollection.AddSingleton<IServerLocator>(sp =>
+                new ServerLocator(sp.GetRequiredService<IServerConnectionStore>(), sp.GetService<HttpClient>()));
 
             // Register tool windows
             serviceCollection.AddScoped<ChatToolWindow>();

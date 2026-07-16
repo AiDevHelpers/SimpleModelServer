@@ -8,3 +8,5 @@ src/Installers/staging/
 *.sln.docstates
 *.userprefs
 .DS_Store
+
+build/

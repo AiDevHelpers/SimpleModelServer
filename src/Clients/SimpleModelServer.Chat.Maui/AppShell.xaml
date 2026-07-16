@@ -7,9 +7,15 @@
     xmlns:pages="clr-namespace:SimpleModelServer.Chat.Maui.Pages"
     Title="SimpleModelServer.Chat.Maui">
 
-    <ShellContent
-        Title="Chat"
-        ContentTemplate="{DataTemplate pages:ChatPage}"
-        Route="ChatPage" />
+    <FlyoutItem Title="Chat">
+        <ShellContent
+            Title="Chat"
+            ContentTemplate="{DataTemplate pages:ChatPage}"
+            Route="ChatPage" />
+    </FlyoutItem>
+
+    <MenuItem Text="Restart Server" Clicked="OnRestartServerClicked" />
+
+    <MenuItem Text="Settings" Clicked="OnSettingsClicked" />
 
 </Shell>

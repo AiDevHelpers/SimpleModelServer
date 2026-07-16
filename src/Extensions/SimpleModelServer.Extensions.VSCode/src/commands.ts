@@ -93,6 +93,19 @@ export class CommandsManager {
     }
   }
 
+  async rediscoverServer(): Promise<void> {
+    try {
+      await this.client.rediscover();
+      vscode.window.showInformationMessage(
+        "SimpleModelServer rediscovered successfully."
+      );
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        `Failed to rediscover server: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
   updateClient(client: RouterClient): void {
     this.client = client;
   }

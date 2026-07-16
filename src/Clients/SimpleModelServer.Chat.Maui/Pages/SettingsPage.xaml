@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SimpleModelServer.Chat.Maui.Pages.SettingsPage"
+             Title="Settings"
+             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <!-- Section 1: Connection Settings -->
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Connection Settings" FontSize="18" FontAttributes="Bold" />
+
+                <!-- Connection Mode Picker -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Connection Mode" FontSize="14" FontAttributes="Bold" />
+                    <Picker x:Name="ConnectionModePicker"
+                            ItemsSource="{Binding AvailableModes}"
+                            SelectedItem="{Binding SelectedMode}"
+                            SelectedIndexChanged="OnConnectionModeChanged" />
+                </VerticalStackLayout>
+
+                <!-- Manual Host (visible only in Manual mode) -->
+                <VerticalStackLayout x:Name="ManualHostContainer" Spacing="4" IsVisible="False">
+                    <Label Text="Host" FontSize="14" FontAttributes="Bold" />
+                    <Entry Placeholder="e.g., 192.168.1.100"
+                           Text="{Binding ManualHost}" />
+                </VerticalStackLayout>
+
+                <!-- Manual Port (visible only in Manual mode) -->
+                <VerticalStackLayout x:Name="ManualPortContainer" Spacing="4" IsVisible="False">
+                    <Label Text="Port" FontSize="14" FontAttributes="Bold" />
+                    <Entry Placeholder="e.g., 11435"
+                           Text="{Binding ManualPort}"
+                           Keyboard="Numeric" />
+                </VerticalStackLayout>
+
+                <!-- API Key (masked) -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="API Key (optional)" FontSize="14" FontAttributes="Bold" />
+                    <Entry x:Name="ApiKeyEntry"
+                           Placeholder="Leave blank for loopback"
+                           IsPassword="True"
+                           Text="{Binding ApiKey}" />
+                </VerticalStackLayout>
+
+                <!-- Test Connection Button -->
+                <Button Text="Test Connection"
+                        Clicked="OnTestConnectionClicked"
+                        BackgroundColor="#2196F3"
+                        TextColor="White" />
+
+                <!-- Status Label -->
+                <Label x:Name="ConnectionStatusLabel"
+                       Text=""
+                       FontSize="12"
+                       IsVisible="False"
+                       TextColor="Green" />
+
+                <!-- Save Button -->
+                <Button Text="Save Settings"
+                        Clicked="OnSaveSettingsClicked"
+                        BackgroundColor="#4CAF50"
+                        TextColor="White" />
+            </VerticalStackLayout>
+
+            <!-- Divider -->
+            <BoxView HeightRequest="1" Color="#CCCCCC" />
+
+            <!-- Section 2: Server Configuration -->
+            <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Server Configuration" FontSize="18" FontAttributes="Bold" />
+                    <Button x:Name="ToggleConfigButton"
+                            Text="Show Configuration"
+                            Clicked="OnToggleConfigClicked"
+                            BackgroundColor="#2196F3"
+                            TextColor="White" />
+                </VerticalStackLayout>
+
+                <!-- Config Panel (initially hidden) -->
+                <VerticalStackLayout x:Name="ConfigPanel" IsVisible="False" Spacing="12">
+
+                    <!-- Read-only Config Display -->
+                    <VerticalStackLayout x:Name="ConfigDisplayContainer" Spacing="8">
+                        <Label Text="Current Configuration" FontSize="14" FontAttributes="Bold" />
+                        <ScrollView HeightRequest="150" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2D2D2D}">
+                            <VerticalStackLayout x:Name="ConfigItemsContainer" Padding="8" Spacing="4" />
+                        </ScrollView>
+                    </VerticalStackLayout>
+
+                    <!-- Editable routerPort Field -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Edit Router Port" FontSize="14" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Entry x:Name="RouterPortEntry"
+                                   Placeholder="e.g., 11435"
+                                   Keyboard="Numeric"
+                                   Grid.Column="0" />
+                            <Button Text="Save"
+                                    Clicked="OnSaveRouterPortClicked"
+                                    Grid.Column="1"
+                                    BackgroundColor="#4CAF50"
+                                    TextColor="White"
+                                    WidthRequest="70" />
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- Config Status Label -->
+                    <Label x:Name="ConfigStatusLabel"
+                           Text=""
+                           FontSize="12"
+                           IsVisible="False" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Divider -->
+            <BoxView HeightRequest="1" Color="#CCCCCC" />
+
+            <!-- Section 3: About/Diagnostics -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="About" FontSize="18" FontAttributes="Bold" />
+
+                <!-- App Version -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="App Version" FontSize="14" FontAttributes="Bold" />
+                    <Label x:Name="AppVersionLabel" FontSize="12" />
+                </VerticalStackLayout>
+
+                <!-- Resolved Server -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Resolved Server" FontSize="14" FontAttributes="Bold" />
+                    <Label x:Name="ResolvedServerLabel" FontSize="12" />
+                    <Label x:Name="ResolvedViaLabel" FontSize="12" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

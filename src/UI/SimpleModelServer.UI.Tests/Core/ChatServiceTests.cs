@@ -18,12 +18,11 @@ namespace SimpleModelServer.UI.Tests.Core
         [Fact]
         public async Task TestConnectionAsync_ReturnsTrue_OnSuccess()
         {
-            var mockHttpClient = new Mock<HttpClient>();
             var settings = new SettingsManager();
             var mockHandler = new MockHttpMessageHandler(HttpStatusCode.OK);
             var httpClient = new HttpClient(mockHandler);
 
-            var service = new ChatService(settings, httpClient);
+            var service = new ChatService(settings, serverLocator: null, httpClient: httpClient);
             var result = await service.TestConnectionAsync(TestContext.Current.CancellationToken);
 
             Assert.True(result);
@@ -36,7 +35,7 @@ namespace SimpleModelServer.UI.Tests.Core
             var mockHandler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError);
             var httpClient = new HttpClient(mockHandler);
 
-            var service = new ChatService(settings, httpClient);
+            var service = new ChatService(settings, serverLocator: null, httpClient: httpClient);
             var result = await service.TestConnectionAsync(TestContext.Current.CancellationToken);
 
             Assert.False(result);
@@ -49,7 +48,7 @@ namespace SimpleModelServer.UI.Tests.Core
             var mockHandler = new MockHttpMessageHandler(null, new HttpRequestException("Connection failed"));
             var httpClient = new HttpClient(mockHandler);
 
-            var service = new ChatService(settings, httpClient);
+            var service = new ChatService(settings, serverLocator: null, httpClient: httpClient);
             var result = await service.TestConnectionAsync(TestContext.Current.CancellationToken);
 
             Assert.False(result);
@@ -62,7 +61,7 @@ namespace SimpleModelServer.UI.Tests.Core
             var mockHandler = new MockHttpMessageHandler(HttpStatusCode.BadRequest);
             var httpClient = new HttpClient(mockHandler);
 
-            var service = new ChatService(settings, httpClient);
+            var service = new ChatService(settings, serverLocator: null, httpClient: httpClient);
             var models = await service.GetAvailableModelsAsync(TestContext.Current.CancellationToken);
 
             Assert.Empty(models);

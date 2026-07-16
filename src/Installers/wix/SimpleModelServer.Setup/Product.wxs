@@ -104,6 +104,7 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="SimpleModelServer">
         <Directory Id="EXTENSIONSFOLDER" Name="Extensions" />
+        <Directory Id="CHATAPPFOLDER" Name="Chat" />
       </Directory>
     </StandardDirectory>
 
@@ -145,6 +146,15 @@
       <ComponentRef Id="VsCodeExtensionVsixComponent" />
     </Feature>
 
+    <!-- Optional MAUI chat client — same ADDLOCAL selection story as VsExtensionFeature /
+         VsCodeExtensionFeature above (msiexec ADDLOCAL=...,ChatAppFeature). Unlike those two,
+         this is a full self-contained unpackaged app (hundreds of files: exe, dlls, WinUI3/
+         WindowsAppSDK runtime assets), so it's wildcard-harvested like SimpleModelServerFiles
+         rather than a single hardcoded File. -->
+    <Feature Id="ChatAppFeature" Title="Chat App" Level="1000">
+      <ComponentGroupRef Id="ChatMauiFiles" />
+    </Feature>
+
     <!-- Mirrors install-draftmodel-service.ps1's robocopy /MIR of the published output into
          the install directory.
 
@@ -160,6 +170,16 @@
       <Files Include="$(PublishDir)\**">
         <Exclude Files="$(PublishDir)\**\*.pdb" />
         <Exclude Files="$(PublishDir)\SimpleModelServer.Server.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- ChatAppFeature payload — see PublishChatMauiApp target in SimpleModelServer.Setup.wixproj,
+         which self-contained-publishes SimpleModelServer.Chat.Maui.csproj into ChatMauiPublishDir
+         before this compiles. No component-ownership conflict with SimpleModelServerFiles above:
+         these live in a separate CHATAPPFOLDER directory entirely. -->
+    <ComponentGroup Id="ChatMauiFiles" Directory="CHATAPPFOLDER">
+      <Files Include="$(ChatMauiPublishDir)\**">
+        <Exclude Files="$(ChatMauiPublishDir)\**\*.pdb" />
       </Files>
     </ComponentGroup>
 

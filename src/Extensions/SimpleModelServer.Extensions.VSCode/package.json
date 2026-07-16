@@ -21,10 +21,25 @@
     "configuration": {
       "title": "SimpleModelServer",
       "properties": {
+        "simplemodelserver.connectionMode": {
+          "type": "string",
+          "default": "local",
+          "enum": [
+            "local",
+            "manual",
+            "mdns"
+          ],
+          "enumDescriptions": [
+            "Probe localhost for SimpleModelServer, fall back to mDNS",
+            "Use explicit host/port from settings",
+            "Discover via mDNS (_draftmodel._tcp)"
+          ],
+          "description": "Connection mode for finding SimpleModelServer"
+        },
         "simplemodelserver.host": {
           "type": "string",
           "default": "localhost",
-          "description": "SimpleModelServer router host"
+          "description": "SimpleModelServer router host (used in manual mode and as fallback)"
         },
         "simplemodelserver.port": {
           "type": "number",
@@ -96,6 +111,11 @@
         "command": "simplemodelserver.testConnection",
         "title": "Test SimpleModelServer Connection",
         "category": "SimpleModelServer"
+      },
+      {
+        "command": "simplemodelserver.rediscoverServer",
+        "title": "Rediscover SimpleModelServer",
+        "category": "SimpleModelServer"
       }
     ],
     "menus": {
@@ -137,6 +157,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "bonjour-service": "^1.2.0",
     "gpt-tokenizer": "^3.4.0"
   }
 }

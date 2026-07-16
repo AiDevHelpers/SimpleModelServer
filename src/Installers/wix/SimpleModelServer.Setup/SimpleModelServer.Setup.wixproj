@@ -1,4 +1,4 @@
-<Project Sdk="WixToolset.Sdk/6.0.0" InitialTargets="ResolveMyAppVersionFromNbgv;PublishSimpleModelServerLoader;BuildVsExtensionVsix;PackVsCodeExtensionVsix">
+<Project Sdk="WixToolset.Sdk/6.0.0" InitialTargets="ResolveMyAppVersionFromNbgv;PublishSimpleModelServerLoader;BuildVsExtensionVsix;PackVsCodeExtensionVsix;PublishChatMauiApp">
   <!--
     SimpleModelServer.Loader Windows installer (WiX v6, SDK-style project).
 
@@ -65,15 +65,27 @@
       WixProjDir=$(MSBuildThisFileDirectory);
       RepoRoot=$(MSBuildThisFileDirectory)..\..\..\..\..\;
       VsExtensionVsix=$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VS\bin\$(Configuration)\SimpleModelServer.Extensions.VS.vsix;
-      VsCodeExtensionVsix=$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Extensions.VSCode\simplemodelserver-vscode.vsix
+      VsCodeExtensionVsix=$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Extensions.VSCode\simplemodelserver-vscode.vsix;
+      ChatMauiPublishDir=$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Chat.Maui\$(Configuration)
     </DefineConstants>
     <SuppressPdbOutput>true</SuppressPdbOutput>
+    <!-- ICE03/ICE60 fire on the ChatAppFeature payload only: a self-contained MAUI/WinUI
+         publish wildcard-harvests hundreds of native/managed DLLs (WindowsAppSDK, ucrtbase,
+         etc.) that carry unusual or absent PE resource-language IDs. This is a well-known
+         false-positive against real-world .NET publish output, not a defect in these files —
+         SimpleModelServerFiles (the main service payload) never triggered it because it's a
+         much smaller, framework-dependent set. Suppressing both ICEs project-wide rather than
+         per-file since the offending files are wildcard-harvested and not individually listed. -->
+    <SuppressIces>ICE03;ICE60</SuppressIces>
   </PropertyGroup>
   <PropertyGroup>
     <SimpleModelServerLoaderCsproj>$(MSBuildThisFileDirectory)..\..\..\..\src\Server\SimpleModelServer.Server\SimpleModelServer.Server.csproj</SimpleModelServerLoaderCsproj>
     <SimpleModelServerLoaderStagedExe>$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Loader\$(Configuration)\SimpleModelServer.Server.exe</SimpleModelServerLoaderStagedExe>
     <VsExtensionCsproj>$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VS\SimpleModelServer.Extensions.VS.csproj</VsExtensionCsproj>
     <VsCodeExtensionDir>$(MSBuildThisFileDirectory)..\..\..\Extensions\SimpleModelServer.Extensions.VSCode\</VsCodeExtensionDir>
+    <ChatMauiCsproj>$(MSBuildThisFileDirectory)..\..\..\Clients\SimpleModelServer.Chat.Maui\SimpleModelServer.Chat.Maui.csproj</ChatMauiCsproj>
+    <ChatMauiStagedDir>$(MSBuildThisFileDirectory)..\..\..\..\build\staging\SimpleModelServer.Chat.Maui\$(Configuration)</ChatMauiStagedDir>
+    <ChatMauiStagedExe>$(ChatMauiStagedDir)\SimpleModelServer.Chat.Maui.exe</ChatMauiStagedExe>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
@@ -189,5 +201,14 @@
     <Message Importance="high" Text="SimpleModelServer.Setup: packaging VS Code extension vsix ..." />
     <Exec Command="npm run package" WorkingDirectory="$(VsCodeExtensionDir)" />
     <Error Condition="!Exists('$(VsCodeExtensionVsix)')" Text="PackVsCodeExtensionVsix ran but $(VsCodeExtensionVsix) still doesn't exist. Run `npm install &amp;&amp; npm run package` manually in $(VsCodeExtensionDir) and check its output for the real failure." />
+  </Target>
+  <!-- Publishes the MAUI chat client as a self-contained, unpackaged win-x64 app for the
+       optional ChatAppFeature (see Product.wxs). Same Inputs/Outputs incremental pattern as
+       PublishSimpleModelServerLoader — mirrors the reasoning there for why this needs
+       InitialTargets rather than BeforeTargets, and why a hard Exists() guard follows the Exec. -->
+  <Target Name="PublishChatMauiApp" Inputs="$(ChatMauiCsproj)" Outputs="$(ChatMauiStagedExe)">
+    <Message Importance="high" Text="SimpleModelServer.Setup: publishing SimpleModelServer.Chat.Maui to build\staging\SimpleModelServer.Chat.Maui\$(Configuration) ..." />
+    <Exec Command="dotnet publish &quot;$(ChatMauiCsproj)&quot; -f net10.0-windows10.0.19041.0 --configuration $(Configuration) --runtime win-x64 --self-contained true --output &quot;$(ChatMauiStagedDir)&quot;" />
+    <Error Condition="!Exists('$(ChatMauiStagedExe)')" Text="PublishChatMauiApp ran but $(ChatMauiStagedExe) still doesn't exist. Run `dotnet publish` on SimpleModelServer.Chat.Maui.csproj manually and check its output for the real failure." />
   </Target>
 </Project>

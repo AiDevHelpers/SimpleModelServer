@@ -5,26 +5,40 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using SimpleModelServer.Discovery;
 
 namespace SimpleModelServer.UI.Core
 {
     /// <summary>
     /// Service for communicating with Simple Model Server API.
     /// Handles message sending, response streaming, and model operations.
+    /// Uses the discovery library for server location resolution.
     /// </summary>
     public sealed class ChatService : IDisposable
     {
         private readonly SettingsManager _settings;
         private readonly HttpClient _httpClient;
+        private readonly IServerLocator? _serverLocator;
         private readonly DiagnosticLogger _logger;
         private readonly bool _ownsHttpClient;
+        private ResolvedServerConnection? _cachedResolution;
+        private DateTime _resolutionTime;
 
-        public ChatService(SettingsManager settings, HttpClient? httpClient = null, DiagnosticLogger? logger = null)
+        /// <summary>
+        /// Creates a ChatService with optional discovery support.
+        /// </summary>
+        /// <param name="settings">The settings manager.</param>
+        /// <param name="serverLocator">Optional server locator for discovery-based resolution.</param>
+        /// <param name="httpClient">Optional HTTP client.</param>
+        /// <param name="logger">Optional diagnostic logger.</param>
+        public ChatService(SettingsManager settings, IServerLocator? serverLocator = null, HttpClient? httpClient = null, DiagnosticLogger? logger = null)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _serverLocator = serverLocator;
             _httpClient = httpClient ?? new HttpClient();
             _ownsHttpClient = httpClient == null;
             _logger = logger ?? new DiagnosticLogger("ChatService");
+            _resolutionTime = DateTime.MinValue;
         }
 
         public void Dispose()
@@ -37,15 +51,48 @@ namespace SimpleModelServer.UI.Core
         }
 
         /// <summary>
+        /// Resolves the server URL, either via discovery or fallback to manual settings.
+        /// Caches the result for 30 seconds to avoid repeated discovery calls.
+        /// </summary>
+        private async Task<string> ResolveServerUrlAsync(CancellationToken cancellationToken = default)
+        {
+            // Return cached result if fresh (within 30 seconds)
+            if (_cachedResolution != null && (DateTime.UtcNow - _resolutionTime).TotalSeconds < 30)
+            {
+                return _cachedResolution.BaseUrl;
+            }
+
+            // Try to use discovery if available
+            if (_serverLocator != null)
+            {
+                try
+                {
+                    _cachedResolution = await _serverLocator.ResolveAsync(cancellationToken);
+                    _resolutionTime = DateTime.UtcNow;
+                    return _cachedResolution.BaseUrl;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning($"Server discovery failed, falling back to manual settings: {ex.Message}");
+                }
+            }
+
+            // Fallback to manual settings
+            _cachedResolution = null;
+            return _settings.GetServerUrl();
+        }
+
+        /// <summary>
         /// Tests the connection to the Simple Model Server.
         /// </summary>
         public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var healthUrl = $"{_settings.GetServerUrl()}/health";
+                var baseUrl = await ResolveServerUrlAsync(cancellationToken);
+                var healthUrl = $"{baseUrl}/health";
                 using var request = new HttpRequestMessage(HttpMethod.Get, healthUrl);
-                AddApiKeyIfConfigured(request);
+                AddApiKeyIfConfigured(request, _cachedResolution);
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
@@ -65,7 +112,27 @@ namespace SimpleModelServer.UI.Core
             string selectedModel,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var url = _settings.GetChatEndpoint();
+            string? baseUrl;
+            string? resolutionError = null;
+
+            try
+            {
+                baseUrl = await ResolveServerUrlAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Failed to resolve server: {ex.Message}");
+                resolutionError = $"Error: Failed to resolve server - {ex.Message}";
+                baseUrl = null;
+            }
+
+            if (resolutionError != null)
+            {
+                yield return resolutionError;
+                yield break;
+            }
+
+            var url = $"{baseUrl}/api/generate";
 
             var request = new
             {
@@ -83,12 +150,13 @@ namespace SimpleModelServer.UI.Core
                     "application/json")
             };
 
-            AddApiKeyIfConfigured(httpRequest);
+            AddApiKeyIfConfigured(httpRequest, _cachedResolution);
 
             HttpResponseMessage? response = null;
             Stream? stream = null;
             StreamReader? reader = null;
             string? failureMessage = null;
+
             try
             {
                 response = await _httpClient.SendAsync(
@@ -215,9 +283,10 @@ namespace SimpleModelServer.UI.Core
             var models = new List<string>();
             try
             {
-                var modelsUrl = $"{_settings.GetServerUrl()}/v1/models";
+                var baseUrl = await ResolveServerUrlAsync(cancellationToken);
+                var modelsUrl = $"{baseUrl}/v1/models";
                 using var request = new HttpRequestMessage(HttpMethod.Get, modelsUrl);
-                AddApiKeyIfConfigured(request);
+                AddApiKeyIfConfigured(request, _cachedResolution);
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -259,9 +328,10 @@ namespace SimpleModelServer.UI.Core
         {
             try
             {
-                var infoUrl = $"{_settings.GetServerUrl()}/api/system/info";
+                var baseUrl = await ResolveServerUrlAsync(cancellationToken);
+                var infoUrl = $"{baseUrl}/api/system/info";
                 using var request = new HttpRequestMessage(HttpMethod.Get, infoUrl);
-                AddApiKeyIfConfigured(request);
+                AddApiKeyIfConfigured(request, _cachedResolution);
                 using var response = await _httpClient.SendAsync(request, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -289,11 +359,28 @@ namespace SimpleModelServer.UI.Core
             return null;
         }
 
-        private void AddApiKeyIfConfigured(HttpRequestMessage request)
+        /// <summary>
+        /// Adds API key to the request if configured, respecting loopback addresses.
+        /// Uses resolved connection info if available, otherwise falls back to settings.
+        /// </summary>
+        private void AddApiKeyIfConfigured(HttpRequestMessage request, ResolvedServerConnection? resolvedConnection = null)
         {
-            if (!string.IsNullOrWhiteSpace(_settings.ApiKey))
+            string? apiKey = null;
+
+            if (resolvedConnection != null)
             {
-                request.Headers.Add("Authorization", $"Bearer {_settings.ApiKey}");
+                // Use the API key from the resolved connection
+                apiKey = resolvedConnection.IsLoopback ? null : resolvedConnection.ApiKey;
+            }
+            else
+            {
+                // Fallback to direct settings (for backward compatibility)
+                apiKey = _settings.ApiKey;
+            }
+
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                request.Headers.Add("Authorization", $"Bearer {apiKey}");
             }
         }
     }

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { encode } from "gpt-tokenizer";
+import { ServerLocator, ResolvedServerConnection } from "./serverLocator";
 
 export interface Model {
   id: string;
@@ -64,10 +65,57 @@ export interface SystemInfoResponse {
 export class RouterClient {
   private baseUrl: string;
   private apiKey: string;
+  private isLoopback: boolean = false;
+  private locator?: ServerLocator;
+  private resolvedConnection?: ResolvedServerConnection;
 
-  constructor(host: string, port: number, apiKey: string = "") {
+  constructor(
+    host: string,
+    port: number,
+    apiKey: string = "",
+    context?: vscode.ExtensionContext
+  ) {
     this.baseUrl = `http://${host}:${port}`;
     this.apiKey = apiKey;
+    if (context) {
+      this.locator = new ServerLocator(context);
+    }
+  }
+
+  /**
+   * Initialize the client with server discovery. Must be called if using ServerLocator.
+   */
+  async initializeWithDiscovery(): Promise<void> {
+    if (!this.locator) {
+      return;
+    }
+    try {
+      this.resolvedConnection = await this.locator.resolve();
+      this.baseUrl = this.resolvedConnection.baseUrl;
+      this.apiKey = this.resolvedConnection.apiKey || "";
+      this.isLoopback = this.resolvedConnection.isLoopback;
+    } catch (err) {
+      console.error("Failed to resolve server connection:", err);
+      throw err;
+    }
+  }
+
+  /**
+   * Rediscover the server connection, clearing the cache.
+   */
+  async rediscover(): Promise<void> {
+    if (!this.locator) {
+      return;
+    }
+    try {
+      this.resolvedConnection = await this.locator.rediscover();
+      this.baseUrl = this.resolvedConnection.baseUrl;
+      this.apiKey = this.resolvedConnection.apiKey || "";
+      this.isLoopback = this.resolvedConnection.isLoopback;
+    } catch (err) {
+      console.error("Failed to rediscover server connection:", err);
+      throw err;
+    }
   }
 
   /**
@@ -307,7 +355,8 @@ export class RouterClient {
       "User-Agent": "SimpleModelServer-VSCode/1.0",
     };
 
-    if (this.apiKey) {
+    // Only add Authorization header for non-loopback connections with an API key
+    if (!this.isLoopback && this.apiKey) {
       headers["Authorization"] = `Bearer ${this.apiKey}`;
     }
 

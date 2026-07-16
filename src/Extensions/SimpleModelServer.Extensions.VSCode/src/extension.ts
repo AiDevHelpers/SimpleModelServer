@@ -17,8 +17,24 @@ export async function activate(context: vscode.ExtensionContext) {
   settingsManager = new SettingsManager();
   const settings = settingsManager.getSettings();
 
-  // Initialize router client
-  client = new RouterClient(settings.host, settings.port, settings.apiKey);
+  // Initialize router client with discovery support
+  client = new RouterClient(settings.host, settings.port, settings.apiKey, context);
+
+  // Initialize discovery if not using manual mode
+  if (settings.connectionMode !== "manual") {
+    try {
+      await client.initializeWithDiscovery();
+      console.log(
+        `Server discovered via ${settings.connectionMode} mode`
+      );
+    } catch (err) {
+      console.warn(
+        `Failed to discover server via ${settings.connectionMode} mode:`,
+        err
+      );
+      // Continue with fallback to configured host/port
+    }
+  }
 
   // Create and register the chat model provider
   try {
@@ -96,6 +112,15 @@ export async function activate(context: vscode.ExtensionContext) {
       "simplemodelserver.testConnection",
       async () => {
         await commands?.testConnection();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "simplemodelserver.rediscoverServer",
+      async () => {
+        await commands?.rediscoverServer();
       }
     )
   );

@@ -61,6 +61,8 @@
   <ItemGroup>
     <!-- UI Library reference for reusable settings panel and core services -->
     <ProjectReference Include="..\..\UI\SimpleModelServer.UI\SimpleModelServer.UI.csproj" />
+    <!-- Discovery library for server connection management -->
+    <ProjectReference Include="..\..\Common\SimpleModelServer.Discovery\SimpleModelServer.Discovery.csproj" />
   </ItemGroup>
 
   <ItemGroup>
