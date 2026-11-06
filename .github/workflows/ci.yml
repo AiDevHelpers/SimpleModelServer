@@ -45,6 +45,16 @@ jobs:
       - name: Restore
         run: dotnet restore SimpleModelServer.slnx
 
+      - name: Vulnerability audit
+        shell: pwsh
+        # `dotnet list package --vulnerable` can exit 0 when it finds issues, so check the output too.
+        run: |
+          $out = dotnet list SimpleModelServer.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0 -or $out -match 'has the following vulnerable packages') {
+            throw "Vulnerable NuGet packages found."
+          }
+
       - name: Build
         run: dotnet build SimpleModelServer.slnx -c Release --no-restore
 
