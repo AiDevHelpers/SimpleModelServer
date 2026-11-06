@@ -13,6 +13,9 @@ public interface IGlobalConfig
     HardwareSetting CpuThreads { get; set; }
     string DraftModel { get; set; }
     string MainModel { get; set; }
+
+    /// <summary>Selected model configuration id (<c>models.configurations[].id</c>). Applied on restart.</summary>
+    int ConfigurationId { get; set; }
     string EmbedModel { get; set; }
     int OllamaPort { get; set; }
     int RouterPort { get; set; }

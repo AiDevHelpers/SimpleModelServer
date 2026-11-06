@@ -293,6 +293,100 @@ public sealed class StructuredModelConfigTests
     }
 
     [Fact]
+    public void StockConfig_ListsBothProfiles_WithDefaultFlagged()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"smsconfig-profiles-{Guid.NewGuid():N}.json");
+        try
+        {
+            DefaultConfig.EnsureConfig(path);
+            AppConfig config = AppConfig.Load(path);
+
+            Assert.Equal(2, config.ModelProfiles.Count);
+            Assert.Equal(1, config.ModelProfiles[0].Id);
+            Assert.True(config.ModelProfiles[0].IsDefault);
+            Assert.Equal("Fast & Responsive", config.ModelProfiles[0].Nickname);
+            Assert.Equal(2, config.ModelProfiles[1].Id);
+            Assert.False(config.ModelProfiles[1].IsDefault);
+            Assert.Equal(1, config.Global.ConfigurationId);
+        }
+        finally
+        {
+            Delete(path);
+        }
+    }
+
+    [Fact]
+    public void StructuredConfig_ConfigurationIdFromGlobal_SelectsProfile()
+    {
+        string path = WriteTemp("""
+        {
+          "global": { "configurationId": 2 },
+          "models": { "configurations": [
+            { "id": 1, "nickname": "Fast", "isDefault": true, "families": [
+                { "family": 0, "variant": "coder", "draft": { "size": "0.5b" } } ] },
+            { "id": 2, "nickname": "Accurate", "isDefault": false, "families": [
+                { "family": 1, "variant": "coder", "draft": { "size": "1.3b" } } ] }
+          ] }
+        }
+        """);
+        try
+        {
+            AppConfig config = AppConfig.Load(path);
+
+            Assert.Equal(2, config.Global.ConfigurationId);
+            Assert.Equal("deepseek-coder-1.3b-chat", config.ModelRoles["draft"]);
+            Assert.Equal(new[] { "Fast", "Accurate" }, config.ModelProfiles.Select(p => p.Nickname).ToArray());
+        }
+        finally
+        {
+            Delete(path);
+        }
+    }
+
+    [Fact]
+    public void StructuredConfig_SizingTemperatureAndTopP_AreCarried()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"smsconfig-sampling-{Guid.NewGuid():N}.json");
+        try
+        {
+            DefaultConfig.EnsureConfig(path);
+            AppConfig config = AppConfig.Load(path);
+
+            IModelSourceConfig draft = config.ModelSources["qwen2.5-coder-0.5b-chat"];
+            Assert.Equal(0.1, draft.Temperature);
+            Assert.Equal(0.9, draft.TopP);
+        }
+        finally
+        {
+            Delete(path);
+        }
+    }
+
+    [Fact]
+    public void FlatSchema_ReadsTemperatureAndTopP_AndHasNoProfiles()
+    {
+        string path = WriteTemp("""
+        {
+          "models": {
+            "draft": { "name": "tiny", "base": "qwen2.5-coder:0.5b", "temperature": 0.2, "top_p": 0.8 }
+          }
+        }
+        """);
+        try
+        {
+            AppConfig config = AppConfig.Load(path);
+
+            Assert.Equal(0.2, config.ModelSources["tiny"].Temperature);
+            Assert.Equal(0.8, config.ModelSources["tiny"].TopP);
+            Assert.Empty(config.ModelProfiles);
+        }
+        finally
+        {
+            Delete(path);
+        }
+    }
+
+    [Fact]
     public void FlatSchema_StillLoads_AndBaseOmitsChatSuffix()
     {
         // Backward compatibility: the flat role-keyed shape already on users' machines keeps working,

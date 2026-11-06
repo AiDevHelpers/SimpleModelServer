@@ -13,6 +13,7 @@ public sealed class AppConfig : IAppConfig
     public Dictionary<string, IModelSourceConfig> ModelSources { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, string> ModelRoles { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, IMcpUpstreamConfig> McpServers { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyList<ModelProfile> ModelProfiles { get; init; } = [];
 
     IReadOnlyDictionary<string, IAgentConfig> IAppConfig.Agents => Agents;
     IReadOnlyDictionary<string, IModelSourceConfig> IAppConfig.ModelSources => ModelSources;
@@ -50,8 +51,30 @@ public sealed class AppConfig : IAppConfig
             Agents = ParseAgents(GetObject(json, "agents") ?? GetObject(json, "modes") ?? []),
             ModelSources = modelSources,
             ModelRoles = modelRoles,
-            McpServers = ParseMcpServers(GetObject(json, "mcpServers") ?? [])
+            McpServers = ParseMcpServers(GetObject(json, "mcpServers") ?? []),
+            ModelProfiles = inlineModels is null ? [] : ParseModelProfiles(inlineModels),
         };
+    }
+
+    /// <summary>
+    ///     Lists the structured <c>models.configurations</c> entries as selectable profiles. Empty for
+    ///     the flat schema, which has only one resolved set of models and nothing to switch between.
+    /// </summary>
+    private static IReadOnlyList<ModelProfile> ParseModelProfiles(JsonObject modelsNode)
+    {
+        if (GetNode(modelsNode, "configurations") is not JsonArray configurations)
+        {
+            return [];
+        }
+
+        return configurations
+            .OfType<JsonObject>()
+            .Select(c => new ModelProfile(
+                GetInt(c, "id") ?? 0,
+                GetString(c, "nickname") ?? "",
+                GetBool(c, "isDefault", "is_default") == true))
+            .Where(p => p.Id > 0)
+            .ToList();
     }
 
     /// <summary>Parse the "mcpServers" JsonObject — upstream MCP servers the gateway aggregates.</summary>
@@ -213,7 +236,9 @@ public sealed class AppConfig : IAppConfig
                 // Explicit pin: when set, GpuBudgetPlanner leaves this model out of auto VRAM
                 // planning entirely and this value is sent as-is on every generate/warmup call.
                 NumGpu = GetInt(modelObj, "num_gpu", "numGpu"),
-                Stop = ParseStopTokens(GetNode(modelObj, "stop"))
+                Stop = ParseStopTokens(GetNode(modelObj, "stop")),
+                Temperature = GetDouble(modelObj, "temperature"),
+                TopP = GetDouble(modelObj, "topP", "top_p"),
             };
 
             roles[pair.Key] = name;
@@ -418,6 +443,8 @@ public sealed class AppConfig : IAppConfig
             NumCtx = GetInt(modelNode, "numCtx", "num_ctx") ?? defaultNumCtx,
             KeepAlive = ToKeepAliveDuration(keepAlive),
             Stop = GetNode(modelNode, "stop") is null ? DefaultStopTokens : ParseStopTokens(GetNode(modelNode, "stop")),
+            Temperature = GetDouble(modelNode, "temperature"),
+            TopP = GetDouble(modelNode, "topP", "top_p"),
         };
         roles[role] = name;
     }
@@ -517,6 +544,7 @@ public sealed class AppConfig : IAppConfig
             GpuLayers = GetHardwareSetting(global, "gpuLayers", "gpu_layers", "numGpu", "num_gpu"),
             CpuThreads = GetHardwareSetting(global, "cpuThreads", "cpu_threads", "numThread", "num_thread"),
             DraftModel = GetString(global, "draftModel", "draft_model") ?? "",
+            ConfigurationId = GetInt(global, "configurationId", "configuration_id") ?? 1,
             MainModel = GetString(global, "mainModel", "main_model") ?? "",
             EmbedModel = GetString(global, "embedModel", "embed_model") ?? "",
             OllamaPort = GetInt(global, "ollamaPort", "ollama_port") ?? 11434,
@@ -707,6 +735,12 @@ public sealed class GlobalConfig : IGlobalConfig
     public HardwareSetting GpuLayers { get; set; } = HardwareSetting.Unspecified;
     public HardwareSetting CpuThreads { get; set; } = HardwareSetting.Unspecified;
     public string DraftModel { get; set; } = "";
+
+    /// <summary>
+    ///     Which <c>models.configurations</c> entry the structured schema resolves to (see
+    ///     <see cref="AppConfig" />). Default 1, matching the stock config.
+    /// </summary>
+    public int ConfigurationId { get; set; } = 1;
     public string MainModel { get; set; } = "";
 
     /// <summary>
@@ -942,6 +976,12 @@ public sealed class ModelSourceConfig : IModelSourceConfig
     ///     Only used when auto-generating from <see cref="Family" />, <see cref="Variant" />, and <see cref="Size" />.
     /// </summary>
     public string? ChatSuffix { get; init; }
+
+    /// <inheritdoc />
+    public double? Temperature { get; init; }
+
+    /// <inheritdoc />
+    public double? TopP { get; init; }
 }
 
 public readonly record struct HardwareSetting(bool IsSpecified, bool Auto, int? Value)

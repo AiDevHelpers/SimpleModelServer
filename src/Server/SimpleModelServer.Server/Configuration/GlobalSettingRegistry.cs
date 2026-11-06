@@ -74,6 +74,11 @@ internal static class GlobalSettingRegistry
 
         new("cpuThreads", "cpu_threads", RequiresRestart: false,
             ValidateHardwareSetting, (c, v) => c.CpuThreads = ParseHardwareSetting(v)),
+
+        // Switching profile rebuilds which models each role resolves to, so it takes effect on restart.
+        // Whether the id names a real profile is checked by the admin handler, which has the config.
+        new("configurationId", "configuration_id", RequiresRestart: true,
+            ValidatePositiveInt, (c, v) => { if (TryParseInt(v, out int id)) c.ConfigurationId = id; }),
     ];
 
     /// <summary>
@@ -114,6 +119,18 @@ internal static class GlobalSettingRegistry
         }
 
         return ValidationResult.Invalid($"Port must be a number between 1 and 65535, got: {value}");
+    }
+
+    private static ValidationResult ValidatePositiveInt(object? value)
+    {
+        if (value is int intVal && intVal > 0)
+        {
+            return ValidationResult.Valid();
+        }
+
+        return int.TryParse(value?.ToString(), out int parsed) && parsed > 0
+            ? ValidationResult.Valid()
+            : ValidationResult.Invalid($"Expected a positive integer, got: {value}");
     }
 
     private static ValidationResult ValidateNonEmptyString(object? value)

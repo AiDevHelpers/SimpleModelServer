@@ -90,6 +90,9 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+    /// <summary>Profile ids in the same order as the picker's items.</summary>
+    private readonly List<int> _profileIds = [];
+
     private async void OnToggleConfigClicked(object sender, EventArgs e)
     {
         if (ConfigPanel.IsVisible)
@@ -154,11 +157,83 @@ public partial class SettingsPage : ContentPage
                 {
                     RouterPortEntry.Text = port.ToString();
                 }
+
+                PopulateProfiles(configData, globalObj);
             }
         }
         catch (Exception ex)
         {
             ConfigStatusLabel.Text = $"Error loading config: {ex.Message}";
+            ConfigStatusLabel.TextColor = Colors.Red;
+            ConfigStatusLabel.IsVisible = true;
+        }
+    }
+
+    /// <summary>
+    ///     Fills the profile picker from the server's <c>profiles</c> list and selects the active
+    ///     <c>configurationId</c>. With no profiles (flat models schema) the picker is disabled.
+    /// </summary>
+    private void PopulateProfiles(JsonObject configData, JsonObject globalObj)
+    {
+        _profileIds.Clear();
+        List<string> labels = [];
+
+        if (configData["profiles"] is JsonArray profiles)
+        {
+            foreach (JsonObject profile in profiles.OfType<JsonObject>())
+            {
+                int id = profile["id"]?.GetValue<int>() ?? 0;
+                string nickname = profile["nickname"]?.GetValue<string>() ?? $"Profile {id}";
+                bool isDefault = profile["isDefault"]?.GetValue<bool>() ?? false;
+
+                _profileIds.Add(id);
+                labels.Add(isDefault ? $"{nickname} (default)" : nickname);
+            }
+        }
+
+        ProfilePicker.ItemsSource = labels;
+        ProfilePicker.IsEnabled = _profileIds.Count > 0;
+        ProfileHintLabel.Text = _profileIds.Count > 0
+            ? "Takes effect after the server restarts."
+            : "This server uses a single model set; there are no profiles to switch between.";
+
+        int active = globalObj["configurationId"]?.GetValue<int>() ?? -1;
+        ProfilePicker.SelectedIndex = _profileIds.IndexOf(active);
+    }
+
+    private async void OnSaveProfileClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            int index = ProfilePicker.SelectedIndex;
+            if (index < 0 || index >= _profileIds.Count)
+            {
+                ConfigStatusLabel.Text = "Pick a model profile first";
+                ConfigStatusLabel.TextColor = Colors.Red;
+                ConfigStatusLabel.IsVisible = true;
+                return;
+            }
+
+            ConfigStatusLabel.Text = "Saving...";
+            ConfigStatusLabel.TextColor = Colors.Blue;
+            ConfigStatusLabel.IsVisible = true;
+
+            var result = await _viewModel.UpdateConfigurationIdAsync(_profileIds[index]);
+
+            if (result.Success)
+            {
+                ConfigStatusLabel.Text = $"Saved! Restart the server to switch profiles (requires restart: {result.RequiresRestart})";
+                ConfigStatusLabel.TextColor = Colors.Green;
+            }
+            else
+            {
+                ConfigStatusLabel.Text = $"Failed to save: {result.ErrorMessage}";
+                ConfigStatusLabel.TextColor = Colors.Red;
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfigStatusLabel.Text = $"Error: {ex.Message}";
             ConfigStatusLabel.TextColor = Colors.Red;
             ConfigStatusLabel.IsVisible = true;
         }
@@ -385,6 +460,46 @@ public class SettingsPageViewModel : INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"Error getting server config: {ex}");
             return null;
+        }
+    }
+
+    public async Task<UpdateConfigResult> UpdateConfigurationIdAsync(int configurationId)
+    {
+        try
+        {
+            var resolved = await _serverLocator.ResolveAsync();
+            using var httpClient = AuthenticatedHttpClientFactory.Create(resolved);
+
+            var updateUri = new Uri(resolved.BaseUrl).AppendPath("/admin/config");
+            var updateBody = new { setting = "global.configurationId", value = configurationId };
+
+            using var response = await httpClient.PostAsJsonAsync(updateUri, updateBody);
+            var responseText = await response.Content.ReadAsStringAsync();
+            var body = JsonNode.Parse(responseText) as JsonObject;
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new UpdateConfigResult
+                {
+                    Success = true,
+                    RequiresRestart = body?["requiresRestart"]?.GetValue<bool>() ?? true,
+                    Message = body?["message"]?.GetValue<string>() ?? "Update successful"
+                };
+            }
+
+            return new UpdateConfigResult
+            {
+                Success = false,
+                ErrorMessage = body?["message"]?.GetValue<string>() ?? "Unknown error"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new UpdateConfigResult
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
         }
     }
 

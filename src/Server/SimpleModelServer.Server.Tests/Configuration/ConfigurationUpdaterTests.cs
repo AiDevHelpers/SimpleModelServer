@@ -76,6 +76,41 @@ public class ConfigurationUpdaterTests
     }
 
     [Fact]
+    public void UpdateGlobalSetting_ConfigurationId_AppliesAndRequiresRestart()
+    {
+        // Arrange
+        var config = new GlobalConfig();
+
+        // Act
+        var result = _updater.UpdateGlobalSetting(config, "configurationId", 2);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.True(result.RequiresRestart);
+        Assert.Equal(2, config.ConfigurationId);
+    }
+
+    [Fact]
+    public void UpdateGlobalSetting_ConfigurationId_SnakeCaseAliasIsAccepted()
+    {
+        var config = new GlobalConfig();
+
+        var result = _updater.UpdateGlobalSetting(config, "configuration_id", 3);
+
+        Assert.True(result.Success);
+        Assert.Equal(3, config.ConfigurationId);
+    }
+
+    [Fact]
+    public void Validate_ConfigurationId_RejectsNonPositive()
+    {
+        // Validation runs in the admin handler before UpdateGlobalSetting, so check it there.
+        Assert.False(_configManager.Validate("global.configurationId", 0).IsValid);
+        Assert.False(_configManager.Validate("global.configurationId", "abc").IsValid);
+        Assert.True(_configManager.Validate("global.configurationId", 2).IsValid);
+    }
+
+    [Fact]
     public void UpdateGlobalSetting_RouterPort_RequiresRestart()
     {
         // Arrange

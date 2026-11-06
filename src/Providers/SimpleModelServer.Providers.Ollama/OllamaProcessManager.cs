@@ -169,6 +169,16 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
                 parameters["stop"] = arr;
             }
 
+            if (source.Temperature is not null)
+            {
+                parameters["temperature"] = source.Temperature.Value;
+            }
+
+            if (source.TopP is not null)
+            {
+                parameters["top_p"] = source.TopP.Value;
+            }
+
             if (parameters.Count > 0)
             {
                 payload["parameters"] = parameters;

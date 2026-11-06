@@ -12,6 +12,9 @@ public interface IAppConfig
     IReadOnlyDictionary<string, IModelSourceConfig> ModelSources { get; }
     IReadOnlyDictionary<string, string> ModelRoles { get; }
     IReadOnlyDictionary<string, IMcpUpstreamConfig> McpServers { get; }
+
+    /// <summary>Switchable model configurations from <c>models.configurations</c>, empty for the flat schema.</summary>
+    IReadOnlyList<ModelProfile> ModelProfiles { get; }
     string DefaultAgentType { get; }
 
     string ResolveEmbedModelName();

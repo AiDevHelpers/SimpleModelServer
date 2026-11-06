@@ -15,4 +15,10 @@ public interface IModelSourceConfig
     string? Variant { get; }
     string? Size { get; }
     string? ChatSuffix { get; }
+
+    /// <summary>Sampling temperature baked into the derived model. Null leaves Ollama's default.</summary>
+    double? Temperature { get; }
+
+    /// <summary>Nucleus sampling top-p baked into the derived model. Null leaves Ollama's default.</summary>
+    double? TopP { get; }
 }
