@@ -4,14 +4,17 @@
   </Folder>
   <Folder Name="/Common/">
     <Project Path="src/Common/SimpleModelServer.Common/SimpleModelServer.Common.csproj" />
+    <Project Path="src/Common/SimpleModelServer.Common.Tests/SimpleModelServer.Common.Tests.csproj" />
     <Project Path="src/Common/SimpleModelServer.Discovery/SimpleModelServer.Discovery.csproj" />
     <Project Path="src/Common/SimpleModelServer.Discovery.Tests/SimpleModelServer.Discovery.Tests.csproj" />
   </Folder>
   <Folder Name="/Config/">
     <Project Path="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
+    <Project Path="src/Config/SimpleModelServer.Config.Tests/SimpleModelServer.Config.Tests.csproj" />
   </Folder>
   <Folder Name="/Contracts/">
     <Project Path="src/Contracts/SimpleModelServer.Contracts/SimpleModelServer.Contracts.csproj" Id="547a384f-2ead-4db5-8109-19c28b607087" />
+    <Project Path="src/Contracts/SimpleModelServer.Contracts.Tests/SimpleModelServer.Contracts.Tests.csproj" />
   </Folder>
   <Folder Name="/Evals/">
     <Project Path="src/Evals/SimpleModelServer.Evals.Tests/SimpleModelServer.Evals.Tests.csproj" />
@@ -33,6 +36,7 @@
     <Project Path="src/Providers/SimpleModelServer.Providers.Common/SimpleModelServer.Providers.Common.csproj" Id="fe46816c-fef6-45e2-a60b-d2f6f3f23d4f" />
     <Project Path="src/Providers/SimpleModelServer.Providers.LMStudio/SimpleModelServer.Providers.LMStudio.csproj" Id="ff84e72d-e274-449c-bddb-4edb9cdf2aed" />
     <Project Path="src/Providers/SimpleModelServer.Providers.Ollama/SimpleModelServer.Providers.Ollama.csproj" Id="f86a5b20-a0c4-4845-82fc-fce6942c66d7" />
+    <Project Path="src/Providers/SimpleModelServer.Providers.Tests/SimpleModelServer.Providers.Tests.csproj" />
   </Folder>
   <Folder Name="/Server/">
     <Project Path="src/Server/SimpleModelServer.Server.Tests/SimpleModelServer.Server.Tests.csproj" />
