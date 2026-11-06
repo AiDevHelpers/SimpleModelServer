@@ -122,6 +122,9 @@ if (-not $SkipVsExtension) {
     $vsix = Get-ChildItem (Join-Path $repoRoot "src\Extensions\SimpleModelServer.Extensions.VS\bin\$Configuration") `
         -Recurse -Filter *.vsix -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $vsix) { throw "VS extension build produced no .vsix under bin\$Configuration." }
+    # Also published next to the installer, so the release carries the standalone extension.
+    $vsOut = Join-Path $distDir "SimpleModelServer.Extensions.VS-$displayVersion.vsix"
+    Copy-Item $vsix.FullName $vsOut -Force
     $defines += @("/DHasVsExtension", "/DVsExtensionVsix=$($vsix.FullName)")
 }
 
@@ -135,6 +138,7 @@ if (-not $SkipVsCodeExtension) {
     }
     $vscodeVsix = Join-Path $repoRoot "build\staging\SimpleModelServer.Extensions.VSCode\simplemodelserver-vscode.vsix"
     if (-not (Test-Path $vscodeVsix)) { throw "VS Code packaging produced no .vsix at $vscodeVsix." }
+    Copy-Item $vscodeVsix (Join-Path $distDir "SimpleModelServer.Extensions.VSCode-$displayVersion.vsix") -Force
     $defines += @("/DHasVsCodeExtension", "/DVsCodeExtensionVsix=$vscodeVsix")
 }
 
@@ -146,11 +150,17 @@ Invoke-Native $iscc (@("/Q") + $defines + @($issScript))
 $installer = Join-Path $distDir "SimpleModelServer-Setup-$displayVersion.exe"
 if (-not (Test-Path $installer)) { throw "Expected installer not found: $installer" }
 
-$hash = (Get-FileHash -Path $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-$checksumPath = "$installer.sha256"
-"$hash  $(Split-Path -Leaf $installer)" | Set-Content -Path $checksumPath -Encoding ascii
+# One SHA256SUMS.txt covers every release asset for this version (installer and any .vsix).
+$assets = Get-ChildItem $distDir -File |
+    Where-Object { $_.Name -like "*-$displayVersion.*" -and $_.Extension -in '.exe', '.vsix' } |
+    Sort-Object Name
+$sums = foreach ($asset in $assets) {
+    "$((Get-FileHash -Path $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($asset.Name)"
+}
+$sumsPath = Join-Path $distDir "SHA256SUMS.txt"
+$sums | Set-Content -Path $sumsPath -Encoding ascii
 
 Write-Host ""
-Write-Host "Installer : $installer" -ForegroundColor Green
-Write-Host "SHA-256   : $hash" -ForegroundColor Green
-Write-Host "Checksum  : $checksumPath" -ForegroundColor Green
+Write-Host "Assets:" -ForegroundColor Green
+$sums | ForEach-Object { Write-Host "  $_" }
+Write-Host "Checksums: $sumsPath" -ForegroundColor Green
