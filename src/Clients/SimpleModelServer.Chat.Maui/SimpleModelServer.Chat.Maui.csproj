@@ -70,4 +70,8 @@
 		<ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.Common\SimpleModelServer.Providers.Common.csproj" />
 	</ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+  </ItemGroup>
+
 </Project>
