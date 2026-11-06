@@ -1,0 +1,153 @@
+name: CI and Release
+
+# Every push and pull request: build the solution, run the tests, build the installer.
+# A v* tag additionally publishes a GitHub release with the installer and its SHA-256 checksum.
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Nerdbank.GitVersioning needs full history to compute the version.
+          fetch-depth: 0
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload (chat app)
+        run: dotnet workload install maui-windows
+
+      - name: Restore
+        run: dotnet restore SimpleModelServer.slnx
+
+      - name: Build
+        run: dotnet build SimpleModelServer.slnx -c Release --no-restore
+
+      - name: Test
+        run: >-
+          dotnet test SimpleModelServer.slnx -c Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+  installer:
+    name: Build installer
+    needs: build-and-test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload (chat app)
+        run: dotnet workload install maui-windows
+
+      - name: Install Nerdbank.GitVersioning
+        run: dotnet tool install --global nbgv
+
+      - name: Set up Node.js (VS Code extension)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --yes --no-progress --limit-output
+          }
+          if (-not (Test-Path $iscc) -and -not (Test-Path (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"))) {
+            throw "Inno Setup 6 was not found after installation."
+          }
+
+      - name: Build installer
+        shell: pwsh
+        # A tag supplies the version (v1.2.3 -> 1.2.3). Other builds use nbgv's version.
+        run: |
+          $buildArgs = @()
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $buildArgs += @('-Version', $env:GITHUB_REF_NAME)
+          }
+          ./installer/build-installer.ps1 @buildArgs
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: |
+            build/dist/installer/*.exe
+            build/dist/installer/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish release
+    needs: installer
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: installer
+          path: dist/
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          prerelease_flag=""
+          case "$TAG" in
+            *-*) prerelease_flag="--prerelease" ;;
+          esac
+          gh release create "$TAG" \
+            dist/*.exe dist/*.sha256 \
+            --title "Simple Model Server $TAG" \
+            --generate-notes \
+            $prerelease_flag
