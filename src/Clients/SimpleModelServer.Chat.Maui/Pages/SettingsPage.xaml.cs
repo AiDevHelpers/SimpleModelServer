@@ -36,7 +36,7 @@ public partial class SettingsPage : ContentPage
         ResolvedViaLabel.Text = _viewModel.ResolvedVia ?? "Unknown";
     }
 
-    private void OnConnectionModeChanged(object sender, EventArgs e)
+    private void OnConnectionModeChanged(object? sender, EventArgs e)
     {
         UpdateManualFieldsVisibility();
     }
@@ -48,7 +48,7 @@ public partial class SettingsPage : ContentPage
         ManualPortContainer.IsVisible = isManualMode;
     }
 
-    private async void OnTestConnectionClicked(object sender, EventArgs e)
+    private async void OnTestConnectionClicked(object? sender, EventArgs e)
     {
         try
         {
@@ -77,23 +77,23 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void OnSaveSettingsClicked(object sender, EventArgs e)
+    private async void OnSaveSettingsClicked(object? sender, EventArgs e)
     {
         try
         {
             await _viewModel.SaveSettingsAsync();
-            await DisplayAlert("Success", "Settings saved successfully", "OK");
+            await DisplayAlertAsync("Success", "Settings saved successfully", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to save settings: {ex.Message}", "OK");
+            await DisplayAlertAsync("Error", $"Failed to save settings: {ex.Message}", "OK");
         }
     }
 
     /// <summary>Profile ids in the same order as the picker's items.</summary>
     private readonly List<int> _profileIds = [];
 
-    private async void OnToggleConfigClicked(object sender, EventArgs e)
+    private async void OnToggleConfigClicked(object? sender, EventArgs e)
     {
         if (ConfigPanel.IsVisible)
         {
@@ -201,7 +201,7 @@ public partial class SettingsPage : ContentPage
         ProfilePicker.SelectedIndex = _profileIds.IndexOf(active);
     }
 
-    private async void OnSaveProfileClicked(object sender, EventArgs e)
+    private async void OnSaveProfileClicked(object? sender, EventArgs e)
     {
         try
         {
@@ -239,7 +239,7 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void OnSaveRouterPortClicked(object sender, EventArgs e)
+    private async void OnSaveRouterPortClicked(object? sender, EventArgs e)
     {
         try
         {

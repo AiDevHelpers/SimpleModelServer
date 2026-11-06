@@ -19,16 +19,17 @@
                                         HorizontalOptions="End"
                                         MaximumWidthRequest="80"
                                         Padding="0">
-                                <Frame CornerRadius="12"
+                                <Border StrokeShape="RoundRectangle 12"
+                                      Stroke="Transparent"
+                                      StrokeThickness="0"
                                       Padding="12"
                                       Margin="0"
-                                      BackgroundColor="#E3F2FD"
-                                      BorderColor="Transparent">
+                                      BackgroundColor="#E3F2FD">
                                     <Label Text="{Binding Text}"
                                           TextColor="Black"
                                           LineBreakMode="WordWrap"
                                           FontSize="14" />
-                                </Frame>
+                                </Border>
                                 <Label Text="{Binding TimestampDisplay}"
                                       TextColor="Gray"
                                       FontSize="12"
@@ -41,16 +42,17 @@
                                         HorizontalOptions="Start"
                                         MaximumWidthRequest="80"
                                         Padding="0">
-                                <Frame CornerRadius="12"
+                                <Border StrokeShape="RoundRectangle 12"
+                                      Stroke="Transparent"
+                                      StrokeThickness="0"
                                       Padding="12"
                                       Margin="0"
-                                      BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}"
-                                      BorderColor="Transparent">
+                                      BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}">
                                     <Label Text="{Binding Text}"
                                           TextColor="{AppThemeBinding Light=Black, Dark=White}"
                                           LineBreakMode="WordWrap"
                                           FontSize="14" />
-                                </Frame>
+                                </Border>
                                 <Label Text="{Binding TimestampDisplay}"
                                       TextColor="Gray"
                                       FontSize="12"

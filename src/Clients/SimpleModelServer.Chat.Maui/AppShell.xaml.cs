@@ -14,7 +14,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute("SettingsPage", typeof(Pages.SettingsPage));
 	}
 
-	private async void OnRestartServerClicked(object sender, EventArgs e)
+	private async void OnRestartServerClicked(object? sender, EventArgs e)
 	{
 		try
 		{
@@ -26,20 +26,20 @@ public partial class AppShell : Shell
 
 			if (response.IsSuccessStatusCode)
 			{
-				await Shell.Current.DisplayAlert("Server Restart", "Restart command sent successfully", "OK");
+				await Shell.Current.DisplayAlertAsync("Server Restart", "Restart command sent successfully", "OK");
 			}
 			else
 			{
-				await Shell.Current.DisplayAlert("Server Restart", $"Failed to restart server (status: {response.StatusCode})", "OK");
+				await Shell.Current.DisplayAlertAsync("Server Restart", $"Failed to restart server (status: {response.StatusCode})", "OK");
 			}
 		}
 		catch (Exception ex)
 		{
-			await Shell.Current.DisplayAlert("Error", $"Failed to restart server: {ex.Message}", "OK");
+			await Shell.Current.DisplayAlertAsync("Error", $"Failed to restart server: {ex.Message}", "OK");
 		}
 	}
 
-	private async void OnSettingsClicked(object sender, EventArgs e)
+	private async void OnSettingsClicked(object? sender, EventArgs e)
 	{
 		await Shell.Current.GoToAsync("SettingsPage");
 	}
