@@ -148,7 +148,11 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
             return;
         }
 
-        if (config.ModelSources.TryGetValue(model, out IModelSourceConfig? source) && !string.IsNullOrWhiteSpace(source.Base))
+        // A base equal to the model's own name is a registry model (e.g. nomic-embed-text), not a
+        // derived one: there's nothing to create it from, so it falls through to a plain pull.
+        if (config.ModelSources.TryGetValue(model, out IModelSourceConfig? source)
+            && !string.IsNullOrWhiteSpace(source.Base)
+            && !string.Equals(source.Base, model, StringComparison.OrdinalIgnoreCase))
         {
             LogCreatingModel(logger, model, source.Base);
             JsonObject payload = new() { ["name"] = model, ["from"] = source.Base };
