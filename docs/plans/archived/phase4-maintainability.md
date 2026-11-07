@@ -1,6 +1,6 @@
 # Plan: Phase 4, maintainability
 
-Status: in progress.
+Status: done. Moved to docs/plans/archived/ after U6.
 Base: `quality-phase3-warnings` (PR #4 into `dev`). Phase 3 is required: warnings are errors in Release.
 
 Decisions (from the user):
@@ -31,12 +31,13 @@ Units (each: build clean in Release with 0 warnings, tests pass, update status, 
   - Original spec: split into partial files: global, models, agents, MCP servers. `AppConfig` must become `partial`. Keep the model-parsing constants (`DefaultEmbedModelName`, default sizes, `DefaultStopTokens`) with the model-parsing code. `GlobalConfig`, `AgentConfig`, `McpUpstreamConfig`, and `ModelSourceConfig` are separate classes and move as whole files.
 - [x] U5. Done. `ModelHealthMonitor` has Recovery and Warmup parts; state, timeouts, and logging stay in the main file. `AdminEndpointHandler` has Config and McpServers parts; reload and the logging stay in the main file. Pure move, verified.
   - Original spec: split into partial files by concern. `ModelHealthMonitor` shared state (`healLock`, `modelLastActive`, `warmingUpModels`, `modelWarmupFailures`, `recoveryInProgress`, `lastFault*`, `consecutiveUnhealthyCycles`) and the `static readonly` timeouts stay in the main file, so the lock protects state in one place. Only one part carries the primary-constructor parameters.
-- [ ] U6. Pragma suppressions: review all 7 `#pragma warning disable` lines, each with a recorded disposition (fix or keep with justification):
-  - `Discovery/ResolvedServerConnection.cs:12` CA1056
-  - `UI/Controls/SettingsPanel.xaml.cs:13` and `:30` CA1063 (fix the dispose pattern if wrong)
-  - `Providers.Ollama/OllamaGenerationBackend.cs:37` CA2000
-  - `Providers.LMStudio/LMStudioGenerationBackend.cs:28` CA2000
-  - `Server/SimpleModelPairApp.cs:211` and `:453` CA1873
+- [x] U6. Pragma review. Done. Dispositions:
+  - `Discovery/ResolvedServerConnection.cs` CA1056: keep. The string is kept for serialization, as the comment says.
+  - `UI/Controls/SettingsPanel.xaml.cs` CA1063 ×2: fixed. The class is now `sealed` (nothing subclasses it), and both pragmas are removed.
+  - `Providers.Ollama/OllamaGenerationBackend.cs` CA2000: keep. False positive: the reader's ownership moves into the handle, as the comment says.
+  - `Providers.LMStudio/LMStudioGenerationBackend.cs` CA2000: keep. Same reason.
+  - `Server/SimpleModelPairApp.cs` CA1873 ×2: keep. Both calls are inside an `IsEnabled` guard, as the comments say.
+  - Result: 5 disable/restore pairs remain (was 7 disable pairs). Each has a justification comment.
 
 Done when: a clean Release build of the solution has 0 warnings, tests pass, the TODO is gone, no file in U3-U5 is over ~600 lines without a reason, and the pragma review is recorded.
 
