@@ -121,7 +121,7 @@ internal sealed partial class AdminEndpointHandler(
 					temperature = kvp.Value.Temperature
 				}),
 			modelCount = config.ModelSources.Count,
-			profiles = config.ModelProfiles.Select(p => new { id = p.Id, nickname = p.Nickname, isDefault = p.IsDefault }),
+			profiles = config.ModelProfiles.Select(p => new { id = p.Id, nickname = p.Nickname, isDefault = p.IsDefault, mainModel = p.MainModel }),
 			note = "Localhost is always trusted. Remote requests require 'Authorization: Bearer <key>' header."
 		};
 

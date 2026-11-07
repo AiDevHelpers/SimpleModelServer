@@ -67,13 +67,23 @@ public sealed class AppConfig : IAppConfig
 			return [];
 		}
 
+		// Each profile's main model is the "main" role that ParseStructuredModels resolves for its id.
+		// Profiles with no main role get a null MainModel.
 		return configurations
 			.OfType<JsonObject>()
-			.Select(c => new ModelProfile(
-				GetInt(c, "id") ?? 0,
-				GetString(c, "nickname") ?? "",
-				GetBool(c, "isDefault", "is_default") == true))
-			.Where(p => p.Id > 0)
+			.Where(c => (GetInt(c, "id") ?? 0) > 0)
+			.Select(c =>
+			{
+				int id = GetInt(c, "id") ?? 0;
+				string? mainModel = ParseStructuredModels(configurations, id).roles.TryGetValue("main", out string? name)
+					? name
+					: null;
+				return new ModelProfile(
+					id,
+					GetString(c, "nickname") ?? "",
+					GetBool(c, "isDefault", "is_default") == true,
+					mainModel);
+			})
 			.ToList();
 	}
 
