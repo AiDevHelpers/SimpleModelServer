@@ -1,12 +1,13 @@
 name: CI and Release
 
-# Every push and pull request: build the solution, run the tests, build the installer.
-# A v* tag additionally publishes a GitHub release with the installer and its SHA-256 checksum.
+# Tests run on every push, pull request, and manual run.
+# Pushes to dev (prerelease) and main (stable) also build the installer and publish a release.
+# Pull requests and manual runs never publish. The version comes from version.json through nbgv,
+# and CI creates the tag. See the release-versioning rules in the global instructions.
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [ dev, main ]
   pull_request:
   workflow_dispatch:
 
@@ -15,7 +16,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs. Never cancel a run on a branch push, since it may be publishing.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DOTNET_NOLOGO: true
@@ -78,6 +80,8 @@ jobs:
   installer:
     name: Build installer
     needs: build-and-test
+    # Branch pushes only: PRs and manual runs never build release assets.
+    if: github.event_name == 'push'
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -115,13 +119,8 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        # A tag supplies the version (v1.2.3 -> 1.2.3). Other builds use nbgv's version.
-        run: |
-          $buildArgs = @()
-          if ($env:GITHUB_REF -like 'refs/tags/v*') {
-            $buildArgs += @('-Version', $env:GITHUB_REF_NAME)
-          }
-          ./installer/build-installer.ps1 @buildArgs
+        # No -Version: the version comes from version.json through nbgv, the single version source.
+        run: ./installer/build-installer.ps1
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
@@ -137,7 +136,7 @@ jobs:
   release:
     name: Publish release
     needs: installer
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -145,6 +144,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET 10 (for nbgv)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Nerdbank.GitVersioning
+        run: |
+          dotnet tool install --global nbgv
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Resolve version and tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(nbgv get-version -v NuGetPackageVersion)"
+          tag="v${version}"
+          if [ "$GITHUB_REF_NAME" = "main" ]; then prerelease=false; else prerelease=true; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Release $tag (prerelease: $prerelease) from $GITHUB_SHA"
+
+      - name: Create tag if missing
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Tags are created by CI from version.json. Never create them by hand.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; leaving it in place."
+          else
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -153,21 +191,21 @@ jobs:
           path: dist/
 
       - name: Create or update GitHub release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.tag }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
-          # Re-running the workflow for the same tag must not fail: update the existing
-          # release's assets instead of creating a second one.
+          # Re-running for the same tag updates the existing release's assets.
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
             prerelease_flag=""
-            case "$TAG" in
-              *-*) prerelease_flag="--prerelease" ;;
-            esac
+            if [ "$PRERELEASE" = "true" ]; then prerelease_flag="--prerelease"; fi
             gh release create "$TAG" dist/* \
+              --target "$GITHUB_SHA" \
               --title "Simple Model Server $TAG" \
               --generate-notes \
               $prerelease_flag

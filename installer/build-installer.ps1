@@ -64,7 +64,8 @@ function Resolve-DisplayVersion {
     if (-not (Get-Command nbgv -ErrorAction SilentlyContinue)) {
         throw "No -Version given and nbgv is not installed. Run: dotnet tool install --global nbgv, or pass -Version."
     }
-    $nbgvOutput = & nbgv get-version -v SimpleVersion 2>&1
+    # NuGetPackageVersion matches the release tag CI creates (v<NuGetPackageVersion>).
+    $nbgvOutput = & nbgv get-version -v NuGetPackageVersion 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "nbgv get-version failed (exit $LASTEXITCODE): $nbgvOutput"
     }
