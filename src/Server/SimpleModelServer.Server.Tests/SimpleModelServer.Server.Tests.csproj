@@ -9,6 +9,7 @@
     <!-- Matches SimpleModelServer.Server.csproj: keeps this project buildable/analyzable the same way
          on a non-Windows dev machine even though SimpleModelServer.Server is Windows-only by design. -->
     <SupportedOSPlatform>windows</SupportedOSPlatform>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimpleModelServer.Server\SimpleModelServer.Server.csproj" />
