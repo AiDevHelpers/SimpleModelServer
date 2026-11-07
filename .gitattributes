@@ -1,0 +1,2 @@
+# Git stores LF. Checkouts on Windows also get LF, so line endings never differ between machines.
+* text=auto eol=lf
