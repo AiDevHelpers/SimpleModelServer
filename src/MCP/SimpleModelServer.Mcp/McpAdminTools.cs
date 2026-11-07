@@ -24,110 +24,110 @@ namespace SimpleModelServer.Mcp;
 [McpServerToolType]
 public sealed class McpAdminTools(IAppConfig config, IMcpUpstreamRegistry registry)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+	private static readonly JsonSerializerOptions JsonOptions = new()
+	{
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+	};
 
-    [McpServerTool(Name = "list_mcp_servers"), Description("Lists every MCP upstream server configured on this gateway, with its transport, path, and live connection status.")]
-    public string ListMcpServers()
-    {
-        IReadOnlyDictionary<string, McpUpstreamStatus> status = registry.GetStatus();
+	[McpServerTool(Name = "list_mcp_servers"), Description("Lists every MCP upstream server configured on this gateway, with its transport, path, and live connection status.")]
+	public string ListMcpServers()
+	{
+		IReadOnlyDictionary<string, McpUpstreamStatus> status = registry.GetStatus();
 
-        var mcpServers = config.McpServers.ToDictionary(
-            kvp => kvp.Key,
-            kvp =>
-            {
-                status.TryGetValue(kvp.Key, out McpUpstreamStatus s);
-                return new McpServerListEntry(kvp.Value.TransportType.ToString(), kvp.Value.Path, kvp.Value.Args, s.Connected, s.ToolCount);
-            });
+		var mcpServers = config.McpServers.ToDictionary(
+			kvp => kvp.Key,
+			kvp =>
+			{
+				status.TryGetValue(kvp.Key, out McpUpstreamStatus s);
+				return new McpServerListEntry(kvp.Value.TransportType.ToString(), kvp.Value.Path, kvp.Value.Args, s.Connected, s.ToolCount);
+			});
 
-        return JsonSerializer.Serialize(new { mcpServers }, JsonOptions);
-    }
+		return JsonSerializer.Serialize(new { mcpServers }, JsonOptions);
+	}
 
-    [McpServerTool(Name = "add_mcp_server"), Description("Adds a new MCP upstream server, or replaces an existing one with the same name. transportType defaults to \"Http\" when omitted. HTTP upstreams connect immediately — no restart required. name cannot contain '.' (tools are namespaced as '<name>.<toolName>').")]
-    public async Task<string> AddMcpServerAsync(
-        [Description("Unique upstream name, no '.' characters.")] string name,
-        [Description("The upstream's HTTP endpoint URL, or executable file path for a stdio upstream.")] string path,
-        [Description("How the gateway connects to this upstream: \"Http\" (default) or \"Stdio\".")] string? transportType = null,
-        [Description("Optional command-line arguments for a stdio upstream.")] string[]? args = null)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Failure("Missing or empty 'name'.");
-        }
+	[McpServerTool(Name = "add_mcp_server"), Description("Adds a new MCP upstream server, or replaces an existing one with the same name. transportType defaults to \"Http\" when omitted. HTTP upstreams connect immediately — no restart required. name cannot contain '.' (tools are namespaced as '<name>.<toolName>').")]
+	public async Task<string> AddMcpServerAsync(
+		[Description("Unique upstream name, no '.' characters.")] string name,
+		[Description("The upstream's HTTP endpoint URL, or executable file path for a stdio upstream.")] string path,
+		[Description("How the gateway connects to this upstream: \"Http\" (default) or \"Stdio\".")] string? transportType = null,
+		[Description("Optional command-line arguments for a stdio upstream.")] string[]? args = null)
+	{
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			return Failure("Missing or empty 'name'.");
+		}
 
-        if (name.Contains('.', StringComparison.Ordinal))
-        {
-            return Failure("'name' cannot contain '.' — the gateway namespaces tools as '<name>.<toolName>'.");
-        }
+		if (name.Contains('.', StringComparison.Ordinal))
+		{
+			return Failure("'name' cannot contain '.' — the gateway namespaces tools as '<name>.<toolName>'.");
+		}
 
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return Failure("Missing or empty 'path'.");
-        }
+		if (string.IsNullOrWhiteSpace(path))
+		{
+			return Failure("Missing or empty 'path'.");
+		}
 
-        if (!TryParseTransportType(transportType, out McpTransportType parsedTransportType))
-        {
-            return Failure($"'transportType' must be one of: {string.Join(", ", Enum.GetNames<McpTransportType>())}");
-        }
+		if (!TryParseTransportType(transportType, out McpTransportType parsedTransportType))
+		{
+			return Failure($"'transportType' must be one of: {string.Join(", ", Enum.GetNames<McpTransportType>())}");
+		}
 
-        IMcpUpstreamConfig serverConfig = new McpUpstreamConfig
-        {
-            TransportType = parsedTransportType,
-            Path = path,
-            Args = args ?? []
-        };
+		IMcpUpstreamConfig serverConfig = new McpUpstreamConfig
+		{
+			TransportType = parsedTransportType,
+			Path = path,
+			Args = args ?? []
+		};
 
-        config.AddOrUpdateMcpServer(name, serverConfig);
-        await registry.DisconnectAsync(name);
-        await registry.ConnectAsync(name, serverConfig);
+		config.AddOrUpdateMcpServer(name, serverConfig);
+		await registry.DisconnectAsync(name);
+		await registry.ConnectAsync(name, serverConfig);
 
-        return JsonSerializer.Serialize(new { success = true, name, message = $"MCP server '{name}' added." }, JsonOptions);
-    }
+		return JsonSerializer.Serialize(new { success = true, name, message = $"MCP server '{name}' added." }, JsonOptions);
+	}
 
-    [McpServerTool(Name = "remove_mcp_server"), Description("Removes a configured MCP upstream server and disconnects it from the live gateway.")]
-    public async Task<string> RemoveMcpServerAsync([Description("The upstream's configured name.")] string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return Failure("Missing or empty 'name'.");
-        }
+	[McpServerTool(Name = "remove_mcp_server"), Description("Removes a configured MCP upstream server and disconnects it from the live gateway.")]
+	public async Task<string> RemoveMcpServerAsync([Description("The upstream's configured name.")] string name)
+	{
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			return Failure("Missing or empty 'name'.");
+		}
 
-        if (!config.RemoveMcpServer(name))
-        {
-            return Failure($"No MCP server named '{name}' is configured.");
-        }
+		if (!config.RemoveMcpServer(name))
+		{
+			return Failure($"No MCP server named '{name}' is configured.");
+		}
 
-        await registry.DisconnectAsync(name);
+		await registry.DisconnectAsync(name);
 
-        return JsonSerializer.Serialize(new { success = true, name, message = $"MCP server '{name}' removed." }, JsonOptions);
-    }
+		return JsonSerializer.Serialize(new { success = true, name, message = $"MCP server '{name}' removed." }, JsonOptions);
+	}
 
-    private string Failure(string message)
-        => JsonSerializer.Serialize(new { success = false, error = message }, JsonOptions);
+	private string Failure(string message)
+		=> JsonSerializer.Serialize(new { success = false, error = message }, JsonOptions);
 
-    private static bool TryParseTransportType(string? value, out McpTransportType transportType)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            transportType = McpTransportType.Http;
-            return true;
-        }
+	private static bool TryParseTransportType(string? value, out McpTransportType transportType)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			transportType = McpTransportType.Http;
+			return true;
+		}
 
-        foreach (McpTransportType candidate in Enum.GetValues<McpTransportType>())
-        {
-            if (string.Equals(candidate.ToString(), value, StringComparison.OrdinalIgnoreCase))
-            {
-                transportType = candidate;
-                return true;
-            }
-        }
+		foreach (McpTransportType candidate in Enum.GetValues<McpTransportType>())
+		{
+			if (string.Equals(candidate.ToString(), value, StringComparison.OrdinalIgnoreCase))
+			{
+				transportType = candidate;
+				return true;
+			}
+		}
 
-        transportType = default;
-        return false;
-    }
+		transportType = default;
+		return false;
+	}
 
-    private sealed record McpServerListEntry(string TransportType, string Path, IReadOnlyList<string> Args, bool Connected, int ToolCount);
+	private sealed record McpServerListEntry(string TransportType, string Path, IReadOnlyList<string> Args, bool Connected, int ToolCount);
 }

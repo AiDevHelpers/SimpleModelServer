@@ -6,10 +6,10 @@ namespace SimpleModelServer.Evals.Tests;
 
 public class CodeBlockExtractorTests
 {
-    [Fact]
-    public void Extract_SingleFencedBlock_ReturnsBody()
-    {
-        string response = """
+	[Fact]
+	public void Extract_SingleFencedBlock_ReturnsBody()
+	{
+		string response = """
             Sure, here's the enum:
 
             ```csharp
@@ -23,17 +23,17 @@ public class CodeBlockExtractorTests
             Let me know if you need anything else.
             """;
 
-        string result = CodeBlockExtractor.Extract(response);
+		string result = CodeBlockExtractor.Extract(response);
 
-        Assert.Contains("public enum OrderStatus", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("Let me know", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("```", result, StringComparison.Ordinal);
-    }
+		Assert.Contains("public enum OrderStatus", result, StringComparison.Ordinal);
+		Assert.DoesNotContain("Let me know", result, StringComparison.Ordinal);
+		Assert.DoesNotContain("```", result, StringComparison.Ordinal);
+	}
 
-    [Fact]
-    public void Extract_MultipleFencedBlocks_ConcatenatesInOrder()
-    {
-        string response = """
+	[Fact]
+	public void Extract_MultipleFencedBlocks_ConcatenatesInOrder()
+	{
+		string response = """
             ```csharp
             public record A(int X);
             ```
@@ -45,17 +45,17 @@ public class CodeBlockExtractorTests
             ```
             """;
 
-        string result = CodeBlockExtractor.Extract(response);
+		string result = CodeBlockExtractor.Extract(response);
 
-        Assert.Contains("record A", result, StringComparison.Ordinal);
-        Assert.Contains("record B", result, StringComparison.Ordinal);
-        Assert.True(result.IndexOf("record A", StringComparison.Ordinal) < result.IndexOf("record B", StringComparison.Ordinal));
-    }
+		Assert.Contains("record A", result, StringComparison.Ordinal);
+		Assert.Contains("record B", result, StringComparison.Ordinal);
+		Assert.True(result.IndexOf("record A", StringComparison.Ordinal) < result.IndexOf("record B", StringComparison.Ordinal));
+	}
 
-    [Fact]
-    public void Extract_UnfencedResponse_FallsBackToBraceBalancedRegion()
-    {
-        string response = """
+	[Fact]
+	public void Extract_UnfencedResponse_FallsBackToBraceBalancedRegion()
+	{
+		string response = """
             Here you go, no fences this time:
             public class Foo
             {
@@ -64,35 +64,35 @@ public class CodeBlockExtractorTests
             Hope that helps.
             """;
 
-        string result = CodeBlockExtractor.Extract(response);
+		string result = CodeBlockExtractor.Extract(response);
 
-        Assert.Contains("public class Foo", result, StringComparison.Ordinal);
-        Assert.Contains("public int Bar", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("Hope that helps", result, StringComparison.Ordinal);
-    }
+		Assert.Contains("public class Foo", result, StringComparison.Ordinal);
+		Assert.Contains("public int Bar", result, StringComparison.Ordinal);
+		Assert.DoesNotContain("Hope that helps", result, StringComparison.Ordinal);
+	}
 
-    [Fact]
-    public void Extract_NoBraces_ReturnsEmpty()
-    {
-        string result = CodeBlockExtractor.Extract("I cannot help with that request.");
+	[Fact]
+	public void Extract_NoBraces_ReturnsEmpty()
+	{
+		string result = CodeBlockExtractor.Extract("I cannot help with that request.");
 
-        Assert.Equal("", result);
-    }
+		Assert.Equal("", result);
+	}
 
-    [Fact]
-    public void Extract_EmptyInput_ReturnsEmpty()
-    {
-        Assert.Equal("", CodeBlockExtractor.Extract(""));
-        Assert.Equal("", CodeBlockExtractor.Extract("   "));
-    }
+	[Fact]
+	public void Extract_EmptyInput_ReturnsEmpty()
+	{
+		Assert.Equal("", CodeBlockExtractor.Extract(""));
+		Assert.Equal("", CodeBlockExtractor.Extract("   "));
+	}
 
-    [Fact]
-    public void LargestBraceBalancedRegion_PicksLongestRegion_NotFirst()
-    {
-        string text = "{short}" + new string('x', 50) + "{ this region is much longer than the first one }";
+	[Fact]
+	public void LargestBraceBalancedRegion_PicksLongestRegion_NotFirst()
+	{
+		string text = "{short}" + new string('x', 50) + "{ this region is much longer than the first one }";
 
-        string result = CodeBlockExtractor.LargestBraceBalancedRegion(text);
+		string result = CodeBlockExtractor.LargestBraceBalancedRegion(text);
 
-        Assert.Contains("much longer", result, StringComparison.Ordinal);
-    }
+		Assert.Contains("much longer", result, StringComparison.Ordinal);
+	}
 }

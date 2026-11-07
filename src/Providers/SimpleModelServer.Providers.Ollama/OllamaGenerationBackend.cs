@@ -18,127 +18,127 @@ namespace SimpleModelServer.Providers.Ollama;
 /// </summary>
 public sealed class OllamaGenerationBackend(IOllamaProcessManager process, HttpClient http, IOllamaHelpers ollamaHelpers) : IGenerationBackend
 {
-    public async Task<IGenerationHandle> StartStreamAsync(string model, string prompt, GenerationOptions options, CancellationToken ct = default)
-    {
-        using JsonContent generateContent = JsonContent.Create(BuildRequestBody(model, prompt, options, stream: true));
-        using HttpRequestMessage request = new(HttpMethod.Post, $"http://127.0.0.1:{process.ServerPort}/api/generate")
-        {
-            Content = generateContent
-        };
+	public async Task<IGenerationHandle> StartStreamAsync(string model, string prompt, GenerationOptions options, CancellationToken ct = default)
+	{
+		using JsonContent generateContent = JsonContent.Create(BuildRequestBody(model, prompt, options, stream: true));
+		using HttpRequestMessage request = new(HttpMethod.Post, $"http://127.0.0.1:{process.ServerPort}/api/generate")
+		{
+			Content = generateContent
+		};
 
-        // HttpCompletionOption.ResponseHeadersRead is load-bearing here: PostAsync's default
-        // (ResponseContentRead) buffers the *entire* streamed response body before the call even
-        // returns, silently turning every "stream" request into a blocking one.
-        HttpResponseMessage response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        _ = response.EnsureSuccessStatusCode();
+		// HttpCompletionOption.ResponseHeadersRead is load-bearing here: PostAsync's default
+		// (ResponseContentRead) buffers the *entire* streamed response body before the call even
+		// returns, silently turning every "stream" request into a blocking one.
+		HttpResponseMessage response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+		_ = response.EnsureSuccessStatusCode();
 
-        // CA2000 false positive: ownership of `reader` transfers into the OllamaGenerationHandle
-        // constructed below — its DisposeAsync() disposes both `reader` and `response` together.
+		// CA2000 false positive: ownership of `reader` transfers into the OllamaGenerationHandle
+		// constructed below — its DisposeAsync() disposes both `reader` and `response` together.
 #pragma warning disable CA2000
-        StreamReader reader = new(await response.Content.ReadAsStreamAsync(ct));
+		StreamReader reader = new(await response.Content.ReadAsStreamAsync(ct));
 #pragma warning restore CA2000
-        return new OllamaGenerationHandleAdapter(new OllamaGenerationHandle(response, reader), ollamaHelpers);
-    }
+		return new OllamaGenerationHandleAdapter(new OllamaGenerationHandle(response, reader), ollamaHelpers);
+	}
 
-    public async Task<string> GenerateAsync(string model, string prompt, GenerationOptions options, CancellationToken ct = default)
-    {
-        using JsonContent content = JsonContent.Create(BuildRequestBody(model, prompt, options, stream: false));
-        using HttpResponseMessage response = await http.PostAsync(
-            new Uri($"http://127.0.0.1:{process.ServerPort}/api/generate"), content, ct);
+	public async Task<string> GenerateAsync(string model, string prompt, GenerationOptions options, CancellationToken ct = default)
+	{
+		using JsonContent content = JsonContent.Create(BuildRequestBody(model, prompt, options, stream: false));
+		using HttpResponseMessage response = await http.PostAsync(
+			new Uri($"http://127.0.0.1:{process.ServerPort}/api/generate"), content, ct);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            return "";
-        }
+		if (!response.IsSuccessStatusCode)
+		{
+			return "";
+		}
 
-        string body = await response.Content.ReadAsStringAsync(ct);
-        JsonNode? json = JsonNode.Parse(body);
-        return json?["response"]?.GetValue<string>()?.Trim() ?? "";
-    }
+		string body = await response.Content.ReadAsStringAsync(ct);
+		JsonNode? json = JsonNode.Parse(body);
+		return json?["response"]?.GetValue<string>()?.Trim() ?? "";
+	}
 
-    public async Task<JsonArray?> GenerateEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default)
-    {
-        JsonObject requestBody = new() { ["model"] = model, ["input"] = input?.DeepClone() };
-        using JsonContent content = JsonContent.Create(requestBody);
-        using HttpResponseMessage response = await http.PostAsync(
-            new Uri($"http://127.0.0.1:{process.ServerPort}/api/embed"), content, ct);
+	public async Task<JsonArray?> GenerateEmbeddingsAsync(string model, JsonNode? input, CancellationToken ct = default)
+	{
+		JsonObject requestBody = new() { ["model"] = model, ["input"] = input?.DeepClone() };
+		using JsonContent content = JsonContent.Create(requestBody);
+		using HttpResponseMessage response = await http.PostAsync(
+			new Uri($"http://127.0.0.1:{process.ServerPort}/api/embed"), content, ct);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+		if (!response.IsSuccessStatusCode)
+		{
+			return null;
+		}
 
-        JsonNode? json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
-        return json?["embeddings"]?.AsArray();
-    }
+		JsonNode? json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+		return json?["embeddings"]?.AsArray();
+	}
 
-    private static JsonObject BuildRequestBody(string model, string prompt, GenerationOptions options, bool stream)
-    {
-        JsonObject requestBody = new()
-        {
-            ["model"] = model,
-            ["prompt"] = prompt,
-            ["stream"] = stream
-        };
+	private static JsonObject BuildRequestBody(string model, string prompt, GenerationOptions options, bool stream)
+	{
+		JsonObject requestBody = new()
+		{
+			["model"] = model,
+			["prompt"] = prompt,
+			["stream"] = stream
+		};
 
-        if (!string.IsNullOrWhiteSpace(options.SystemPrompt))
-        {
-            requestBody["system"] = options.SystemPrompt;
-        }
+		if (!string.IsNullOrWhiteSpace(options.SystemPrompt))
+		{
+			requestBody["system"] = options.SystemPrompt;
+		}
 
-        if (options.KeepAlive is not null)
-        {
-            requestBody["keep_alive"] = options.KeepAlive;
-        }
+		if (options.KeepAlive is not null)
+		{
+			requestBody["keep_alive"] = options.KeepAlive;
+		}
 
-        JsonObject modelOptions = [];
+		JsonObject modelOptions = [];
 
-        if (options.ContextSize is not null)
-        {
-            modelOptions["num_ctx"] = options.ContextSize.Value;
-        }
+		if (options.ContextSize is not null)
+		{
+			modelOptions["num_ctx"] = options.ContextSize.Value;
+		}
 
-        if (options.Temperature is not null)
-        {
-            modelOptions["temperature"] = options.Temperature.Value;
-        }
+		if (options.Temperature is not null)
+		{
+			modelOptions["temperature"] = options.Temperature.Value;
+		}
 
-        if (options.NumGpu is not null)
-        {
-            modelOptions["num_gpu"] = options.NumGpu.Value;
-        }
+		if (options.NumGpu is not null)
+		{
+			modelOptions["num_gpu"] = options.NumGpu.Value;
+		}
 
-        if (options.NumThread is not null)
-        {
-            modelOptions["num_thread"] = options.NumThread.Value;
-        }
+		if (options.NumThread is not null)
+		{
+			modelOptions["num_thread"] = options.NumThread.Value;
+		}
 
-        if (options.ExtraSampling is not null)
-        {
-            foreach (KeyValuePair<string, JsonNode?> pair in options.ExtraSampling)
-            {
-                modelOptions[pair.Key] = pair.Value?.DeepClone();
-            }
-        }
+		if (options.ExtraSampling is not null)
+		{
+			foreach (KeyValuePair<string, JsonNode?> pair in options.ExtraSampling)
+			{
+				modelOptions[pair.Key] = pair.Value?.DeepClone();
+			}
+		}
 
-        if (options.Stop is { Count: > 0 })
-        {
-            modelOptions["stop"] = new JsonArray([.. options.Stop.Select(s => (JsonNode)s)]);
-        }
+		if (options.Stop is { Count: > 0 })
+		{
+			modelOptions["stop"] = new JsonArray([.. options.Stop.Select(s => (JsonNode)s)]);
+		}
 
-        if (modelOptions.Count > 0)
-        {
-            requestBody["options"] = modelOptions;
-        }
+		if (modelOptions.Count > 0)
+		{
+			requestBody["options"] = modelOptions;
+		}
 
-        return requestBody;
-    }
+		return requestBody;
+	}
 }
 
 /// <summary>Adapts the existing <see cref="OllamaGenerationHandle" /> to <see cref="IGenerationHandle" />.</summary>
 internal sealed class OllamaGenerationHandleAdapter(IOllamaGenerationHandle inner, IOllamaHelpers ollamaHelpers) : IGenerationHandle
 {
-    public Task<TokenResult> ReadTokenAsync(TimeSpan timeout) => ollamaHelpers.ReadTokenAsync(inner.Reader, timeout);
+	public Task<TokenResult> ReadTokenAsync(TimeSpan timeout) => ollamaHelpers.ReadTokenAsync(inner.Reader, timeout);
 
-    public ValueTask DisposeAsync() => inner.DisposeAsync();
+	public ValueTask DisposeAsync() => inner.DisposeAsync();
 }

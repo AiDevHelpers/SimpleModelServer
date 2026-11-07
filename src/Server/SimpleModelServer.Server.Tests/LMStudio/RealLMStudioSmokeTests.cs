@@ -29,57 +29,57 @@ namespace SimpleModelServer.Server.Tests.LMStudio;
 /// </summary>
 public sealed class RealLMStudioSmokeTests(ITestOutputHelper output)
 {
-    private static readonly TimeSpan ChatTimeout = TimeSpan.FromSeconds(90);
-    private const int LMStudioDefaultPort = 1234;
+	private static readonly TimeSpan ChatTimeout = TimeSpan.FromSeconds(90);
+	private const int LMStudioDefaultPort = 1234;
 
-    [Fact]
-    public async Task RealChatRequest_AgainstRealLMStudio_ReturnsNonEmptyResponse()
-    {
-        using HttpClient http = new(new HttpClientHandler { UseProxy = false }) { Timeout = ChatTimeout };
+	[Fact]
+	public async Task RealChatRequest_AgainstRealLMStudio_ReturnsNonEmptyResponse()
+	{
+		using HttpClient http = new(new HttpClientHandler { UseProxy = false }) { Timeout = ChatTimeout };
 
-        var providerConfig = new ProviderConfiguration
-        {
-            Host = "127.0.0.1",
-            Port = LMStudioDefaultPort
-        };
+		var providerConfig = new ProviderConfiguration
+		{
+			Host = "127.0.0.1",
+			Port = LMStudioDefaultPort
+		};
 
-        var lmstudio = new LMStudioProvider(providerConfig, http);
+		var lmstudio = new LMStudioProvider(providerConfig, http);
 
-        if (!await lmstudio.TestConnectionAsync())
-        {
-            output.WriteLine(
-                $"SKIPPED: LM Studio is not running on http://127.0.0.1:{LMStudioDefaultPort}. " +
-                "Please start LM Studio with its local server enabled before running this smoke test.");
-            return;
-        }
+		if (!await lmstudio.TestConnectionAsync())
+		{
+			output.WriteLine(
+				$"SKIPPED: LM Studio is not running on http://127.0.0.1:{LMStudioDefaultPort}. " +
+				"Please start LM Studio with its local server enabled before running this smoke test.");
+			return;
+		}
 
-        var models = await lmstudio.GetModelsAsync();
-        if (models == null || models.Count == 0)
-        {
-            output.WriteLine("SKIPPED: LM Studio returned an empty models list.");
-            return;
-        }
+		var models = await lmstudio.GetModelsAsync();
+		if (models == null || models.Count == 0)
+		{
+			output.WriteLine("SKIPPED: LM Studio returned an empty models list.");
+			return;
+		}
 
-        var firstModel = models[0]?["id"]?.GetValue<string>();
-        if (string.IsNullOrWhiteSpace(firstModel))
-        {
-            output.WriteLine("SKIPPED: Could not extract model ID from LM Studio models list.");
-            return;
-        }
+		var firstModel = models[0]?["id"]?.GetValue<string>();
+		if (string.IsNullOrWhiteSpace(firstModel))
+		{
+			output.WriteLine("SKIPPED: Could not extract model ID from LM Studio models list.");
+			return;
+		}
 
-        output.WriteLine($"Using LM Studio model: {firstModel}");
+		output.WriteLine($"Using LM Studio model: {firstModel}");
 
-        var generationBackend = new LMStudioGenerationBackend(lmstudio);
-        var generationOptions = new GenerationOptions { Temperature = 0.7 };
+		var generationBackend = new LMStudioGenerationBackend(lmstudio);
+		var generationOptions = new GenerationOptions { Temperature = 0.7 };
 
-        using CancellationTokenSource cts = new(ChatTimeout);
-        string response = await generationBackend.GenerateAsync(
-            firstModel,
-            "Reply with a short greeting. Keep it to one sentence.",
-            generationOptions,
-            cts.Token);
+		using CancellationTokenSource cts = new(ChatTimeout);
+		string response = await generationBackend.GenerateAsync(
+			firstModel,
+			"Reply with a short greeting. Keep it to one sentence.",
+			generationOptions,
+			cts.Token);
 
-        output.WriteLine($"Real LM Studio response: {response}");
-        Assert.False(string.IsNullOrWhiteSpace(response), "Expected a real, non-empty response from LM Studio.");
-    }
+		output.WriteLine($"Real LM Studio response: {response}");
+		Assert.False(string.IsNullOrWhiteSpace(response), "Expected a real, non-empty response from LM Studio.");
+	}
 }

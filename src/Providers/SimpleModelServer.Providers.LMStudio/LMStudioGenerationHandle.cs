@@ -15,61 +15,61 @@ namespace SimpleModelServer.Providers.LMStudio;
 /// </summary>
 internal sealed class LMStudioGenerationHandle(HttpResponseMessage response, StreamReader reader) : IGenerationHandle
 {
-    public async Task<TokenResult> ReadTokenAsync(TimeSpan timeout)
-    {
-        try
-        {
-            string? line;
-            try
-            {
-                using CancellationTokenSource cts = new(timeout);
-                line = await reader.ReadLineAsync(cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                return new TokenResult("", false);
-            }
+	public async Task<TokenResult> ReadTokenAsync(TimeSpan timeout)
+	{
+		try
+		{
+			string? line;
+			try
+			{
+				using CancellationTokenSource cts = new(timeout);
+				line = await reader.ReadLineAsync(cts.Token);
+			}
+			catch (OperationCanceledException)
+			{
+				return new TokenResult("", false);
+			}
 
-            if (line is null)
-            {
-                return new TokenResult("", true);
-            }
+			if (line is null)
+			{
+				return new TokenResult("", true);
+			}
 
-            if (string.IsNullOrWhiteSpace(line))
-            {
-                // SSE blank-line event separator — not end of stream, keep polling.
-                return new TokenResult("", false);
-            }
+			if (string.IsNullOrWhiteSpace(line))
+			{
+				// SSE blank-line event separator — not end of stream, keep polling.
+				return new TokenResult("", false);
+			}
 
-            if (!line.StartsWith("data:", StringComparison.Ordinal))
-            {
-                // Some other SSE field (e.g. "event:", "id:") or a comment line — ignore.
-                return new TokenResult("", false);
-            }
+			if (!line.StartsWith("data:", StringComparison.Ordinal))
+			{
+				// Some other SSE field (e.g. "event:", "id:") or a comment line — ignore.
+				return new TokenResult("", false);
+			}
 
-            string payload = line["data:".Length..].Trim();
-            if (string.Equals(payload, "[DONE]", StringComparison.Ordinal))
-            {
-                return new TokenResult("", true);
-            }
+			string payload = line["data:".Length..].Trim();
+			if (string.Equals(payload, "[DONE]", StringComparison.Ordinal))
+			{
+				return new TokenResult("", true);
+			}
 
-            JsonNode? json = JsonNode.Parse(payload);
-            string text = json?["choices"]?[0]?["delta"]?["content"]?.GetValue<string>() ?? "";
-            return new TokenResult(text, false);
-        }
-        catch (Exception ex) when (ex is JsonException or IOException or ObjectDisposedException)
-        {
-            // Malformed chunk, or the underlying stream faulted/closed mid-read — indistinguishable
-            // from "the stream ended" to TokenResult's (Text, Done) shape, so report Done=true to
-            // stop the polling loop, same as OllamaHelpers.ReadTokenAsync's equivalent catch.
-            return new TokenResult("", true);
-        }
-    }
+			JsonNode? json = JsonNode.Parse(payload);
+			string text = json?["choices"]?[0]?["delta"]?["content"]?.GetValue<string>() ?? "";
+			return new TokenResult(text, false);
+		}
+		catch (Exception ex) when (ex is JsonException or IOException or ObjectDisposedException)
+		{
+			// Malformed chunk, or the underlying stream faulted/closed mid-read — indistinguishable
+			// from "the stream ended" to TokenResult's (Text, Done) shape, so report Done=true to
+			// stop the polling loop, same as OllamaHelpers.ReadTokenAsync's equivalent catch.
+			return new TokenResult("", true);
+		}
+	}
 
-    public ValueTask DisposeAsync()
-    {
-        reader.Dispose();
-        response.Dispose();
-        return ValueTask.CompletedTask;
-    }
+	public ValueTask DisposeAsync()
+	{
+		reader.Dispose();
+		response.Dispose();
+		return ValueTask.CompletedTask;
+	}
 }

@@ -1,13 +1,13 @@
 namespace SimpleModelServer.Evals.Interfaces;
 
 public sealed record GenerationOutcome(
-    string RawResponse,
-    string? FinishReason,
-    int? CompletionTokens,
-    double LatencyMs,
-    string? Error = null) : IGenerationOutcome
+	string RawResponse,
+	string? FinishReason,
+	int? CompletionTokens,
+	double LatencyMs,
+	string? Error = null) : IGenerationOutcome
 {
-    public bool Succeeded => Error is null;
+	public bool Succeeded => Error is null;
 }
 
 /// <summary>
@@ -21,5 +21,5 @@ public sealed record GenerationOutcome(
 /// </summary>
 public interface IGenerationPipeline
 {
-    Task<GenerationOutcome> GenerateAsync(string prompt, CancellationToken cancellationToken);
+	Task<GenerationOutcome> GenerateAsync(string prompt, CancellationToken cancellationToken);
 }

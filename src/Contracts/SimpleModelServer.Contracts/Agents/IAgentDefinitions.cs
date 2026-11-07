@@ -4,9 +4,9 @@ using SimpleModelServer.Contracts.Models;
 
 public interface IAgentDefinitions
 {
-    IAgentConfig Code { get; set; }
-    IAgentConfig Debug { get; set; }
-    IAgentConfig Planning { get; set; }
+	IAgentConfig Code { get; set; }
+	IAgentConfig Debug { get; set; }
+	IAgentConfig Planning { get; set; }
 }
 
 

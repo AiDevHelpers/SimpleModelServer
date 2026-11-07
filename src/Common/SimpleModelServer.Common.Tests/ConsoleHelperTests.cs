@@ -13,65 +13,65 @@ namespace SimpleModelServer.Common.Tests;
 /// </summary>
 public sealed class ConsoleHelperTests
 {
-    [Fact]
-    public void WriteLine_RestoresOriginalForegroundColor_AfterWriting()
-    {
-        var helper = new ConsoleHelper();
-        ConsoleColor original = Console.ForegroundColor;
-        try
-        {
-            using StringWriter writer = new();
-            Console.SetOut(writer);
+	[Fact]
+	public void WriteLine_RestoresOriginalForegroundColor_AfterWriting()
+	{
+		var helper = new ConsoleHelper();
+		ConsoleColor original = Console.ForegroundColor;
+		try
+		{
+			using StringWriter writer = new();
+			Console.SetOut(writer);
 
-            helper.WriteLine("hello", ConsoleColor.Green);
+			helper.WriteLine("hello", ConsoleColor.Green);
 
-            Assert.Equal(original, Console.ForegroundColor);
-            Assert.Contains("hello", writer.ToString());
-        }
-        finally
-        {
-            Console.ForegroundColor = original;
-            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
-        }
-    }
+			Assert.Equal(original, Console.ForegroundColor);
+			Assert.Contains("hello", writer.ToString());
+		}
+		finally
+		{
+			Console.ForegroundColor = original;
+			Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+		}
+	}
 
-    [Fact]
-    public void WriteOverwrite_WritesCarriageReturnAndPadsToWidth()
-    {
-        var helper = new ConsoleHelper();
-        using StringWriter writer = new();
-        TextWriter originalOut = Console.Out;
-        try
-        {
-            Console.SetOut(writer);
+	[Fact]
+	public void WriteOverwrite_WritesCarriageReturnAndPadsToWidth()
+	{
+		var helper = new ConsoleHelper();
+		using StringWriter writer = new();
+		TextWriter originalOut = Console.Out;
+		try
+		{
+			Console.SetOut(writer);
 
-            helper.WriteOverwrite("hi", 5);
+			helper.WriteOverwrite("hi", 5);
 
-            Assert.Equal("\rhi   ", writer.ToString());
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
-    }
+			Assert.Equal("\rhi   ", writer.ToString());
+		}
+		finally
+		{
+			Console.SetOut(originalOut);
+		}
+	}
 
-    [Fact]
-    public void WriteOverwrite_TextLongerThanPadding_IsNotTruncated()
-    {
-        var helper = new ConsoleHelper();
-        using StringWriter writer = new();
-        TextWriter originalOut = Console.Out;
-        try
-        {
-            Console.SetOut(writer);
+	[Fact]
+	public void WriteOverwrite_TextLongerThanPadding_IsNotTruncated()
+	{
+		var helper = new ConsoleHelper();
+		using StringWriter writer = new();
+		TextWriter originalOut = Console.Out;
+		try
+		{
+			Console.SetOut(writer);
 
-            helper.WriteOverwrite("a longer string", 3);
+			helper.WriteOverwrite("a longer string", 3);
 
-            Assert.Equal("\ra longer string", writer.ToString());
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
-    }
+			Assert.Equal("\ra longer string", writer.ToString());
+		}
+		finally
+		{
+			Console.SetOut(originalOut);
+		}
+	}
 }

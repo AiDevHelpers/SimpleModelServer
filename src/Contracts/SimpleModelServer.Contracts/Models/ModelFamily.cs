@@ -6,26 +6,26 @@ namespace SimpleModelServer.Contracts.Models;
 /// </summary>
 public enum ModelFamily
 {
-    /// <summary>Qwen2.5 family (Alibaba)</summary>
-    Qwen25,
+	/// <summary>Qwen2.5 family (Alibaba)</summary>
+	Qwen25,
 
-    /// <summary>DeepSeek family</summary>
-    DeepSeek,
+	/// <summary>DeepSeek family</summary>
+	DeepSeek,
 
-    /// <summary>Llama 2 family (Meta)</summary>
-    Llama2,
+	/// <summary>Llama 2 family (Meta)</summary>
+	Llama2,
 
-    /// <summary>Mistral family</summary>
-    Mistral,
+	/// <summary>Mistral family</summary>
+	Mistral,
 
-    /// <summary>Phi family (Microsoft)</summary>
-    Phi,
+	/// <summary>Phi family (Microsoft)</summary>
+	Phi,
 
-    /// <summary>Neural Chat family</summary>
-    NeuralChat,
+	/// <summary>Neural Chat family</summary>
+	NeuralChat,
 
-    /// <summary>Custom/user-defined model family</summary>
-    Custom,
+	/// <summary>Custom/user-defined model family</summary>
+	Custom,
 }
 
 

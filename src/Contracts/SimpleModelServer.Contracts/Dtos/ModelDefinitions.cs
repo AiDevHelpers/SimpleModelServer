@@ -12,12 +12,12 @@ using SimpleModelServer.Contracts.Models;
 /// </summary>
 public class ModelDefinitions
 {
-    /// <summary>
-    ///     Named model configurations that users can switch between.
-    ///     Each configuration represents a different use case (e.g., "fast", "accurate", "balanced").
-    ///     The configuration with IsDefault=true will be used when none is explicitly selected.
-    /// </summary>
-    public Collection<ModelConfiguration> Configurations { get; set; } = new();
+	/// <summary>
+	///     Named model configurations that users can switch between.
+	///     Each configuration represents a different use case (e.g., "fast", "accurate", "balanced").
+	///     The configuration with IsDefault=true will be used when none is explicitly selected.
+	/// </summary>
+	public Collection<ModelConfiguration> Configurations { get; set; } = new();
 }
 
 
