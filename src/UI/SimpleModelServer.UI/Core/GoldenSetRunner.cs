@@ -18,6 +18,7 @@ namespace SimpleModelServer.UI.Core
 		private readonly SettingsManager _settings;
 		private readonly DiagnosticLogger _logger;
 
+		/// <summary>Creates a runner for golden-set evaluations. The logger is optional.</summary>
 		public GoldenSetRunner(SettingsManager settings, DiagnosticLogger? logger = null)
 		{
 			_settings = settings ?? throw new ArgumentNullException(nameof(settings));

@@ -19,6 +19,7 @@ namespace SimpleModelServer.UI.Controls
 		private AgentConfigService? _agentConfigService;
 		private GoldenSetRunner? _goldenSetRunner;
 
+		/// <summary>Initializes the settings panel.</summary>
 		public SettingsPanel()
 		{
 			InitializeComponent();
@@ -27,6 +28,7 @@ namespace SimpleModelServer.UI.Controls
 		}
 
 #pragma warning disable CA1063 // Dispose implementation for UI control is sufficient
+		/// <summary>Releases the resources held by the panel.</summary>
 		public void Dispose()
 		{
 			_chatService?.Dispose();
