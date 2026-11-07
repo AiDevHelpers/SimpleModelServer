@@ -22,19 +22,19 @@ public sealed class OllamaGenerationHandleTests
 		{
 			Content = new StringContent("hello")
 		};
-		StreamReader reader = new(await response.Content.ReadAsStreamAsync());
+		StreamReader reader = new(await response.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken));
 		OllamaGenerationHandle handle = new(response, reader);
 
 		await handle.DisposeAsync();
 
 		// A disposed StreamReader throws ObjectDisposedException on further use — the cleanest
 		// externally-observable proof that Dispose actually ran on it.
-		_ = await Assert.ThrowsAsync<ObjectDisposedException>(() => reader.ReadLineAsync());
+		_ = await Assert.ThrowsAsync<ObjectDisposedException>(() => reader.ReadLineAsync(TestContext.Current.CancellationToken).AsTask());
 
 		// HttpResponseMessage.Dispose() disposes its Content; a disposed StringContent throws
 		// ObjectDisposedException from ReadAsStreamAsync, which is the analogous proof for the
 		// response half of the pair.
-		_ = await Assert.ThrowsAsync<ObjectDisposedException>(() => response.Content.ReadAsStreamAsync());
+		_ = await Assert.ThrowsAsync<ObjectDisposedException>(() => response.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact]

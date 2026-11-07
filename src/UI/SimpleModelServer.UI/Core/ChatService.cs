@@ -41,6 +41,7 @@ namespace SimpleModelServer.UI.Core
 			_resolutionTime = DateTime.MinValue;
 		}
 
+		/// <summary>Releases resources used by the chat service.</summary>
 		public void Dispose()
 		{
 			if (_ownsHttpClient)

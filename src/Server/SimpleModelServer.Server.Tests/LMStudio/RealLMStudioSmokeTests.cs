@@ -45,7 +45,7 @@ public sealed class RealLMStudioSmokeTests(ITestOutputHelper output)
 
 		var lmstudio = new LMStudioProvider(providerConfig, http);
 
-		if (!await lmstudio.TestConnectionAsync())
+		if (!await lmstudio.TestConnectionAsync(TestContext.Current.CancellationToken))
 		{
 			output.WriteLine(
 				$"SKIPPED: LM Studio is not running on http://127.0.0.1:{LMStudioDefaultPort}. " +
@@ -53,7 +53,7 @@ public sealed class RealLMStudioSmokeTests(ITestOutputHelper output)
 			return;
 		}
 
-		var models = await lmstudio.GetModelsAsync();
+		var models = await lmstudio.GetModelsAsync(TestContext.Current.CancellationToken);
 		if (models == null || models.Count == 0)
 		{
 			output.WriteLine("SKIPPED: LM Studio returned an empty models list.");

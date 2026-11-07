@@ -15,6 +15,7 @@ namespace SimpleModelServer.UI.Core
 	public class SettingsManager : IDisposable
 	{
 		// Settings keys
+		/// <summary>The collection path for stored settings.</summary>
 		public const string SettingsCollectionPath = "SimpleModelServer";
 
 		private const string ServerHostKey = "ServerHost";

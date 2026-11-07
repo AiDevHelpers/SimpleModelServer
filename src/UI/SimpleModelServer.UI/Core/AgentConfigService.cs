@@ -25,6 +25,7 @@ namespace SimpleModelServer.UI.Core
 		private readonly DiagnosticLogger _logger;
 		private readonly bool _ownsHttpClient;
 
+		/// <summary>Creates the service. The HTTP client and logger are optional.</summary>
 		public AgentConfigService(SettingsManager settings, HttpClient? httpClient = null, DiagnosticLogger? logger = null)
 		{
 			_settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -33,6 +34,7 @@ namespace SimpleModelServer.UI.Core
 			_logger = logger ?? new DiagnosticLogger("AgentConfigService");
 		}
 
+		/// <summary>Releases resources used by the service.</summary>
 		public void Dispose()
 		{
 			if (_ownsHttpClient)
@@ -152,7 +154,7 @@ namespace SimpleModelServer.UI.Core
 				using var document = JsonDocument.Parse(json);
 				bool suggestGoldenSet = document.RootElement.TryGetProperty("suggestGoldenSet", out var gEl) &&
 										gEl.ValueKind == JsonValueKind.True;
-				string message = document.RootElement.TryGetProperty("message", out var mEl) ? mEl.GetString() : null;
+				string? message = document.RootElement.TryGetProperty("message", out var mEl) ? mEl.GetString() : null;
 				return (suggestGoldenSet, message ?? "Updated.");
 			}
 			catch (JsonException)

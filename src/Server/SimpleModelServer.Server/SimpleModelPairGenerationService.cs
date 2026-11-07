@@ -61,7 +61,7 @@ internal sealed partial class SimpleModelPairGenerationService(
 	private static partial void LogResearchWebSearch(ILogger logger);
 
 	[LoggerMessage(Level = LogLevel.Warning, Message = "Research: Jina failed ({ErrorMessage}) — asking caller to search.")]
-	private static partial void LogResearchJinaFailed(ILogger logger, string errorMessage);
+	private static partial void LogResearchJinaFailed(ILogger logger, string? errorMessage);
 
 	private static readonly TimeSpan TokenPollTimeout = TimeSpan.FromMilliseconds(30);
 	private static readonly TimeSpan DraftPairPollYield = TimeSpan.FromMilliseconds(10);

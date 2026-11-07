@@ -38,10 +38,10 @@ namespace SimpleModelServer.UI.Tests.Core
 			manager.ApiKey = "test-key-123";
 			manager.ConnectionMode = ConnectionMode.Manual;
 
-			await manager.SaveAsync();
+			await manager.SaveAsync(TestContext.Current.CancellationToken);
 
 			Assert.True(File.Exists(_tempSettingsFile));
-			var content = await File.ReadAllTextAsync(_tempSettingsFile);
+			var content = await File.ReadAllTextAsync(_tempSettingsFile, TestContext.Current.CancellationToken);
 			Assert.Contains("example.com", content);
 			Assert.Contains("9999", content);
 			Assert.Contains("test-key-123", content);
@@ -58,12 +58,12 @@ namespace SimpleModelServer.UI.Tests.Core
 			manager1.ApiKey = "saved-key";
 			manager1.ConnectionMode = ConnectionMode.Mdns;
 			manager1.RememberedMdnsInstanceName = "my-instance";
-			await manager1.SaveAsync();
+			await manager1.SaveAsync(TestContext.Current.CancellationToken);
 			manager1.Dispose();
 
 			// Second manager: load settings
 			var manager2 = new SettingsManager(_tempSettingsFile);
-			await manager2.LoadAsync();
+			await manager2.LoadAsync(TestContext.Current.CancellationToken);
 
 			Assert.Equal("192.168.1.1", manager2.ServerHost);
 			Assert.Equal(8080, manager2.ServerPort);

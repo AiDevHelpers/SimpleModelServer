@@ -11,6 +11,7 @@ namespace SimpleModelServer.UI.Core
 		private readonly string _source;
 		private readonly TraceSource? _traceSource;
 
+		/// <summary>Creates a logger that tags each entry with the given source name.</summary>
 		public DiagnosticLogger(string source)
 		{
 			_source = source;
@@ -25,22 +26,26 @@ namespace SimpleModelServer.UI.Core
 			}
 		}
 
+		/// <summary>Writes an informational message.</summary>
 		public void Info(string message)
 		{
 			WriteLog(TraceEventType.Information, message);
 		}
 
+		/// <summary>Writes a warning message.</summary>
 		public void Warning(string message)
 		{
 			WriteLog(TraceEventType.Warning, message);
 		}
 
+		/// <summary>Writes an error message, with the exception when one is given.</summary>
 		public void Error(string message, Exception? ex = null)
 		{
 			var msg = ex != null ? $"{message}\n{ex}" : message;
 			WriteLog(TraceEventType.Error, msg);
 		}
 
+		/// <summary>Writes a debug message.</summary>
 		public void Debug(string message)
 		{
 			WriteLog(TraceEventType.Verbose, message);

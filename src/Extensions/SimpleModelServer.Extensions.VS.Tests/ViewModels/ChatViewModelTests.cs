@@ -250,7 +250,7 @@ namespace SimpleModelServer.Extensions.VS.Tests.ViewModels
 	/// <summary>Helper for creating async enumerables in tests</summary>
 	internal static class AsyncEnumerableHelper
 	{
-		public static IAsyncEnumerable<T> Create<T>(params T[] values)
+		public static IAsyncEnumerable<T> CreateAsync<T>(params T[] values)
 		{
 			return new TestAsyncEnumerable<T>(values);
 		}
