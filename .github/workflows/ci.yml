@@ -77,9 +77,34 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  check-js:
+    name: Check JavaScript (VS Code extension)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/Extensions/SimpleModelServer.Extensions.VSCode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/Extensions/SimpleModelServer.Extensions.VSCode/package-lock.json
+
+      - name: Install (from lockfile)
+        run: npm ci
+
+      - name: Check (typecheck, lint, unit tests)
+        run: npm run check
+
   installer:
     name: Build installer
-    needs: build-and-test
+    # The gate: tests and JS checks must pass before any release asset is built.
+    needs: [build-and-test, check-js]
     # Branch pushes only: PRs and manual runs never build release assets.
     if: github.event_name == 'push'
     runs-on: windows-latest

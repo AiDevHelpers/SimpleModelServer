@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { RouterClient, Model, ChatMessage } from "./routerClient";
+import { RouterClient, ChatMessage } from "./routerClient";
 
 /**
  * Implements the VS Code Language Model Chat Provider interface to register
@@ -104,8 +104,7 @@ export class SimpleModelServerChatProvider
    */
   async provideTokenCount(
     _model: vscode.LanguageModelChatInformation,
-    text: string | vscode.LanguageModelChatRequestMessage,
-    _token: vscode.CancellationToken
+    text: string | vscode.LanguageModelChatRequestMessage
   ): Promise<number> {
     if (typeof text === "string") {
       return this.client.estimateTokenCount(text);
