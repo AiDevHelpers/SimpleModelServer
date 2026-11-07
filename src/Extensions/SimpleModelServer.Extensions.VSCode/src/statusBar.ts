@@ -78,7 +78,7 @@ export class StatusBarManager {
       // second doomed request on every failed health check.
       this.provider = healthy ? await this.client.getProvider() : undefined;
       this.updateStatusBar();
-    } catch (err) {
+    } catch {
       this.isHealthy = false;
       this.provider = undefined;
       this.updateStatusBar();

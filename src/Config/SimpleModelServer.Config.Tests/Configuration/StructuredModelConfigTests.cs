@@ -189,7 +189,7 @@ public sealed class StructuredModelConfigTests
             AppConfig config = AppConfig.Load(path);
 
             Assert.False(config.ModelRoles.ContainsKey("draft"));
-            Assert.Empty(config.ModelSources.Keys.Where(k => k.Contains("coder")));
+            Assert.DoesNotContain(config.ModelSources.Keys, k => k.Contains("coder"));
         }
         finally
         {

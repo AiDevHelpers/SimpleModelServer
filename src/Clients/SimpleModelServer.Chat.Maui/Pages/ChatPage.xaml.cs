@@ -164,7 +164,7 @@ public class ChatPageViewModel : INotifyPropertyChanged
             var page = Application.Current?.Windows[0]?.Page;
             if (page != null)
             {
-                await page.DisplayAlert(
+                await page.DisplayAlertAsync(
                     "Error",
                     $"Failed to send message: {ex.Message}",
                     "OK"
@@ -202,7 +202,7 @@ public class ChatPageViewModel : INotifyPropertyChanged
             var page = Application.Current?.Windows[0]?.Page;
             if (page != null)
             {
-                await page.DisplayAlert(
+                await page.DisplayAlertAsync(
                     "Error",
                     $"Failed to pick file: {ex.Message}",
                     "OK"

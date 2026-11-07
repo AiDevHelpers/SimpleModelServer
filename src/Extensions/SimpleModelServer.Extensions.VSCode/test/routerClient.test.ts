@@ -1,4 +1,5 @@
-import { RouterClient, Model, ChatMessage } from "../src/routerClient";
+import { beforeEach, describe, expect, it } from "vitest";
+import { RouterClient, ChatMessage } from "../src/routerClient";
 
 /**
  * Unit tests for RouterClient
@@ -109,7 +110,7 @@ describe("RouterClient", () => {
               controller.abort();
             }
           }
-        } catch (err) {
+        } catch {
           // Cancellation may throw
         }
 
@@ -182,21 +183,3 @@ describe("RouterClient", () => {
   });
 });
 
-// Helper for conditional test skipping
-declare global {
-  namespace Vi {
-    interface TestOptions {
-      skipIf?: (condition: boolean) => void;
-    }
-  }
-}
-
-// Polyfill for skipIf if using a simpler test runner
-if (!describe.skipIf) {
-  (describe as any).skipIf = (condition: boolean) => {
-    return condition ? describe.skip : describe;
-  };
-  (it as any).skipIf = (condition: boolean) => {
-    return condition ? it.skip : it;
-  };
-}
