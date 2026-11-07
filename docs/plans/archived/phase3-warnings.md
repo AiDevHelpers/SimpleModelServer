@@ -1,6 +1,6 @@
 # Plan: Phase 3, warnings to zero
 
-Status: in progress.
+Status: done. Moved to docs/plans/archived/ after U6.
 Base: `quality-phase2-eol` (PR #3 into `dev`). The tab reformat from Phase 2 is needed for these edits.
 
 Decision (user): fix all suppressed warnings and remove their suppressions. Turn on `TreatWarningsAsErrors` for Release.
@@ -16,7 +16,7 @@ Units (each: remove the unit's codes from `NoWarn`, clean Release build with 0 w
 - [x] U3. `CS8604` (6) and `CS8600` (1). Changed: the logger parameters in `AdminEndpointHandler.cs` (`LogAdminInvalidConfigUpdate`, `LogAdminFailedConfigUpdate`) and `SimpleModelPairGenerationService.cs` (`LogResearchJinaFailed`) to `string?`, since a null error is valid to log. This replaces the earlier `?? string.Empty` idea. `AgentConfigService.cs:155`: the local is now `string?`. `ConfigurationUpdaterTests.cs:329`: added `Assert.NotNull` before `Assert.NotEmpty`. Removed `CS8604` and `CS8600`.
 - [ ] U4. `VSTHRD200` (1). Rename `ChatViewModelTests.cs:253` `Create<T>` to `CreateAsync<T>`. It has no callers outside that file. Remove `VSTHRD200`.
 - [ ] U5. `CS1591` (12, `SimpleModelServer.UI`). Add XML doc comments to the public members listed in the build output. Remove `CS1591`.
-- [ ] U6. Remove every remaining code from `NoWarn` except `NU1603`. Delete the stale comment block above the property. Add `TreatWarningsAsErrors` for Release as a conditional PropertyGroup in `src/Directory.Build.props`. Check `src/Extensions/SimpleModelServer.Extensions.VS/Properties/PublishProfiles/*.pubxml`, which set `TreatWarningsAsErrors` to false, and align them. Then a clean Release rebuild of the whole `SimpleModelServer.slnx`, with the MAUI and VS workloads installed, reports 0 warnings, and tests pass.
+- [x] U6. Remove every remaining code from `NoWarn` except `NU1603`. Delete the stale comment block above the property. Add `TreatWarningsAsErrors` for Release as a conditional PropertyGroup in `src/Directory.Build.props`. Check `src/Extensions/SimpleModelServer.Extensions.VS/Properties/PublishProfiles/*.pubxml`, which set `TreatWarningsAsErrors` to false, and align them. Then a clean Release rebuild of the whole `SimpleModelServer.slnx`, with the MAUI and VS workloads installed, reports 0 warnings, and tests pass.
 
 Done when: a clean Release build of the full solution has 0 warnings with `TreatWarningsAsErrors` on, and tests pass. The Release build fails on any new warning, which covers the quality plan's CI warning gate.
 
