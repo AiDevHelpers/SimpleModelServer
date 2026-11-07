@@ -1,0 +1,6 @@
+{
+  "port": 3012,
+  "defaultPathFormat": "Windows",
+  "disabledTools": [],
+  "autoStart": true
+}

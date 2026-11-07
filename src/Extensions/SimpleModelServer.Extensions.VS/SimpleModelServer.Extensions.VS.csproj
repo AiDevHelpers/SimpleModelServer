@@ -41,7 +41,7 @@
 
   <ItemGroup>
     <!-- VisualStudio.Extensibility SDK (modern VS 2022+ extension framework) -->
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" PrivateAssets="all" />
 
@@ -53,9 +53,9 @@
     <PackageReference Include="MessagePack" Version="3.1.12" />
 
     <!-- Extensions - Use SDK-compatible versions -->
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>

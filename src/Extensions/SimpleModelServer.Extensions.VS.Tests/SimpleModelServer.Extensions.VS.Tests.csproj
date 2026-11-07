@@ -18,16 +18,17 @@
 
   <ItemGroup>
     <!-- Test Framework - xunit v3 -->
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+    <PackageReference Include="MessagePack" Version="3.1.12" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
 
     <!-- Mocking -->
-    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Moq" Version="4.21.0" />
 
     <!-- Project References -->
     <ProjectReference Include="..\SimpleModelServer.Extensions.VS\SimpleModelServer.Extensions.VS.csproj" />
