@@ -25,7 +25,7 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act
-		var result = await locator.ResolveAsync();
+		var result = await locator.ResolveAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Equal("http://example.com:8080", result.BaseUrl);
@@ -54,7 +54,7 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act
-		var result = await locator.ResolveAsync();
+		var result = await locator.ResolveAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.Equal("http://localhost:11435", result.BaseUrl);
@@ -83,7 +83,7 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act
-		var result = await locator.ResolveAsync();
+		var result = await locator.ResolveAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.True(result.IsLoopback);
@@ -110,7 +110,7 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act
-		var result = await locator.ResolveAsync();
+		var result = await locator.ResolveAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		Assert.True(result.IsLoopback);
@@ -137,8 +137,8 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act - call ResolveAsync twice
-		var result1 = await locator.ResolveAsync();
-		var result2 = await locator.ResolveAsync();
+		var result1 = await locator.ResolveAsync(TestContext.Current.CancellationToken);
+		var result2 = await locator.ResolveAsync(TestContext.Current.CancellationToken);
 
 		// Assert - should be the same cached instance
 		Assert.Same(result1, result2);
@@ -169,8 +169,8 @@ public sealed class ServerLocatorTests
 		var locator = new ServerLocator(mockStore.Object);
 
 		// Act
-		var result1 = await locator.ResolveAsync();
-		var result2 = await locator.RediscoverAsync();
+		var result1 = await locator.ResolveAsync(TestContext.Current.CancellationToken);
+		var result2 = await locator.RediscoverAsync(TestContext.Current.CancellationToken);
 
 		// Assert - should be different instances after rediscovery
 		Assert.NotSame(result1, result2);

@@ -46,7 +46,7 @@ namespace SimpleModelServer.UI.Tests.Core
 			manager.RememberedMdnsInstanceName = "my-instance";
 
 			var store = new SettingsManagerConnectionStore(manager);
-			var settings = await store.LoadAsync();
+			var settings = await store.LoadAsync(TestContext.Current.CancellationToken);
 
 			Assert.NotNull(settings);
 			Assert.Equal(ConnectionMode.Manual, settings.Mode);
@@ -73,7 +73,7 @@ namespace SimpleModelServer.UI.Tests.Core
 				RememberedMdnsInstanceName = "discovered-instance"
 			};
 
-			await store.SaveAsync(newSettings);
+			await store.SaveAsync(newSettings, TestContext.Current.CancellationToken);
 
 			// Verify the settings manager was updated
 			Assert.Equal(ConnectionMode.Mdns, manager.ConnectionMode);
@@ -100,11 +100,11 @@ namespace SimpleModelServer.UI.Tests.Core
 				RememberedMdnsInstanceName = null
 			};
 
-			await store.SaveAsync(settings);
-			await manager.SaveAsync();
+			await store.SaveAsync(settings, TestContext.Current.CancellationToken);
+			await manager.SaveAsync(TestContext.Current.CancellationToken);
 
 			Assert.True(File.Exists(_tempSettingsFile));
-			var content = await File.ReadAllTextAsync(_tempSettingsFile);
+			var content = await File.ReadAllTextAsync(_tempSettingsFile, TestContext.Current.CancellationToken);
 			Assert.Contains("Local", content);
 			Assert.Contains("localhost", content);
 
@@ -117,7 +117,7 @@ namespace SimpleModelServer.UI.Tests.Core
 			var manager = new SettingsManager(_tempSettingsFile);
 			var store = new SettingsManagerConnectionStore(manager);
 
-			await Assert.ThrowsAsync<ArgumentNullException>(() => store.SaveAsync(null!));
+			await Assert.ThrowsAsync<ArgumentNullException>(() => store.SaveAsync(null!, TestContext.Current.CancellationToken));
 
 			manager.Dispose();
 		}

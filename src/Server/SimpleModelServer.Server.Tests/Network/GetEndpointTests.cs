@@ -108,7 +108,7 @@ public sealed class GetEndpointTests
 	{
 		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri(path, UriKind.Relative));
+		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
 		string body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		JsonDocument doc = JsonDocument.Parse(body);
 
@@ -124,7 +124,7 @@ public sealed class GetEndpointTests
 	{
 		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri("/api/system/info", UriKind.Relative));
+		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri("/api/system/info", UriKind.Relative), TestContext.Current.CancellationToken);
 		string body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		JsonDocument doc = JsonDocument.Parse(body);
 
@@ -171,7 +171,7 @@ public sealed class GetEndpointTests
 	{
 		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri("/nonexistent", UriKind.Relative));
+		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri("/nonexistent", UriKind.Relative), TestContext.Current.CancellationToken);
 		string body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		JsonDocument doc = JsonDocument.Parse(body);
 
@@ -186,7 +186,7 @@ public sealed class GetEndpointTests
 	{
 		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri(path, UriKind.Relative));
+		using HttpResponseMessage response = await fixture.Client.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
 
 		Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"));
 		Assert.Equal("*", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
@@ -198,7 +198,7 @@ public sealed class GetEndpointTests
 		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
 		using HttpRequestMessage request = new(HttpMethod.Options, "/anything/at/all");
-		using HttpResponseMessage response = await fixture.Client.SendAsync(request);
+		using HttpResponseMessage response = await fixture.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 	}

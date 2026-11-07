@@ -79,7 +79,7 @@ public class LMStudioProviderTests
 			}
 		};
 
-		using var response = await provider.PostChatCompletionAsync(request);
+		using var response = await provider.PostChatCompletionAsync(request, TestContext.Current.CancellationToken);
 
 		Assert.True(mockHandler.LastRequest?.RequestUri?.AbsolutePath.Contains("/v1/chat/completions"));
 	}
@@ -106,7 +106,7 @@ public class LMStudioProviderTests
 			["messages"] = new JsonArray()
 		};
 
-		using var response = await provider.PostChatCompletionAsync(request);
+		using var response = await provider.PostChatCompletionAsync(request, TestContext.Current.CancellationToken);
 
 		Assert.True(
 			mockHandler.LastRequest?.Headers.Contains("Authorization"),

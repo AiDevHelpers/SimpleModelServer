@@ -42,7 +42,7 @@ public sealed class HealthAndAgentRoutingTests
 		fixture.Ollama.GenerateResponseText = "from query param routing";
 
 		using HttpResponseMessage response = await fixture.Client.PostAsync(
-			new Uri("/api/generate?agent_type=code", UriKind.Relative), JsonBody("""{"prompt":"anything at all","stream":false}"""));
+			new Uri("/api/generate?agent_type=code", UriKind.Relative), JsonBody("""{"prompt":"anything at all","stream":false}"""), TestContext.Current.CancellationToken);
 		string body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		JsonDocument doc = JsonDocument.Parse(body);
 
