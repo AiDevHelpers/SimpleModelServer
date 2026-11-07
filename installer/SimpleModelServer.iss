@@ -268,10 +268,30 @@ begin
   end;
 end;
 
+{ True when a queued file operation (PendingFileRenameOperations) touches this app's files.
+  Other queued operations (temp files, rollback files) are stale and must not block setup. }
+function PendingRenameTouchesApp(): Boolean;
+var
+  Entries: TArrayOfString;
+  I: Integer;
+begin
+  Result := False;
+  if RegQueryMultiStringValue(HKLM, 'SYSTEM\CurrentControlSet\Control\Session Manager',
+       'PendingFileRenameOperations', Entries) then
+  begin
+    for I := 0 to GetArrayLength(Entries) - 1 do
+      if Pos('simplemodelserver', LowerCase(Entries[I])) > 0 then
+      begin
+        Result := True;
+        exit;
+      end;
+  end;
+end;
+
 function RebootPending(): Boolean;
 begin
   Result :=
-    RegValueExists(HKLM, 'SYSTEM\CurrentControlSet\Control\Session Manager', 'PendingFileRenameOperations') or
+    PendingRenameTouchesApp() or
     RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') or
     RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired');
 end;
