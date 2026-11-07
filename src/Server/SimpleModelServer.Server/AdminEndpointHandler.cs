@@ -37,10 +37,10 @@ internal sealed partial class AdminEndpointHandler(
 	private static partial void LogAdminPostConfigUnauthorized(ILogger logger, string remoteAddress);
 
 	[LoggerMessage(Level = LogLevel.Warning, Message = "[ADMIN] Invalid config update from {RemoteAddress}: {Setting} = {Value} — {Error}")]
-	private static partial void LogAdminInvalidConfigUpdate(ILogger logger, string remoteAddress, string setting, object? value, string error);
+	private static partial void LogAdminInvalidConfigUpdate(ILogger logger, string remoteAddress, string setting, object? value, string? error);
 
 	[LoggerMessage(Level = LogLevel.Warning, Message = "[ADMIN] Failed to update config from {RemoteAddress}: {Setting} = {Value} — {Error}")]
-	private static partial void LogAdminFailedConfigUpdate(ILogger logger, string remoteAddress, string setting, object? value, string error);
+	private static partial void LogAdminFailedConfigUpdate(ILogger logger, string remoteAddress, string setting, object? value, string? error);
 
 	[LoggerMessage(Level = LogLevel.Information, Message = "[ADMIN] Configuration updated from {RemoteAddress}: {Setting} = {Value} (requiresRestart={RequiresRestart})")]
 	private static partial void LogAdminConfigUpdated(ILogger logger, string remoteAddress, string setting, object? value, bool requiresRestart);

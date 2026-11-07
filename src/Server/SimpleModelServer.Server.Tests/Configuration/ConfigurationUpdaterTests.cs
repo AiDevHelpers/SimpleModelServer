@@ -326,6 +326,7 @@ public class ConfigurationUpdaterTests
 
 		// Assert
 		Assert.False(result.Success);
+		Assert.NotNull(result.ErrorMessage);
 		Assert.NotEmpty(result.ErrorMessage);
 	}
 

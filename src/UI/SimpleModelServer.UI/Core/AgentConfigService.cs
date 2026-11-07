@@ -152,7 +152,7 @@ namespace SimpleModelServer.UI.Core
 				using var document = JsonDocument.Parse(json);
 				bool suggestGoldenSet = document.RootElement.TryGetProperty("suggestGoldenSet", out var gEl) &&
 										gEl.ValueKind == JsonValueKind.True;
-				string message = document.RootElement.TryGetProperty("message", out var mEl) ? mEl.GetString() : null;
+				string? message = document.RootElement.TryGetProperty("message", out var mEl) ? mEl.GetString() : null;
 				return (suggestGoldenSet, message ?? "Updated.");
 			}
 			catch (JsonException)
