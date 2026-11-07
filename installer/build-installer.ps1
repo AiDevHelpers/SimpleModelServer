@@ -60,11 +60,15 @@ function Resolve-DisplayVersion {
     if ($Version -ne "") {
         return $Version -replace '^v', ''
     }
-    $nbgv = & dotnet nbgv get-version -v SimpleVersion 2>$null
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($nbgv)) {
-        throw "No -Version given and 'dotnet nbgv get-version' failed. Install nbgv (dotnet tool install -g nbgv) or pass -Version."
+    # nbgv is a global tool, so it runs as `nbgv`. `dotnet nbgv` only works for local tools.
+    if (-not (Get-Command nbgv -ErrorAction SilentlyContinue)) {
+        throw "No -Version given and nbgv is not installed. Run: dotnet tool install --global nbgv, or pass -Version."
     }
-    return $nbgv.Trim()
+    $nbgvOutput = & nbgv get-version -v SimpleVersion 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "nbgv get-version failed (exit $LASTEXITCODE): $nbgvOutput"
+    }
+    return "$nbgvOutput".Trim()
 }
 
 function Resolve-NumericVersion([string] $display) {
