@@ -1,7 +1,8 @@
 <Project>
   <PropertyGroup>
     <!-- NU1603: dependency version resolution to a higher version than requested. Accepted. -->
-    <NoWarn>$(NoWarn);NU1603</NoWarn>
+    <!-- NU1701: the Visual Studio SDK test packages target .NET Framework. Not fixable in this repo. -->
+    <NoWarn>$(NoWarn);NU1603;NU1701</NoWarn>
     <!-- Release builds fail on any warning. Debug keeps warnings visible but does not fail. -->
     <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
   </PropertyGroup>

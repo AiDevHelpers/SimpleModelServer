@@ -105,10 +105,75 @@ jobs:
       - name: Check (typecheck, lint, unit tests)
         run: npm run check
 
+  quality-gate:
+    name: Quality gate (format, warnings, audit, coverage floor)
+    # Runs on every push and pull request. Failing this blocks release assets (see installer.needs).
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Nerdbank.GitVersioning needs full history to compute the version.
+          fetch-depth: 0
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload (chat app)
+        run: dotnet workload install maui-windows
+
+      - name: Install ReportGenerator
+        # Pinned to the version the coverage floor was measured with.
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.12
+
+      - name: Restore
+        run: dotnet restore SimpleModelServer.slnx --runtime win-x64
+
+      - name: Format check
+        run: dotnet format SimpleModelServer.slnx --verify-no-changes --no-restore
+
+      - name: Build (warnings are errors in Release)
+        run: dotnet build SimpleModelServer.slnx -c Release --no-restore
+
+      - name: Vulnerability audit
+        shell: pwsh
+        # `dotnet list package --vulnerable` can exit 0 when it finds issues, so check the output too.
+        run: |
+          $out = dotnet list SimpleModelServer.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0 -or $out -match 'has the following vulnerable packages') {
+            throw "Vulnerable NuGet packages found."
+          }
+
+      - name: Test with coverage
+        run: >-
+          dotnet test SimpleModelServer.slnx -c Release --no-build
+          --coverage --coverage-output-format cobertura
+          --results-directory TestResults
+
+      - name: Coverage floor
+        shell: pwsh
+        # Reads the merged line coverage from ReportGenerator's JSON summary (not the text summary,
+        # which is locale-dependent). Fails if there are no reports or the figure is below the floor.
+        run: |
+          $reports = Get-ChildItem TestResults -Recurse -Filter *.cobertura.xml
+          if (-not $reports) { throw "No coverage reports were produced." }
+          reportgenerator "-reports:TestResults/**/*.cobertura.xml" "-targetdir:build/dist/coverage" "-reporttypes:JsonSummary"
+          if ($LASTEXITCODE -ne 0) { throw "ReportGenerator failed." }
+          $summary = Get-Content build/dist/coverage/Summary.json -Raw | ConvertFrom-Json
+          $actual = [double]$summary.summary.linecoverage
+          $floorText = (Get-Content build/coverage-floor.txt -Raw).Trim()
+          $floor = [double]::Parse($floorText, [Globalization.CultureInfo]::InvariantCulture)
+          Write-Host "Line coverage $actual% (floor $floor%)"
+          if ($actual -lt $floor) { throw "Line coverage $actual% is below the floor of $floor%." }
+
   installer:
     name: Build installer
-    # The gate: tests and JS checks must pass before any release asset is built.
-    needs: [build-and-test, check-js]
+    # The gate: tests, JS checks, and the quality gate must pass before any release asset is built.
+    needs: [build-and-test, check-js, quality-gate]
     # Branch pushes only: PRs and manual runs never build release assets.
     if: github.event_name == 'push'
     runs-on: windows-latest

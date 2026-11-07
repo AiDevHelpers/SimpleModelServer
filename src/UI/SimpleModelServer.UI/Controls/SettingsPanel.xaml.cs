@@ -10,9 +10,7 @@ namespace SimpleModelServer.UI.Controls
 	/// Reusable Settings Panel Control for Simple Model Server configuration.
 	/// Can be used in any WPF application that needs to configure Simple Model Server settings.
 	/// </summary>
-#pragma warning disable CA1063 // Sealed UI controls don't need Dispose(bool) pattern
-	public partial class SettingsPanel : UserControl, IDisposable
-#pragma warning restore CA1063
+	public sealed partial class SettingsPanel : UserControl, IDisposable
 	{
 		private SettingsManager? _settingsManager;
 		private ChatService? _chatService;
@@ -27,7 +25,6 @@ namespace SimpleModelServer.UI.Controls
 			Unloaded += (s, e) => Dispose();
 		}
 
-#pragma warning disable CA1063 // Dispose implementation for UI control is sufficient
 		/// <summary>Releases the resources held by the panel.</summary>
 		public void Dispose()
 		{
@@ -35,7 +32,6 @@ namespace SimpleModelServer.UI.Controls
 			_agentConfigService?.Dispose();
 			GC.SuppressFinalize(this);
 		}
-#pragma warning restore CA1063
 
 		private void InitializeSettings()
 		{

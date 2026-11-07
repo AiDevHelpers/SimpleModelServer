@@ -11,3 +11,4 @@ src/Installers/staging/
 
 build/dist/
 build/staging/
+TestResults/
