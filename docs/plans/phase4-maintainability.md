@@ -21,11 +21,11 @@ Units (each: build clean in Release with 0 warnings, tests pass, update status, 
   - Declare as `string? MainModel = null` and document the parameter, because XML-doc warnings are errors.
   - `AdminEndpointHandler`: add `mainModel = p.MainModel` to each profile in `/admin/config`.
   - Tests: parse with two configurations, check each profile's MainModel. Check `/admin/config` output includes it.
-- [ ] U2. Chat client: use the active profile's model.
+- [x] U2. Chat client: use the active profile's model.
   - `ChatService.ResolveModelNameAsync`: read `/admin/config`. Use `global.configurationId` (or the default profile if null) to find the profile. Use its `mainModel` when non-empty.
   - Fallback: the existing `/api/tags` first-model logic, when `/admin/config` is unreachable or has no mainModel.
   - Remove the TODO comment.
-  - Tests: profile selection and fallback.
+  - Tests: the chat client (`Chat.Maui`) has no test project, and its selection helper `SelectActiveMainModel` is internal. Verification is a clean Release build and a review. Adding a client test project is a separate decision.
 - [ ] U3. Split `RouterHttpServer.cs` (1291 lines) into partial files by route family: generate, chat, embeddings, admin, health.
 - [ ] U4. Split `AppConfig.cs` (996 lines) into partial files: global, models, agents, MCP servers. `AppConfig` must become `partial`. Keep the model-parsing constants (`DefaultEmbedModelName`, default sizes, `DefaultStopTokens`) with the model-parsing code. `GlobalConfig`, `AgentConfig`, `McpUpstreamConfig`, and `ModelSourceConfig` are separate classes and move as whole files.
 - [ ] U5. Split `ModelHealthMonitor.cs` (632) and `AdminEndpointHandler.cs` (602) into partial files by concern. `ModelHealthMonitor` shared state (`healLock`, `modelLastActive`, `warmingUpModels`, `modelWarmupFailures`, `recoveryInProgress`, `lastFault*`, `consecutiveUnhealthyCycles`) and the `static readonly` timeouts stay in the main file, so the lock protects state in one place. Only one part carries the primary-constructor parameters.

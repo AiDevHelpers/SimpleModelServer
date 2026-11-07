@@ -14,9 +14,6 @@ public class ChatService
 	private readonly IServerLocator _locator;
 	private string? _cachedModelName;
 
-	// TODO: Wire dual-model (draft+main handoff) support when config infrastructure is available.
-	// For now, we ask the server for its available models via /api/tags and use the first one.
-
 	public ChatService(IServerLocator locator)
 	{
 		_locator = locator ?? throw new ArgumentNullException(nameof(locator));
@@ -77,15 +74,21 @@ public class ChatService
 	}
 
 	/// <summary>
-	/// Asks the server which models it has available (Ollama-compatible <c>/api/tags</c>) and
-	/// caches the first one for reuse — the router picks the actual draft/main pairing
-	/// server-side, so any listed model name is a valid <c>/api/generate</c> target.
+	/// Resolves the model to send to <c>/api/generate</c>, cached after the first call. Prefers the
+	/// active profile's main model from <c>/admin/config</c>. Falls back to the first model in
+	/// <c>/api/tags</c> when the profile has no main model or the config can't be read.
 	/// </summary>
 	private async Task<string> ResolveModelNameAsync(HttpClient httpClient, CancellationToken cancellationToken)
 	{
 		if (_cachedModelName is not null)
 		{
 			return _cachedModelName;
+		}
+
+		string? profileModel = await TryGetActiveProfileModelAsync(httpClient, cancellationToken);
+		if (!string.IsNullOrWhiteSpace(profileModel))
+		{
+			return _cachedModelName = profileModel;
 		}
 
 		try
@@ -107,6 +110,50 @@ public class ChatService
 		}
 
 		return _cachedModelName = "default";
+	}
+
+	/// <summary>
+	/// Reads <c>/admin/config</c> and returns the active profile's main model, or null when it
+	/// can't be read. Remote requests are authenticated by the caller's <see cref="HttpClient"/>.
+	/// </summary>
+	private static async Task<string?> TryGetActiveProfileModelAsync(HttpClient httpClient, CancellationToken cancellationToken)
+	{
+		try
+		{
+			var config = await httpClient.GetFromJsonAsync<JsonObject>("/admin/config", cancellationToken);
+			return SelectActiveMainModel(config);
+		}
+		catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+		{
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Picks the main model of the profile named by <c>global.configurationId</c>, or the profile
+	/// flagged <c>isDefault</c> when no id is set or it matches none. Returns null if there is no
+	/// profile, or the chosen profile has no main model.
+	/// </summary>
+	internal static string? SelectActiveMainModel(JsonObject? config)
+	{
+		if (config?["profiles"] is not JsonArray profiles)
+		{
+			return null;
+		}
+
+		var list = profiles.OfType<JsonObject>().ToList();
+		int? activeId = config["global"] is JsonObject global
+			&& global["configurationId"] is JsonValue idValue
+			&& idValue.TryGetValue(out int id)
+				? id
+				: null;
+
+		JsonObject? profile = (activeId is int aid ? list.FirstOrDefault(p => p["id"]?.GetValue<int>() == aid) : null)
+			?? list.FirstOrDefault(p => p["isDefault"]?.GetValue<bool>() == true);
+
+		return profile?["mainModel"] is JsonValue modelValue && modelValue.TryGetValue(out string? model)
+			? model
+			: null;
 	}
 
 	/// <summary>
