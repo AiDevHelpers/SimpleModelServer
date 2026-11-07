@@ -272,20 +272,12 @@ end;
   Other queued operations (temp files, rollback files) are stale and must not block setup. }
 function PendingRenameTouchesApp(): Boolean;
 var
-  Entries: TArrayOfString;
-  I: Integer;
+  Entries: String;
 begin
   Result := False;
   if RegQueryMultiStringValue(HKLM, 'SYSTEM\CurrentControlSet\Control\Session Manager',
        'PendingFileRenameOperations', Entries) then
-  begin
-    for I := 0 to GetArrayLength(Entries) - 1 do
-      if Pos('simplemodelserver', LowerCase(Entries[I])) > 0 then
-      begin
-        Result := True;
-        exit;
-      end;
-  end;
+    Result := Pos('simplemodelserver', LowerCase(Entries)) > 0;
 end;
 
 function RebootPending(): Boolean;
