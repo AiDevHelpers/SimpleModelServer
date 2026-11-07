@@ -43,7 +43,9 @@ jobs:
         run: dotnet workload install maui-windows
 
       - name: Restore
-        run: dotnet restore SimpleModelServer.slnx
+        # The chat app's Windows TFM needs the win-x64 runtime pack at build time. Restoring for
+        # the RID downloads it; a plain restore relies on a warm local cache, which runners lack.
+        run: dotnet restore SimpleModelServer.slnx --runtime win-x64
 
       - name: Vulnerability audit
         shell: pwsh
