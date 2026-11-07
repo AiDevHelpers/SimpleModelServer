@@ -152,7 +152,7 @@ export class CommandsManager {
 
               this.outputChannel.append(chunk);
             }
-          } catch (streamErr) {
+          } catch {
             // Fallback to non-streaming
             console.warn("Streaming failed, using non-streaming");
             const response = await this.client.getChatCompletion(

@@ -169,9 +169,14 @@ public class ChatService
     {
         using var reader = new StreamReader(responseStream);
 
-        while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var line = await reader.ReadLineAsync(cancellationToken);
+            if (line is null)
+            {
+                break; // End of stream.
+            }
+
             if (string.IsNullOrWhiteSpace(line))
             {
                 continue;

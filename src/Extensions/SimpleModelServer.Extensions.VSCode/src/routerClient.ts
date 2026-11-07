@@ -135,7 +135,7 @@ export class RouterClient {
       } finally {
         clearTimeout(timeoutId);
       }
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -164,7 +164,7 @@ export class RouterClient {
       } finally {
         clearTimeout(timeoutId);
       }
-    } catch (err) {
+    } catch {
       return undefined;
     }
   }

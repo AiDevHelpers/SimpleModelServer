@@ -193,8 +193,10 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         {
             Console.Clear();
         }
-        catch
+        catch (IOException)
         {
+            // No console attached (Windows service, or output redirected). Nothing to clear, and
+            // this is expected, not an error.
         }
 
         LogRouterStart(logger);

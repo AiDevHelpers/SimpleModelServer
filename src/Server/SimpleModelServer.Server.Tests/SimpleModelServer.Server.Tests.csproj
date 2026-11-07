@@ -9,6 +9,7 @@
     <!-- Matches SimpleModelServer.Server.csproj: keeps this project buildable/analyzable the same way
          on a non-Windows dev machine even though SimpleModelServer.Server is Windows-only by design. -->
     <SupportedOSPlatform>windows</SupportedOSPlatform>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimpleModelServer.Server\SimpleModelServer.Server.csproj" />
@@ -17,22 +18,20 @@
     <ProjectReference Include="..\..\Providers\SimpleModelServer.Providers.LMStudio\SimpleModelServer.Providers.LMStudio.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+    <PackageReference Include="Microsoft.CodeAnalysis" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <PackageReference Include="xunit.runner.visualstudio">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-    <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="coverlet.collector" Version="10.0.1">
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="coverlet.collector">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
   </ItemGroup>
 </Project>
