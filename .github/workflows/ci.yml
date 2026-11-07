@@ -1,9 +1,9 @@
 name: CI and Release
 
-# Tests run on every push, pull request, and manual run.
-# Pushes to dev (prerelease) and main (stable) also build the installer and publish a release.
-# Pull requests and manual runs never publish. The version comes from version.json through nbgv,
-# and CI creates the tag. See the release-versioning rules in the global instructions.
+# Tests run on every push, pull request, and manual run. Every run also builds the installer.
+# Pushes to dev (prerelease) and main (stable) publish a release tagged v<version>.
+# Pull requests from this repo publish a prerelease tagged v<version>-pr<number>, so PRs never share a tag.
+# The version comes from version.json through nbgv, and CI creates the tag.
 
 on:
   push:
@@ -174,8 +174,6 @@ jobs:
     name: Build installer
     # The gate: tests, JS checks, and the quality gate must pass before any release asset is built.
     needs: [build-and-test, check-js, quality-gate]
-    # Branch pushes only: PRs and manual runs never build release assets.
-    if: github.event_name == 'push'
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -230,7 +228,8 @@ jobs:
   release:
     name: Publish release
     needs: installer
-    if: github.event_name == 'push'
+    # Pushes publish. PRs publish only from this repo: fork PRs get a read-only token.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -254,10 +253,14 @@ jobs:
       - name: Resolve version and tag
         id: version
         shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           version="$(nbgv get-version -v NuGetPackageVersion)"
           tag="v${version}"
+          # PRs get their own tag so two open PRs at the same version never overwrite each other's assets.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then tag="v${version}-pr${PR_NUMBER}"; fi
           if [ "$GITHUB_REF_NAME" = "main" ]; then prerelease=false; else prerelease=true; fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
