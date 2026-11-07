@@ -5,5 +5,5 @@ namespace SimpleModelServer.Hardware.Interfaces;
 
 public interface IHardwareDetection
 {
-    ResolvedHardwareSettings Resolve(IGlobalConfig config);
+	ResolvedHardwareSettings Resolve(IGlobalConfig config);
 }

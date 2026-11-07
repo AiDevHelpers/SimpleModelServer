@@ -9,9 +9,9 @@ using SimpleModelServer.Contracts.Models;
 
 public class AgentConfig : IAgentConfig
 {
-    public string SystemPrompt { get; set; } = "";
-    public double? Temperature { get; set; }
-    public JsonNode? Sampling { get; set; }
+	public string SystemPrompt { get; set; } = "";
+	public double? Temperature { get; set; }
+	public JsonNode? Sampling { get; set; }
 }
 
 

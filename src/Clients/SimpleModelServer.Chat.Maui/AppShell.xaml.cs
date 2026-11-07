@@ -1,4 +1,4 @@
-﻿using SimpleModelServer.Chat.Maui.Services;
+using SimpleModelServer.Chat.Maui.Services;
 using SimpleModelServer.Discovery;
 
 namespace SimpleModelServer.Chat.Maui;

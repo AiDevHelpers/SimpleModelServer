@@ -10,13 +10,13 @@ namespace SimpleModelServer.Server.Configuration;
 /// </summary>
 internal interface IConfigurationUpdater
 {
-    /// <summary>
-    ///     Updates a global configuration setting and returns whether a restart is required.
-    /// </summary>
-    UpdateResult UpdateGlobalSetting(IGlobalConfig config, string settingName, object? value);
+	/// <summary>
+	///     Updates a global configuration setting and returns whether a restart is required.
+	/// </summary>
+	UpdateResult UpdateGlobalSetting(IGlobalConfig config, string settingName, object? value);
 
-    /// <summary>
-    ///     Updates a field (e.g. "systemPrompt", "temperature") on the named agent's live config.
-    /// </summary>
-    UpdateResult UpdateAgentSetting(IReadOnlyDictionary<string, IAgentConfig> agents, string agentName, string fieldName, object? value);
+	/// <summary>
+	///     Updates a field (e.g. "systemPrompt", "temperature") on the named agent's live config.
+	/// </summary>
+	UpdateResult UpdateAgentSetting(IReadOnlyDictionary<string, IAgentConfig> agents, string agentName, string fieldName, object? value);
 }

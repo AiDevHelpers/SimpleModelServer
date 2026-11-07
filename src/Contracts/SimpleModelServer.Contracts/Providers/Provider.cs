@@ -5,9 +5,9 @@ namespace SimpleModelServer.Contracts.Providers;
 /// </summary>
 public enum Provider
 {
-    /// <summary>Ollama - local inference engine with model management</summary>
-    Ollama = 0,
+	/// <summary>Ollama - local inference engine with model management</summary>
+	Ollama = 0,
 
-    /// <summary>LM Studio - local inference engine with easy model management UI</summary>
-    LMStudio = 1,
+	/// <summary>LM Studio - local inference engine with easy model management UI</summary>
+	LMStudio = 1,
 }

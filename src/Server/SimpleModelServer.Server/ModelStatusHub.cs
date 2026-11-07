@@ -10,20 +10,20 @@ namespace SimpleModelServer.Server;
 /// </summary>
 internal sealed class ModelStatusHub(ModelReloadCoordinator coordinator) : Hub
 {
-    /// <summary>Registers this connection for pause/resume notifications about <paramref name="modelName" />.</summary>
-    public async Task Subscribe(string modelName)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, modelName);
-        coordinator.Subscribe(modelName, Context.ConnectionId);
-    }
+	/// <summary>Registers this connection for pause/resume notifications about <paramref name="modelName" />.</summary>
+	public async Task Subscribe(string modelName)
+	{
+		await Groups.AddToGroupAsync(Context.ConnectionId, modelName);
+		coordinator.Subscribe(modelName, Context.ConnectionId);
+	}
 
-    /// <summary>Client's acknowledgement that it has paused work for <paramref name="modelName" />.</summary>
-    public void Ack(string modelName)
-        => coordinator.RecordAck(modelName, Context.ConnectionId);
+	/// <summary>Client's acknowledgement that it has paused work for <paramref name="modelName" />.</summary>
+	public void Ack(string modelName)
+		=> coordinator.RecordAck(modelName, Context.ConnectionId);
 
-    public override Task OnDisconnectedAsync(Exception? exception)
-    {
-        coordinator.Unsubscribe(Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
-    }
+	public override Task OnDisconnectedAsync(Exception? exception)
+	{
+		coordinator.Unsubscribe(Context.ConnectionId);
+		return base.OnDisconnectedAsync(exception);
+	}
 }

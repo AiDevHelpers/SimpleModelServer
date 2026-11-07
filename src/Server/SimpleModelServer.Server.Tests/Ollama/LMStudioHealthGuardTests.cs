@@ -20,39 +20,39 @@ namespace SimpleModelServer.Server.Tests;
 /// </summary>
 public sealed class LMStudioHealthGuardTests
 {
-    [Fact]
-    public async Task WarmupModelAsync_ProviderIsLMStudio_NeverEscalatesEvenWhenBackendUnreachable()
-    {
-        await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync(config => new AppConfig
-        {
-            Global = new GlobalConfig
-            {
-                DefaultAgentType = config.Global.DefaultAgentType,
-                OllamaPort = config.Global.OllamaPort,
-                RouterHost = config.Global.RouterHost,
-                RouterModelName = config.Global.RouterModelName,
-                Provider = new ProviderConfiguration { Type = Provider.LMStudio }
-            },
-            Agents = config.Agents
-        });
+	[Fact]
+	public async Task WarmupModelAsync_ProviderIsLMStudio_NeverEscalatesEvenWhenBackendUnreachable()
+	{
+		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync(config => new AppConfig
+		{
+			Global = new GlobalConfig
+			{
+				DefaultAgentType = config.Global.DefaultAgentType,
+				OllamaPort = config.Global.OllamaPort,
+				RouterHost = config.Global.RouterHost,
+				RouterModelName = config.Global.RouterModelName,
+				Provider = new ProviderConfiguration { Type = Provider.LMStudio }
+			},
+			Agents = config.Agents
+		});
 
-        // Even with the fake backend fully failing, the Provider=LMStudio guard should short-
-        // circuit AttemptWarmupAsync to "always warm" before it ever reaches the Ollama-native
-        // HTTP call that would otherwise fail against this fake.
-        fixture.Ollama.FailGenerate = true;
+		// Even with the fake backend fully failing, the Provider=LMStudio guard should short-
+		// circuit AttemptWarmupAsync to "always warm" before it ever reaches the Ollama-native
+		// HTTP call that would otherwise fail against this fake.
+		fixture.Ollama.FailGenerate = true;
 
-        List<bool> recoveries = [];
-        fixture.Health.OllamaRecoveryOverride = forced =>
-        {
-            recoveries.Add(forced);
-            return Task.CompletedTask;
-        };
+		List<bool> recoveries = [];
+		fixture.Health.OllamaRecoveryOverride = forced =>
+		{
+			recoveries.Add(forced);
+			return Task.CompletedTask;
+		};
 
-        for (int i = 0; i < 5; i++)
-        {
-            await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
-        }
+		for (int i = 0; i < 5; i++)
+		{
+			await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
+		}
 
-        Assert.Empty(recoveries);
-    }
+		Assert.Empty(recoveries);
+	}
 }

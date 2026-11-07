@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SimpleModelServer.Chat.Maui.Services;
 using SimpleModelServer.Chat.Maui.Pages;
 using SimpleModelServer.Discovery;

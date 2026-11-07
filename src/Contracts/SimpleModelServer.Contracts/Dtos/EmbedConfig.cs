@@ -8,19 +8,19 @@ using SimpleModelServer.Contracts.Models;
 /// </summary>
 public class EmbedConfig
 {
-    /// <summary>Embedding model name (e.g., "nomic-embed-text")</summary>
-    public string Name { get; set; } = "";
+	/// <summary>Embedding model name (e.g., "nomic-embed-text")</summary>
+	public string Name { get; set; } = "";
 
-    /// <summary>Context window size in tokens</summary>
-    public int? NumCtx { get; set; }
+	/// <summary>Context window size in tokens</summary>
+	public int? NumCtx { get; set; }
 
-    /// <summary>
-    ///     Keep-alive duration in minutes. 0 = disabled (always hot, never unload).
-    ///     Positive values = minutes to keep alive.
-    /// </summary>
-    public int? KeepAliveMinutes { get; set; }
+	/// <summary>
+	///     Keep-alive duration in minutes. 0 = disabled (always hot, never unload).
+	///     Positive values = minutes to keep alive.
+	/// </summary>
+	public int? KeepAliveMinutes { get; set; }
 
-    /// <summary>Stop tokens for embedding generation</summary>
-    public string[] Stop { get; set; } = [];
+	/// <summary>Stop tokens for embedding generation</summary>
+	public string[] Stop { get; set; } = [];
 }
 

@@ -12,19 +12,19 @@ public readonly record struct McpUpstreamStatus(McpTransportType TransportType, 
 /// </summary>
 public interface IMcpUpstreamRegistry
 {
-    /// <summary>
-    ///     Connects to a single upstream and aggregates its tools. An unreachable upstream, or one
-    ///     configured with a transport not yet supported (see <see cref="McpTransportType" />), is
-    ///     logged and left disconnected rather than throwing.
-    /// </summary>
-    Task ConnectAsync(string serverName, IMcpUpstreamConfig upstreamConfig, CancellationToken ct = default);
+	/// <summary>
+	///     Connects to a single upstream and aggregates its tools. An unreachable upstream, or one
+	///     configured with a transport not yet supported (see <see cref="McpTransportType" />), is
+	///     logged and left disconnected rather than throwing.
+	/// </summary>
+	Task ConnectAsync(string serverName, IMcpUpstreamConfig upstreamConfig, CancellationToken ct = default);
 
-    /// <summary>
-    ///     Disconnects and removes an upstream's client and aggregated tools. Safe to call for an
-    ///     upstream that was never connected — it's just a no-op in that case.
-    /// </summary>
-    Task DisconnectAsync(string serverName);
+	/// <summary>
+	///     Disconnects and removes an upstream's client and aggregated tools. Safe to call for an
+	///     upstream that was never connected — it's just a no-op in that case.
+	/// </summary>
+	Task DisconnectAsync(string serverName);
 
-    /// <summary>Per-upstream status for display purposes — configured transport/path, whether it's connected, and how many tools it contributed.</summary>
-    IReadOnlyDictionary<string, McpUpstreamStatus> GetStatus();
+	/// <summary>Per-upstream status for display purposes — configured transport/path, whether it's connected, and how many tools it contributed.</summary>
+	IReadOnlyDictionary<string, McpUpstreamStatus> GetStatus();
 }

@@ -13,23 +13,23 @@ using SimpleModelServer.Contracts.Models;
 /// </summary>
 public class ModelConfiguration
 {
-    /// <summary>Unique identifier for this configuration (integer, stable across restarts)</summary>
-    public int Id { get; set; }
+	/// <summary>Unique identifier for this configuration (integer, stable across restarts)</summary>
+	public int Id { get; set; }
 
-    /// <summary>User-friendly display name (e.g., "Fast & Responsive", "Accurate & Thorough")</summary>
-    public string Nickname { get; set; } = "";
+	/// <summary>User-friendly display name (e.g., "Fast & Responsive", "Accurate & Thorough")</summary>
+	public string Nickname { get; set; } = "";
 
-    /// <summary>Whether this is the default configuration to use when none is specified</summary>
-    public bool IsDefault { get; set; }
+	/// <summary>Whether this is the default configuration to use when none is specified</summary>
+	public bool IsDefault { get; set; }
 
-    /// <summary>Description of this configuration's purpose and characteristics</summary>
-    public string? Description { get; set; }
+	/// <summary>Description of this configuration's purpose and characteristics</summary>
+	public string? Description { get; set; }
 
-    /// <summary>Model family pairs for this configuration (defaults only; system builds actual models)</summary>
-    public Collection<FamilyPair> Families { get; set; } = new();
+	/// <summary>Model family pairs for this configuration (defaults only; system builds actual models)</summary>
+	public Collection<FamilyPair> Families { get; set; } = new();
 
-    /// <summary>Embedding model for this configuration (defaults only; system builds actual model if missing)</summary>
-    public EmbedConfig? Embed { get; set; }
+	/// <summary>Embedding model for this configuration (defaults only; system builds actual model if missing)</summary>
+	public EmbedConfig? Embed { get; set; }
 }
 
 

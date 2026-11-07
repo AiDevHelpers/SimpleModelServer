@@ -13,17 +13,17 @@ namespace SimpleModelServer.Providers.Ollama;
 /// </summary>
 public interface IOllamaProcessManager : IDisposable
 {
-    int ServerPort { get; }
-    int? OllamaProcessId { get; }
+	int ServerPort { get; }
+	int? OllamaProcessId { get; }
 
-    void RegisterExistingOllamaProcess();
-    void KillStuckOllama();
-    Task EnsureModelAsync(string model);
-    Task<bool> StartServerAsync();
-    Task<bool> WaitForServerAsync();
-    Task<bool> IsOllamaReadyAsync();
-    Task<bool> IsModelResponsiveAsync(string model);
-    Task<bool> IsModelResponsiveAsync(string model, TimeSpan timeout);
-    Task<bool> IsModelLoadedInVramAsync(string model);
-    Task UnloadModelAsync(string model);
+	void RegisterExistingOllamaProcess();
+	void KillStuckOllama();
+	Task EnsureModelAsync(string model);
+	Task<bool> StartServerAsync();
+	Task<bool> WaitForServerAsync();
+	Task<bool> IsOllamaReadyAsync();
+	Task<bool> IsModelResponsiveAsync(string model);
+	Task<bool> IsModelResponsiveAsync(string model, TimeSpan timeout);
+	Task<bool> IsModelLoadedInVramAsync(string model);
+	Task UnloadModelAsync(string model);
 }
