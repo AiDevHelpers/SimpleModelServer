@@ -72,7 +72,7 @@ public sealed class InterfaceContractTests
 		string body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		JsonDocument doc = JsonDocument.Parse(body);
 		Assert.True(doc.RootElement.TryGetProperty("models", out var models));
-		Assert.NotNull(models);
+		Assert.Equal(JsonValueKind.Array, models.ValueKind);
 	}
 
 	[Fact]

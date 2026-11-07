@@ -12,7 +12,7 @@ Each unit removes its own codes from `NoWarn` in `src/Directory.Build.props`. Th
 Units (each: remove the unit's codes from `NoWarn`, clean Release build with 0 warnings, tests pass, update the status below, commit, start the next):
 
 - [x] U1. `xUnit1051` (31, test projects). Pass `TestContext.Current.CancellationToken` where a `CancellationToken` is accepted. Remove `xUnit1051` from `NoWarn`.
-- [ ] U2. `xUnit2002` (1). `InterfaceContractTests.cs:75`: remove the `Assert.NotNull` on a value type. Remove `xUnit2002`.
+- [x] U2. `xUnit2002` (1). `InterfaceContractTests.cs:75`: replaced the `Assert.NotNull` on a `JsonElement` struct with an array-kind check. Removed `xUnit2002`.
 - [ ] U3. `CS8604` (6) and `CS8600` (1). Logger call sites in `AdminEndpointHandler.cs` (189, 204, 283, 295), `SimpleModelPairGenerationService.cs` (493): pass `error ?? string.Empty`, so all call sites are handled the same way. `AgentConfigService.cs:155`: handle the nullable return before assigning. `ConfigurationUpdaterTests.cs:329`: assert on a non-null value. Remove `CS8604` and `CS8600`.
 - [ ] U4. `VSTHRD200` (1). Rename `ChatViewModelTests.cs:253` `Create<T>` to `CreateAsync<T>`. It has no callers outside that file. Remove `VSTHRD200`.
 - [ ] U5. `CS1591` (12, `SimpleModelServer.UI`). Add XML doc comments to the public members listed in the build output. Remove `CS1591`.
