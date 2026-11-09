@@ -1,4 +1,5 @@
 using SimpleModelServer.Config.Configuration;
+using SimpleModelServer.Providers.Common.Generation;
 using SimpleModelServer.Contracts.Configuration;
 
 using Microsoft.Extensions.Logging;
@@ -256,6 +257,38 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
     ///     and idled it out; the next request reloads it. Callers use this to distinguish that
     ///     idle case from an actually-unresponsive model in <see cref="IsModelResponsiveAsync" />.
     /// </summary>
+    /// <summary>
+    ///     The load options the router generates with for a model. The probe sends the same load
+    ///     settings (context size, GPU layers, threads): when a probe's settings differ from a
+    ///     generation's, Ollama reloads the model for each one.
+    /// </summary>
+    public Func<string, GenerationOptions>? OptionsFor { get; set; }
+
+    private JsonObject ProbeOptions(string model)
+    {
+        JsonObject options = new() { ["num_predict"] = 1 };
+        GenerationOptions? generation = OptionsFor?.Invoke(model);
+        if (generation?.ContextSize is not null)
+        {
+            options["num_ctx"] = generation.ContextSize.Value;
+        }
+
+        if (generation?.NumGpu is not null)
+        {
+            options["num_gpu"] = generation.NumGpu.Value;
+        }
+
+        if (generation?.NumThread is not null)
+        {
+            options["num_thread"] = generation.NumThread.Value;
+        }
+
+        return options;
+    }
+
+    private static string StripLatestTag(string name) =>
+        name.EndsWith(":latest", StringComparison.Ordinal) ? name[..^":latest".Length] : name;
+
     public async Task<bool> IsModelLoadedInVramAsync(string model)
     {
         try
@@ -269,8 +302,11 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
 
             JsonNode? body = await response.Content.ReadFromJsonAsync<JsonNode>();
             JsonArray? models = body?["models"]?.AsArray();
-            return models?.Any(m => string.Equals(m?["name"]?.GetValue<string>(), model, StringComparison.Ordinal)) ??
-                   false;
+            // /api/ps reports names with their tag ("qwen2.5-coder-3b-chat:latest") even when the
+            // configured name has none, so compare with the implicit ":latest" tag stripped from both.
+            string wanted = StripLatestTag(model);
+            bool match = models?.Any(m => string.Equals(StripLatestTag(m?["name"]?.GetValue<string>() ?? ""), wanted, StringComparison.Ordinal)) ?? false;
+            return match;
         }
         catch (HttpRequestException)
         {
@@ -292,9 +328,20 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
             // healthy embed model as unresponsive on every probe.
             bool isEmbed = config.IsEmbedModel(model);
             Uri endpoint = new($"http://127.0.0.1:{ServerPort}/{(isEmbed ? "api/embed" : "api/generate")}");
+            // No keep_alive here: keep_alive = 0 makes Ollama unload the model right after this
+            // probe, so the probe itself evicted the model it was checking (see docs/pitfalls.md).
             using JsonContent request = JsonContent.Create(isEmbed
-                ? new JsonObject { ["model"] = model, ["input"] = "hi", ["keep_alive"] = 0 }
-                : new JsonObject { ["model"] = model, ["prompt"] = "hi", ["stream"] = false, ["keep_alive"] = 0 });
+                ? new JsonObject { ["model"] = model, ["input"] = "hi" }
+                // One output token: the probe only needs to show the model answers. Without the cap,
+                // the model writes a full reply, which can take longer than the probe timeout and
+                // read as unresponsive (triggering a warm-up).
+                : new JsonObject
+                {
+                    ["model"] = model,
+                    ["prompt"] = "hi",
+                    ["stream"] = false,
+                    ["options"] = ProbeOptions(model),
+                });
             using HttpResponseMessage response = await probeHttp.PostAsync(endpoint, request, cts.Token);
             return response.IsSuccessStatusCode;
         }

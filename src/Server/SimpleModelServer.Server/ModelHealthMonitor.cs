@@ -26,8 +26,10 @@ internal sealed partial class ModelHealthMonitor(
     ILogger logger,
     IOllamaProcessManager process,
     HttpClient http,
-    Func<string, int?> gpuLayersForModel)
+    Func<string, int?> gpuLayersForModel,
+    InFlightGenerations? inFlight = null)
 {
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Model '{Model}' reloaded successfully.")]
     private static partial void LogModelReloadedSuccessfully(ILogger logger, string model);
 
@@ -291,6 +293,13 @@ internal sealed partial class ModelHealthMonitor(
         {
             foreach (string model in models)
             {
+                // A model with a generation running is serving; probing it would queue behind that
+                // generation and time out, counting a busy model as unhealthy.
+                if (inFlight?.IsBusy(model) == true)
+                {
+                    continue;
+                }
+
                 if (!await process.IsModelResponsiveAsync(model))
                 {
                     healthy = false;
@@ -347,6 +356,14 @@ internal sealed partial class ModelHealthMonitor(
         const int MaxRetries = 2;
         const int FailureThresholdForRecovery = 3;
         int attemptNumber = 0;
+
+        // A model already resident in VRAM is warm. Warming it anyway sends a generation that queues
+        // behind any real generation on that model; the warming flag then stays set for the whole
+        // wait and every request is answered warming_up. Only warm models that are not loaded.
+        if (await process.IsModelLoadedInVramAsync(model))
+        {
+            return;
+        }
 
         try
         {
@@ -476,11 +493,25 @@ internal sealed partial class ModelHealthMonitor(
         JsonObject requestBody = isEmbed
             ? new JsonObject { ["model"] = model, ["input"] = promptText, ["keep_alive"] = keepAlive }
             : new JsonObject { ["model"] = model, ["prompt"] = promptText, ["stream"] = false, ["keep_alive"] = keepAlive };
+        // Warm-up only needs the model resident, so cap a chat model's generation to one token.
+        // Without the cap the model writes a full reply, which can run to the warm-up timeout.
+        JsonObject options = new();
+        if (!isEmbed)
+        {
+            options["num_predict"] = 1;
+        }
+
         int? numGpu = gpuLayersForModel(model);
         if (numGpu is not null)
         {
-            requestBody["options"] = new JsonObject { ["num_gpu"] = numGpu.Value };
+            options["num_gpu"] = numGpu.Value;
         }
+
+        if (options.Count > 0)
+        {
+            requestBody["options"] = options;
+        }
+
         return requestBody;
     }
 

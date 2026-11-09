@@ -31,7 +31,8 @@ internal sealed partial class SimpleModelPairGenerationService(
     Func<string, int?> gpuLayersForModel,
     Func<string, Task> ensureAgentLoaded,
     IOllamaHelpers ollamaHelpers,
-    IConsoleHelper consoleHelper)
+    IConsoleHelper consoleHelper,
+    InFlightGenerations? inFlightGenerations = null)
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "Research classifier: {Classification} (raw: \"{RawText}\")")]
     private static partial void LogResearchClassification(ILogger logger, string classification, string rawText);
@@ -62,6 +63,8 @@ internal sealed partial class SimpleModelPairGenerationService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Research: Jina failed ({ErrorMessage}) — asking caller to search.")]
     private static partial void LogResearchJinaFailed(ILogger logger, string errorMessage);
+
+    private readonly InFlightGenerations tracker = inFlightGenerations ?? new InFlightGenerations();
 
     private static readonly TimeSpan TokenPollTimeout = TimeSpan.FromMilliseconds(30);
     private static readonly TimeSpan DraftPairPollYield = TimeSpan.FromMilliseconds(10);
@@ -104,9 +107,67 @@ internal sealed partial class SimpleModelPairGenerationService(
 
     private static readonly TimeSpan MaxDraftDrainTime = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    ///     Verify mode: draft and main answer the same prompt in parallel. Returns only after both finish.
+    ///     Main's answer is returned (the draft never replaces it); the draft is used only if main is empty,
+    ///     and whether the two agree is logged.
+    /// </summary>
+    private async Task<string> VerifyAsync(string prompt, string agentType, CancellationToken ct)
+    {
+        await using IGenerationHandle main = await StartStreamAsync(MainModelName, prompt, agentType, ct);
+        await using IGenerationHandle draft = await StartStreamAsync(DraftModelName, prompt, agentType, ct);
+
+        Task<string> mainTask = DrainAsync(main, ct);
+        Task<string> draftTask = DrainAsync(draft, ct);
+        string mainText = await mainTask;
+        string draftText = await draftTask;
+
+        bool agree = string.Equals(NormalizeForCompare(mainText), NormalizeForCompare(draftText), StringComparison.Ordinal);
+        LogVerifyResult(logger, agree);
+
+        return ChooseFinalText(draftText, mainText);
+    }
+
+    /// <summary>Reads a stream to completion and returns its full text.</summary>
+    private async Task<string> DrainAsync(IGenerationHandle handle, CancellationToken ct)
+    {
+        System.Text.StringBuilder text = new();
+        bool done = false;
+        while (!done)
+        {
+            ct.ThrowIfCancellationRequested();
+            TokenResult token = await handle.ReadTokenAsync(TokenPollTimeout);
+            done = token.Done;
+            if (!string.IsNullOrEmpty(token.Text))
+            {
+                _ = text.Append(token.Text);
+            }
+
+            if (!done)
+            {
+                await Task.Delay(DraftPairPollYield, ct);
+            }
+        }
+
+        return text.ToString();
+    }
+
+    private static string NormalizeForCompare(string text)
+    {
+        return string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Verify: draft and main agree={Agree}")]
+    private static partial void LogVerifyResult(ILogger logger, bool agree);
+
     public async Task<string> GetDraftPairResponseAsync(IReadOnlyList<ChatMessage> history, string agentType, CancellationToken ct = default)
     {
         string prompt = ollamaHelpers.BuildPrompt(history);
+        if (config.Global.DraftMode == DraftMode.Verify)
+        {
+            return await VerifyAsync(prompt, agentType, ct);
+        }
+
         LogDraftGenerating(logger);
 
         (string mainPrompt, string fallbackText, Task draftCleanupTask) =
@@ -187,9 +248,21 @@ internal sealed partial class SimpleModelPairGenerationService(
         {
             DraftMode.Cleanup => PrepareCleanupOnlyAsync(prompt, agentType, ct),
             DraftMode.Both => PrepareCleanupThenPreviewAsync(prompt, agentType, ct),
+            DraftMode.None => PrepareMainOnlyAsync(prompt),
+            // Verify is non-streaming (see VerifyAsync); streamed replies come from main alone.
+            DraftMode.Verify => PrepareMainOnlyAsync(prompt),
             _ => PreparePreviewAsync(prompt, agentType, ct)
         };
     }
+
+    /// <summary>Main only: the prompt goes to main unchanged and there is no draft text to fall back to.</summary>
+    private static Task<(string, string, Task)> PrepareMainOnlyAsync(string prompt)
+    {
+        return Task.FromResult((prompt, "", Task.CompletedTask));
+    }
+
+    /// <summary>True when the draft model takes part in generation (every mode except <see cref="DraftMode.None" />).</summary>
+    public bool DraftInUse => config.Global.DraftMode != DraftMode.None;
 
     private async Task<(string, string, Task)> PreparePreviewAsync(string prompt, string agentType, CancellationToken ct)
     {
@@ -336,8 +409,47 @@ internal sealed partial class SimpleModelPairGenerationService(
         await ensureAgentLoaded(agentType);
         IAgentConfig agentConfig = config.Agent(agentType);
         GenerationOptions options = BuildGenerationOptions(agentConfig, model);
-        return await backend.StartStreamAsync(model, prompt, options, ct);
+        IDisposable release = tracker.Track(model);
+        IGenerationHandle handle;
+        try
+        {
+            handle = await backend.StartStreamAsync(model, prompt, options, ct);
+        }
+        catch
+        {
+            release.Dispose();
+            throw;
+        }
+
+        return new InFlightHandle(handle, release.Dispose);
     }
+
+    /// <summary>
+    ///     True while the router has a generation running on <paramref name="model" />. Such a model
+    ///     is demonstrably serving, so a readiness probe must not queue behind it (see the warm-up gate).
+    /// </summary>
+    public bool HasInFlightGeneration(string model) => tracker.IsBusy(model);
+
+    private sealed class InFlightHandle(IGenerationHandle inner, Action onDispose) : IGenerationHandle
+    {
+        public Task<TokenResult> ReadTokenAsync(TimeSpan timeout) => inner.ReadTokenAsync(timeout);
+
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await inner.DisposeAsync();
+            }
+            finally
+            {
+                onDispose();
+            }
+        }
+    }
+
+    /// <summary>The load options a generation on <paramref name="model" /> uses (the health probe must match them).</summary>
+    public GenerationOptions OptionsForModel(string model) =>
+        BuildGenerationOptions(config.Agent(config.DefaultAgentType), model);
 
     private GenerationOptions BuildGenerationOptions(IAgentConfig agentConfig, string model)
     {

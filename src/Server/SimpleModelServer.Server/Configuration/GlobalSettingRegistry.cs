@@ -252,6 +252,8 @@ internal static class GlobalSettingRegistry
         {
             "CLEANUP" => DraftMode.Cleanup,
             "BOTH" => DraftMode.Both,
+            "NONE" => DraftMode.None,
+            "VERIFY" => DraftMode.Verify,
             _ => DraftMode.Preview
         };
     }

@@ -267,10 +267,11 @@ public sealed class OllamaHelpersTests
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
+            // The first read is slow (like a model still producing its first token). It is not
+            // cancelled by the poll timeout: the read stays pending and completes when data arrives.
             if (Interlocked.Increment(ref callCount) == 1)
             {
-                await Task.Delay(Timeout.Infinite, cancellationToken);
-                return 0; // unreachable — Task.Delay(Infinite, ct) only ever throws or hangs
+                await Task.Delay(TimeSpan.FromMilliseconds(300));
             }
 
             int toCopy = Math.Min(count, Payload.Length);

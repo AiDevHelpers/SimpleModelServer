@@ -151,12 +151,14 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         else
         {
             var ollamaProcess = new OllamaProcessManager(config, logger, http);
+            ollamaProcess.OptionsFor = model => generation.OptionsForModel(model);
             process = ollamaProcess;
             generationBackend = new OllamaGenerationBackend(ollamaProcess, http, ollamaHelpers);
         }
 
-        health = new ModelHealthMonitor(config, logger, process, http, GpuLayersFor) { OnRecovered = OnHealthRecoveredAsync };
-        generation = new SimpleModelPairGenerationService(config, logger, generationBackend, () => HardwareSettings, GpuLayersFor, ReloadModelForAgentAsync, ollamaHelpers, consoleHelper);
+        var inFlight = new InFlightGenerations();
+        health = new ModelHealthMonitor(config, logger, process, http, GpuLayersFor, inFlight) { OnRecovered = OnHealthRecoveredAsync };
+        generation = new SimpleModelPairGenerationService(config, logger, generationBackend, () => HardwareSettings, GpuLayersFor, ReloadModelForAgentAsync, ollamaHelpers, consoleHelper, inFlight);
         agentTypeResolver = new AgentTypeResolver(config);
         var mcpUpstreamRegistry = new McpUpstreamRegistry(config.McpServers, logger);
         var systemInfoService = new SystemInfoService(config, hardwareDetection, mcpUpstreamRegistry);
@@ -293,7 +295,9 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         // router doesn't come up and start reporting ready until draft, main, AND embed are all
         // actually resident.
         trace("RunAsync: warming draft/main/embed models into VRAM before accepting traffic...");
-        await health.WarmupModelsAsync([generation.DraftModelName, generation.MainModelName, generation.EmbedModelName]);
+        await health.WarmupModelsAsync(generation.DraftInUse
+            ? new[] { generation.DraftModelName, generation.MainModelName, generation.EmbedModelName }
+            : new[] { generation.MainModelName, generation.EmbedModelName });
         trace("RunAsync: startup VRAM warmup complete.");
 
         LogRouterRunning(logger, config.Global.RouterHost, RouterPort);
@@ -305,7 +309,9 @@ internal sealed partial class SimpleModelPairApp : IDisposable
         // Embed is included here (not just draft/main) so it doesn't silently idle back out of
         // VRAM between requests and reopen the same "not loaded" window this fix closes at
         // startup — see the warmup call above for the fuller rationale.
-        _ = health.RunAsync(() => [generation.DraftModelName, generation.MainModelName, generation.EmbedModelName], routerShutdown.Token);
+        _ = health.RunAsync(() => generation.DraftInUse
+            ? new[] { generation.DraftModelName, generation.MainModelName, generation.EmbedModelName }
+            : new[] { generation.MainModelName, generation.EmbedModelName }, routerShutdown.Token);
 
         await router.StartAsync(RouterPort, routerShutdown.Token, onBound: StartMdnsAdvertising);
         return 0;
@@ -397,6 +403,22 @@ internal sealed partial class SimpleModelPairApp : IDisposable
             new GpuBudgetPlanner.ModelGpuRequest(generation.EmbedModelName, ResolveNumCtx(generation.EmbedModelName, defaultEmbedCtx), ResolveNumGpuPin(generation.EmbedModelName), Priority: 1),
             new GpuBudgetPlanner.ModelGpuRequest(generation.MainModelName, ResolveNumCtx(generation.MainModelName, defaultMainCtx), ResolveNumGpuPin(generation.MainModelName), Priority: 2)
         ];
+
+        // In main-only mode the draft model is never used, so it must not take VRAM from main.
+        // Main-only: the main model is planned first, so it gets the GPU budget ahead of embed. (The
+        // planner's size estimates for models without architecture metadata are rough, and embed was
+        // taking the budget and leaving main on the CPU.)
+        if (!generation.DraftInUse)
+        {
+            _ = requests.RemoveAll(r => r.Name == generation.DraftModelName);
+            for (int i = 0; i < requests.Count; i++)
+            {
+                if (requests[i].Name == generation.MainModelName)
+                {
+                    requests[i] = requests[i] with { Priority = 0 };
+                }
+            }
+        }
 
         try
         {

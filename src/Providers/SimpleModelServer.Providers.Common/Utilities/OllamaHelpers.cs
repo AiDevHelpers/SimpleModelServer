@@ -10,6 +10,17 @@ namespace SimpleModelServer.Providers.Common.Utilities;
 
 public sealed class OllamaHelpers : IOllamaHelpers
 {
+    private readonly Action<Exception>? _onStreamFault;
+
+    // The read that is still in flight for each stream, carried across polls (see ReadTokenAsync).
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<StreamReader, Task<string?>> PendingReads = new();
+
+    /// <param name="onStreamFault">Called when a token read ends the stream early on an I/O or parse fault.</param>
+    public OllamaHelpers(Action<Exception>? onStreamFault = null)
+    {
+        _onStreamFault = onStreamFault;
+    }
+
     public string BuildPrompt(IReadOnlyList<ChatMessage> history)
     {
         return string.Join('\n', history.Select(m =>
@@ -43,25 +54,19 @@ public sealed class OllamaHelpers : IOllamaHelpers
         try
         {
             string? line;
-            try
-            {
-                // Must actually cancel the read on timeout, not just stop awaiting it (the
-                // previous implementation raced ReadLineAsync() against Task.Delay via
-                // Task.WhenAny and returned on timeout without touching the losing task).
-                // StreamReader permits only one in-flight async read at a time; an abandoned-
-                // but-still-running ReadLineAsync left the reader "in use" until it eventually
-                // completed on its own (whenever the next line arrived, or never), so the very
-                // next poll iteration's fresh ReadLineAsync() call collided with it and threw
-                // InvalidOperationException: "The stream is currently in use by a previous
-                // operation on the stream." A real CancellationToken properly unwinds the
-                // pending read and clears that in-progress state instead of orphaning it.
-                using CancellationTokenSource cts = new(timeout);
-                line = await reader.ReadLineAsync(cts.Token);
-            }
-            catch (OperationCanceledException)
+            // Keep one read in flight per reader and wait on it for up to the poll timeout. Cancelling
+            // the read on timeout (the old approach) makes the HTTP connection drop its response stream,
+            // so the next poll failed with ObjectDisposedException and the reply was cut short. Only one
+            // read is ever issued per reader, so StreamReader's "in use" restriction is not hit.
+            Task<string?> pending = PendingReads.GetValue(reader, static r => r.ReadLineAsync());
+            Task finished = await Task.WhenAny(pending, Task.Delay(timeout));
+            if (!ReferenceEquals(finished, pending))
             {
                 return new TokenResult("", false);
             }
+
+            _ = PendingReads.Remove(reader);
+            line = await pending;
 
             if (string.IsNullOrWhiteSpace(line))
             {
@@ -81,6 +86,9 @@ public sealed class OllamaHelpers : IOllamaHelpers
             // loop — but unlike a bare catch, this only swallows genuinely expected failure
             // modes. Anything else (e.g. an OutOfMemoryException, a bug in caller-supplied
             // code) propagates instead of silently masquerading as a clean stream end.
+            // The fault is reported so an early end-of-stream is not silent (the caller can
+            // otherwise fall back to draft text with no trace of the failure).
+            _onStreamFault?.Invoke(ex);
             return new TokenResult("", true);
         }
     }

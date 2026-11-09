@@ -635,6 +635,8 @@ public sealed class AppConfig : IAppConfig
         {
             "CLEANUP" => Configuration.DraftMode.Cleanup,
             "BOTH" => Configuration.DraftMode.Both,
+            "NONE" => Configuration.DraftMode.None,
+            "VERIFY" => Configuration.DraftMode.Verify,
             _ => Configuration.DraftMode.Preview
         };
     }
@@ -919,7 +921,20 @@ public enum DraftMode
     ///     Highest potential accuracy, at the cost of two sequential draft calls before main starts
     ///     (added latency).
     /// </summary>
-    Both
+    Both,
+
+    /// <summary>
+    ///     Main only: the prompt goes straight to main with no draft call at all. The draft model is not
+    ///     used, so the router does not need it loaded or healthy.
+    /// </summary>
+    None,
+
+    /// <summary>
+    ///     Draft and main answer the same prompt in parallel; the reply is returned only after both finish.
+    ///     Main's answer is returned, and the draft is used only if main comes back empty. Streamed replies
+    ///     come from main alone.
+    /// </summary>
+    Verify
 }
 
 public sealed class AgentConfig : IAgentConfig

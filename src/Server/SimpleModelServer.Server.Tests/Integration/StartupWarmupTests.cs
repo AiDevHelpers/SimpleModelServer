@@ -57,6 +57,8 @@ public sealed class StartupWarmupTests
     public async Task WarmupModelsAsync_GivenDraftMainAndEmbed_WarmsAllThreeIndividually()
     {
         await using RouterTestFixture fixture = await CreateFixtureAsync();
+        // Warm-up only touches models that are not already resident, so start with none loaded.
+        fixture.Ollama.LoadedModels = [];
 
         await fixture.Health.WarmupModelsAsync([DraftModel, MainModel, EmbedModel]);
 

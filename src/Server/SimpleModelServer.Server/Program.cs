@@ -18,8 +18,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Extensions.Logging;
 using System.Diagnostics;
+using TokenSaver.Common.Logging;
 
 bool runningAsService = WindowsServiceHelpers.IsWindowsService();
 bool verboseLogging = Environment.GetEnvironmentVariable("SIMPLEMODELSERVER_VERBOSE_LOGGING") is "1" or "true";
@@ -85,11 +85,10 @@ if (WindowsServiceHelpers.IsWindowsService())
 
     Trace("Building host...");
 
-    // Configure Serilog with all sinks (console, event log, named pipe, optional file)
-    Serilog.ILogger svcLogger = SerilogSetup.ConfigureLogger(svcConfig, runningAsService: true, verboseLogging);
-
+    // Same shared logger as TokenSaver (TokenSaver.Common.Logging), on the DraftModel channel.
     IHost host = Host.CreateDefaultBuilder(args)
-        .UseSerilog(svcLogger)
+        .UseAppLogging(LogChannel.DraftModel,
+            verboseLogging ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information)
         .UseWindowsService(o => o.ServiceName = "SimpleModelServerLoader")
         .ConfigureServices((_, services) =>
         {
@@ -109,7 +108,12 @@ if (WindowsServiceHelpers.IsWindowsService())
             services.AddSingleton<IAppConfig>(svcConfig);
             services.AddSingleton<IHardwareDetection, HardwareDetection>();
             services.AddSingleton<IGpuBudgetPlanner, GpuBudgetPlanner>();
-            services.AddSingleton<IOllamaHelpers, OllamaHelpers>();
+            services.AddSingleton<IOllamaHelpers>(sp =>
+            {
+                ILogger<OllamaHelpers> helpersLogger = sp.GetRequiredService<ILogger<OllamaHelpers>>();
+                return new OllamaHelpers(ex =>
+                    helpersLogger.LogWarning(ex, "Token stream ended early on a read fault; the router will fall back to draft text."));
+            });
             services.AddSingleton<IConsoleHelper, ConsoleHelper>();
             services.AddSingleton<SystemInfoService>();
             // Configuration management services for admin API
@@ -207,13 +211,14 @@ try
     IAppConfig config = AppConfig.Load(configPath);
 
     // Configure Serilog for interactive (non-service) mode
-    Serilog.ILogger serilogLogger = SerilogSetup.ConfigureLogger(config, runningAsService: false, verboseLogging);
-    var loggerFactory = new SerilogLoggerFactory(serilogLogger);
+    ILoggerFactory loggerFactory = AppLoggerFactory.Create(LogChannel.DraftModel,
+        verboseLogging ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information);
     Microsoft.Extensions.Logging.ILogger appLogger = loggerFactory.CreateLogger<Program>();
 
     IHardwareDetection hardwareDetection = new HardwareDetection();
     IGpuBudgetPlanner gpuBudgetPlanner = new GpuBudgetPlanner();
-    IOllamaHelpers ollamaHelpers = new OllamaHelpers();
+    IOllamaHelpers ollamaHelpers = new OllamaHelpers(ex =>
+        appLogger.LogWarning(ex, "Token stream ended early on a read fault; the router will fall back to draft text."));
     IConsoleHelper consoleHelper = new ConsoleHelper();
     using SimpleModelPairApp app = new(options, config, appLogger, hardwareDetection, gpuBudgetPlanner, ollamaHelpers, consoleHelper);
     return await app.RunAsync();

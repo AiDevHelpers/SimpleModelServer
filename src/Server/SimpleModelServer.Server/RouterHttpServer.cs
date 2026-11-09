@@ -104,7 +104,9 @@ internal sealed partial class RouterHttpServer(
     private static partial void LogHealthCheckFailed(ILogger logger);
 
     private static readonly TimeSpan RouterHealthProbeTimeout = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan ModelResponsiveWarmupCheckTimeout = TimeSpan.FromSeconds(2);
+    // Must outlast a cold model load (about 2.7s for the 3B main model). A shorter timeout cancels
+    // the probe mid-load, Ollama drops the load, and the model never stays resident (see docs/pitfalls.md).
+    private static readonly TimeSpan ModelResponsiveWarmupCheckTimeout = TimeSpan.FromSeconds(10);
 
     private string RouterHost => config.Global.RouterHost;
     private string RouterModelName => config.Global.RouterModelName;
@@ -526,22 +528,38 @@ internal sealed partial class RouterHttpServer(
             reloadCoordinator.WaitIfPausedAsync(generation.DraftModelName, ct),
             reloadCoordinator.WaitIfPausedAsync(generation.MainModelName, ct));
 
+    private async Task<bool> IsModelReadyAsync(string model)
+    {
+        // A model with a generation already running is serving right now, so skip the probe.
+        // Probing it would queue behind that generation, time out, and falsely report warming_up.
+        if (generation.HasInFlightGeneration(model))
+        {
+            return true;
+        }
+
+        return await process.IsModelResponsiveAsync(model, ModelResponsiveWarmupCheckTimeout);
+    }
+
     /// <summary>
     ///     Checks if models are warming up and returns a 202 response if they are.
     ///     Returns true if any model is warming up (caller should not proceed with request).
     /// </summary>
     private async Task<bool> CheckModelWarmupAsync(HttpContext context)
     {
-        bool draftWarming = health.IsModelWarmingUp(generation.DraftModelName);
+        // In main-only mode the draft model is never used, so it can't be warming or unready.
+        bool draftWarming = generation.DraftInUse && health.IsModelWarmingUp(generation.DraftModelName);
         bool mainWarming = health.IsModelWarmingUp(generation.MainModelName);
 
-        if (!draftWarming && !await process.IsModelResponsiveAsync(generation.DraftModelName, ModelResponsiveWarmupCheckTimeout))
+        // A model already resident in VRAM (per /api/ps) is ready. Probing it with a generation
+        // request queues behind any in-flight generation for that model, so under concurrent
+        // load the probe times out and falsely reports warming_up.
+        if (generation.DraftInUse && !draftWarming && !await IsModelReadyAsync(generation.DraftModelName))
         {
             _ = health.WarmupModelAsync(generation.DraftModelName);
             draftWarming = true;
         }
 
-        if (!mainWarming && !await process.IsModelResponsiveAsync(generation.MainModelName, ModelResponsiveWarmupCheckTimeout))
+        if (!mainWarming && !await IsModelReadyAsync(generation.MainModelName))
         {
             _ = health.WarmupModelAsync(generation.MainModelName);
             mainWarming = true;
@@ -686,11 +704,15 @@ internal sealed partial class RouterHttpServer(
         bool draftHealthy = true, mainHealthy = true, draftIdle = false, mainIdle = false;
         if (ollamaHealthy)
         {
-            (draftHealthy, draftIdle) = await ProbeModelHealthAsync(generation.DraftModelName);
+            if (generation.DraftInUse)
+            {
+                (draftHealthy, draftIdle) = await ProbeModelHealthAsync(generation.DraftModelName);
+            }
+
             (mainHealthy, mainIdle) = await ProbeModelHealthAsync(generation.MainModelName);
         }
 
-        bool draftWarming = health.IsModelWarmingUp(generation.DraftModelName);
+        bool draftWarming = generation.DraftInUse && health.IsModelWarmingUp(generation.DraftModelName);
         bool mainWarming = health.IsModelWarmingUp(generation.MainModelName);
         string? faultMessage = health.LastFaultMessage;
         return new HealthSnapshot(
