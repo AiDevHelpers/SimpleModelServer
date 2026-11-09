@@ -12,7 +12,7 @@
     <PackageOutputPath>$(MSBuildThisFileDirectory)..\build\dist\$(Configuration.ToLower())\nuget</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.5-alpha-g962845f4a9" />
+    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.7-alpha-g371d885dbc" />
     <ProjectReference Include="..\..\Common\SimpleModelServer.Common\SimpleModelServer.Common.csproj" />
   </ItemGroup>
   <ItemGroup>

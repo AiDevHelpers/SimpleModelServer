@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.5-alpha-g962845f4a9" />
+    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.7-alpha-g371d885dbc" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
   </ItemGroup>
 
