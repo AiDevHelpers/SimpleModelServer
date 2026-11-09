@@ -10,7 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SimpleModelServer.Mcp\SimpleModelServer.Mcp.csproj" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
-    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.5-alpha-g962845f4a9" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />

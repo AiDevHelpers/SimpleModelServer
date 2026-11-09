@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.5-alpha-g962845f4a9" />
   </ItemGroup>
 
 </Project>

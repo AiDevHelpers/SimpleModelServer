@@ -328,20 +328,28 @@ public sealed partial class OllamaProcessManager(IAppConfig config, ILogger logg
             // healthy embed model as unresponsive on every probe.
             bool isEmbed = config.IsEmbedModel(model);
             Uri endpoint = new($"http://127.0.0.1:{ServerPort}/{(isEmbed ? "api/embed" : "api/generate")}");
-            // No keep_alive here: keep_alive = 0 makes Ollama unload the model right after this
-            // probe, so the probe itself evicted the model it was checking (see docs/pitfalls.md).
-            using JsonContent request = JsonContent.Create(isEmbed
+            // keep_alive must be the configured value, never 0: keep_alive = 0 makes Ollama unload the
+            // model right after this probe (see docs/pitfalls.md). Omitting it lets Ollama fall back to
+            // its 5-minute default, which shortens the residency the warm-up set on every probe.
+            string? keepAlive = config.ModelSources.TryGetValue(model, out IModelSourceConfig? src) ? src.KeepAlive : null;
+            // One output token: the probe only needs to show the model answers. Without the cap,
+            // the model writes a full reply, which can take longer than the probe timeout and
+            // read as unresponsive (triggering a warm-up).
+            JsonObject body = isEmbed
                 ? new JsonObject { ["model"] = model, ["input"] = "hi" }
-                // One output token: the probe only needs to show the model answers. Without the cap,
-                // the model writes a full reply, which can take longer than the probe timeout and
-                // read as unresponsive (triggering a warm-up).
                 : new JsonObject
                 {
                     ["model"] = model,
                     ["prompt"] = "hi",
                     ["stream"] = false,
                     ["options"] = ProbeOptions(model),
-                });
+                };
+            if (keepAlive is not null)
+            {
+                body["keep_alive"] = keepAlive;
+            }
+
+            using JsonContent request = JsonContent.Create(body);
             using HttpResponseMessage response = await probeHttp.PostAsync(endpoint, request, cts.Token);
             return response.IsSuccessStatusCode;
         }

@@ -12,10 +12,6 @@
     <Project Path="src/Config/SimpleModelServer.Config/SimpleModelServer.Config.csproj" />
     <Project Path="src/Config/SimpleModelServer.Config.Tests/SimpleModelServer.Config.Tests.csproj" />
   </Folder>
-  <Folder Name="/Contracts/">
-    <Project Path="src/Contracts/SimpleModelServer.Contracts/SimpleModelServer.Contracts.csproj" Id="547a384f-2ead-4db5-8109-19c28b607087" />
-    <Project Path="src/Contracts/SimpleModelServer.Contracts.Tests/SimpleModelServer.Contracts.Tests.csproj" />
-  </Folder>
   <Folder Name="/Evals/">
     <Project Path="src/Evals/SimpleModelServer.Evals.Tests/SimpleModelServer.Evals.Tests.csproj" />
     <Project Path="src/Evals/SimpleModelServer.Evals/SimpleModelServer.Evals.csproj" />
