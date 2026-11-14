@@ -19,7 +19,7 @@ using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System.Diagnostics;
-using TokenSaver.Common.Logging;
+using SperryDev.Logger.Configuration;
 
 bool runningAsService = WindowsServiceHelpers.IsWindowsService();
 bool verboseLogging = Environment.GetEnvironmentVariable("SIMPLEMODELSERVER_VERBOSE_LOGGING") is "1" or "true";
@@ -85,9 +85,9 @@ if (WindowsServiceHelpers.IsWindowsService())
 
     Trace("Building host...");
 
-    // Same shared logger as TokenSaver (TokenSaver.Common.Logging), on the DraftModel channel.
+    // Same shared logger as TokenSaver (SperryDev.Logger), on the DraftModel channel.
     IHost host = Host.CreateDefaultBuilder(args)
-        .UseAppLogging(LogChannel.DraftModel,
+        .UseAppLogging("DraftModel",
             verboseLogging ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information)
         .UseWindowsService(o => o.ServiceName = "SimpleModelServerLoader")
         .ConfigureServices((_, services) =>
@@ -211,7 +211,7 @@ try
     IAppConfig config = AppConfig.Load(configPath);
 
     // Configure Serilog for interactive (non-service) mode
-    ILoggerFactory loggerFactory = AppLoggerFactory.Create(LogChannel.DraftModel,
+    ILoggerFactory loggerFactory = AppLoggerFactory.Create("DraftModel",
         verboseLogging ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information);
     Microsoft.Extensions.Logging.ILogger appLogger = loggerFactory.CreateLogger<Program>();
 
