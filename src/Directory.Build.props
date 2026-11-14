@@ -1,4 +1,11 @@
 <Project>
+  <PropertyGroup Label="SperryDev.Logger version">
+    <!-- Local builds float to the latest SperryDev.Logger build, prerelease included. CI sets the
+         SperryLoggerVersion environment variable: 0.*-* on wip (latest prerelease), 0.* on main
+         and on pull requests into main (latest release). -->
+    <SperryLoggerVersion Condition="'$(SperryLoggerVersion)' == ''">0.*-*</SperryLoggerVersion>
+  </PropertyGroup>
+
   <!--
     Suppress low-priority code analysis and other warnings to clean up the build output.
     Keep meaningful warnings like CA1716 (keyword conflicts) visible for code quality.

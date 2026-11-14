@@ -21,6 +21,8 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   NUGET_XMLDOC_MODE: skip
+  # Latest SperryDev.Logger prerelease on wip; latest release on main and on pull requests into main.
+  SperryLoggerVersion: ${{ (github.ref_name == 'main' || github.base_ref == 'main') && '0.*' || '0.*-*' }}
 
 jobs:
   build-and-test:
@@ -41,6 +43,16 @@ jobs:
 
       - name: Install MAUI workload (chat app)
         run: dotnet workload install maui-windows
+
+      - name: Add GitHub Packages NuGet source (SperryDev.Logger)
+        shell: pwsh
+        env:
+          NUGET_READ_TOKEN: ${{ secrets.TOKENSAVER_READ_TOKEN }}
+        run: |
+          if (-not $env:NUGET_READ_TOKEN) {
+            throw "TOKENSAVER_READ_TOKEN is not set. It must be a classic PAT with read:packages."
+          }
+          dotnet nuget add source "https://nuget.pkg.github.com/rsperry79/index.json" --name github --username rsperry79 --password $env:NUGET_READ_TOKEN --store-password-in-clear-text
 
       - name: Restore
         run: dotnet restore SimpleModelServer.slnx
@@ -91,6 +103,16 @@ jobs:
 
       - name: Install MAUI workload (chat app)
         run: dotnet workload install maui-windows
+
+      - name: Add GitHub Packages NuGet source (SperryDev.Logger)
+        shell: pwsh
+        env:
+          NUGET_READ_TOKEN: ${{ secrets.TOKENSAVER_READ_TOKEN }}
+        run: |
+          if (-not $env:NUGET_READ_TOKEN) {
+            throw "TOKENSAVER_READ_TOKEN is not set. It must be a classic PAT with read:packages."
+          }
+          dotnet nuget add source "https://nuget.pkg.github.com/rsperry79/index.json" --name github --username rsperry79 --password $env:NUGET_READ_TOKEN --store-password-in-clear-text
 
       - name: Install Nerdbank.GitVersioning
         run: dotnet tool install --global nbgv
