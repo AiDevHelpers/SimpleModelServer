@@ -12,13 +12,13 @@
     <PackageOutputPath>$(MSBuildThisFileDirectory)..\build\dist\$(Configuration.ToLower())\nuget</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.7-alpha-g371d885dbc" />
+    <ProjectReference Include="..\..\..\..\Common\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" Version="2.3.1" />
+    <PackageReference Include="ModelContextProtocol" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+    <PackageReference Update="Nerdbank.GitVersioning" />
   </ItemGroup>
 </Project>

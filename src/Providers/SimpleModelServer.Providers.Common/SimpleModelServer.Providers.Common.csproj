@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.7-alpha-g371d885dbc" />
+    <ProjectReference Include="..\..\..\..\Common\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

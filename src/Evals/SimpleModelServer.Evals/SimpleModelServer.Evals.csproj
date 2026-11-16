@@ -11,8 +11,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Roslyn for the parse/compile gates (CodegenRunner). -->
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
   <ItemGroup>
     <!-- Not a web app, but referencing the ASP.NET Core shared framework gives the compile gate
@@ -24,7 +24,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+    <PackageReference Update="Nerdbank.GitVersioning" />
   </ItemGroup>
   <ItemGroup>
     <!-- CodeBlockExtractor, AssertionChecker, and report serialization are exercised directly by

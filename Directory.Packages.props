@@ -6,6 +6,8 @@
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- SperryDev.Logger floats by design: 0.*-* on wip, 0.* on main (see src/Directory.Build.props). -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
     <!-- Only set when the MAUI SDK has not already defined it. -->
     <MauiVersion Condition="'$(MauiVersion)' == ''">10.0.120</MauiVersion>
   </PropertyGroup>
@@ -32,6 +34,9 @@
     <PackageVersion Include="ModelContextProtocol" Version="2.3.1" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.3.1" />
     <PackageVersion Include="Moq" Version="4.21.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.85" />
+    <PackageVersion Include="SperryDev.Logger" Version="$(SperryLoggerVersion)" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="Serilog" Version="4.4.0" />

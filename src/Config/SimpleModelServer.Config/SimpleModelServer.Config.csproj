@@ -12,14 +12,14 @@
     <PackageOutputPath>$(MSBuildThisFileDirectory)..\build\dist\$(Configuration.ToLower())\nuget</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SimpleModelServer.Contracts" Version="1.0.7-alpha-g371d885dbc" />
+    <ProjectReference Include="..\..\..\..\Common\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
     <ProjectReference Include="..\..\Common\SimpleModelServer.Common\SimpleModelServer.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="5.9.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.10.85" />
+    <PackageReference Update="Nerdbank.GitVersioning" />
   </ItemGroup>
 </Project>
