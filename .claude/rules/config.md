@@ -1,7 +1,6 @@
 ---
 paths:
   - "src/Config/**"
-  - "src/Contracts/**"
   - "src/Providers/**"
   - "src/Server/**/Configuration/**"
 ---

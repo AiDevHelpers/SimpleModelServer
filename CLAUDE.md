@@ -15,7 +15,7 @@ Ollama-compatible draft-pair router (`SimpleModelServer.Server`, Windows service
 
 - `src/Server/SimpleModelServer.Server`: router and service host (`--service`).
 - `src/Config`: `AppConfig` parsing, `DefaultConfig` (first-run stock config).
-- `src/Contracts`: shared DTOs and interfaces.
+- Contracts (shared DTOs and interfaces): the `Common` repo, `Common/Contracts`.
 - `src/Providers`: Ollama and LM Studio backends.
 - `src/Clients/SimpleModelServer.Chat.Maui`: desktop chat client.
 - `src/Extensions`: VS and VS Code extensions.
@@ -37,6 +37,6 @@ Ollama-compatible draft-pair router (`SimpleModelServer.Server`, Windows service
 
 ## Where detail lives
 
-- Config, model schemas, and model naming: `.claude/rules/config.md`. Loads for `src/Config`, `src/Contracts`, `src/Providers`, and server `Configuration` folders.
+- Config, model schemas, and model naming: `.claude/rules/config.md`. Loads for `src/Config`, `src/Providers`, and server `Configuration` folders.
 - Installer and CI: `.claude/rules/installer.md` (loads for `installer/` and `.github/workflows/`).
 - Resolved failures and their causes: `docs/pitfalls.md`. Check it before debugging install, config, model pull, or test discovery.
