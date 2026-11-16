@@ -1,12 +1,13 @@
 name: CI and Release
 
-# Every push and pull request: build the solution, run the tests, build the installer.
-# A v* tag additionally publishes a GitHub release with the installer and its SHA-256 checksum.
+# Tests run on every push, pull request, and manual run. Every run also builds the installer.
+# Pushes to dev (prerelease) and main (stable) publish a release tagged v<version>.
+# Pull requests from this repo publish a prerelease tagged v<version>-pr<number>, so PRs never share a tag.
+# The version comes from version.json through nbgv, and CI creates the tag.
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [ dev, main ]
   pull_request:
   workflow_dispatch:
 
@@ -15,7 +16,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs. Never cancel a run on a branch push, since it may be publishing.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DOTNET_NOLOGO: true
@@ -55,7 +57,19 @@ jobs:
           dotnet nuget add source "https://nuget.pkg.github.com/rsperry79/index.json" --name github --username rsperry79 --password $env:NUGET_READ_TOKEN --store-password-in-clear-text
 
       - name: Restore
-        run: dotnet restore SimpleModelServer.slnx
+        # The chat app's Windows TFM needs the win-x64 runtime pack at build time. Restoring for
+        # the RID downloads it; a plain restore relies on a warm local cache, which runners lack.
+        run: dotnet restore SimpleModelServer.slnx --runtime win-x64
+
+      - name: Vulnerability audit
+        shell: pwsh
+        # `dotnet list package --vulnerable` can exit 0 when it finds issues, so check the output too.
+        run: |
+          $out = dotnet list SimpleModelServer.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0 -or $out -match 'has the following vulnerable packages') {
+            throw "Vulnerable NuGet packages found."
+          }
 
       - name: Vulnerability audit
         shell: pwsh
@@ -70,10 +84,14 @@ jobs:
       - name: Build
         run: dotnet build SimpleModelServer.slnx -c Release --no-restore
 
+      - name: Format check
+        # Enforces the .editorconfig (tabs for C#, LF, UTF-8 without BOM).
+        run: dotnet format SimpleModelServer.slnx --verify-no-changes --no-restore
+
       - name: Test
         run: >-
           dotnet test SimpleModelServer.slnx -c Release --no-build
-          --logger "trx;LogFileName=results.trx"
+          --report-trx
           --results-directory TestResults
 
       - name: Upload test results
@@ -85,9 +103,99 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  check-js:
+    name: Check JavaScript (VS Code extension)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/Extensions/SimpleModelServer.Extensions.VSCode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/Extensions/SimpleModelServer.Extensions.VSCode/package-lock.json
+
+      - name: Install (from lockfile)
+        run: npm ci
+
+      - name: Check (typecheck, lint, unit tests)
+        run: npm run check
+
+  quality-gate:
+    name: Quality gate (format, warnings, audit, coverage floor)
+    # Runs on every push and pull request. Failing this blocks release assets (see installer.needs).
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Nerdbank.GitVersioning needs full history to compute the version.
+          fetch-depth: 0
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI workload (chat app)
+        run: dotnet workload install maui-windows
+
+      - name: Install ReportGenerator
+        # Pinned to the version the coverage floor was measured with.
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.12
+
+      - name: Restore
+        run: dotnet restore SimpleModelServer.slnx --runtime win-x64
+
+      - name: Format check
+        run: dotnet format SimpleModelServer.slnx --verify-no-changes --no-restore
+
+      - name: Build (warnings are errors in Release)
+        run: dotnet build SimpleModelServer.slnx -c Release --no-restore
+
+      - name: Vulnerability audit
+        shell: pwsh
+        # `dotnet list package --vulnerable` can exit 0 when it finds issues, so check the output too.
+        run: |
+          $out = dotnet list SimpleModelServer.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0 -or $out -match 'has the following vulnerable packages') {
+            throw "Vulnerable NuGet packages found."
+          }
+
+      - name: Test with coverage
+        run: >-
+          dotnet test SimpleModelServer.slnx -c Release --no-build
+          --coverage --coverage-output-format cobertura
+          --results-directory TestResults
+
+      - name: Coverage floor
+        shell: pwsh
+        # Reads the merged line coverage from ReportGenerator's JSON summary (not the text summary,
+        # which is locale-dependent). Fails if there are no reports or the figure is below the floor.
+        run: |
+          $reports = Get-ChildItem TestResults -Recurse -Filter *.cobertura.xml
+          if (-not $reports) { throw "No coverage reports were produced." }
+          reportgenerator "-reports:TestResults/**/*.cobertura.xml" "-targetdir:build/dist/coverage" "-reporttypes:JsonSummary"
+          if ($LASTEXITCODE -ne 0) { throw "ReportGenerator failed." }
+          $summary = Get-Content build/dist/coverage/Summary.json -Raw | ConvertFrom-Json
+          $actual = [double]$summary.summary.linecoverage
+          $floorText = (Get-Content build/coverage-floor.txt -Raw).Trim()
+          $floor = [double]::Parse($floorText, [Globalization.CultureInfo]::InvariantCulture)
+          Write-Host "Line coverage $actual% (floor $floor%)"
+          if ($actual -lt $floor) { throw "Line coverage $actual% is below the floor of $floor%." }
+
   installer:
     name: Build installer
-    needs: build-and-test
+    # The gate: tests, JS checks, and the quality gate must pass before any release asset is built.
+    needs: [build-and-test, check-js, quality-gate]
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -135,13 +243,8 @@ jobs:
 
       - name: Build installer
         shell: pwsh
-        # A tag supplies the version (v1.2.3 -> 1.2.3). Other builds use nbgv's version.
-        run: |
-          $buildArgs = @()
-          if ($env:GITHUB_REF -like 'refs/tags/v*') {
-            $buildArgs += @('-Version', $env:GITHUB_REF_NAME)
-          }
-          ./installer/build-installer.ps1 @buildArgs
+        # No -Version: the version comes from version.json through nbgv, the single version source.
+        run: ./installer/build-installer.ps1
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
@@ -157,7 +260,8 @@ jobs:
   release:
     name: Publish release
     needs: installer
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Pushes publish. PRs publish only from this repo: fork PRs get a read-only token.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -165,6 +269,49 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET 10 (for nbgv)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Nerdbank.GitVersioning
+        run: |
+          dotnet tool install --global nbgv
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Resolve version and tag
+        id: version
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          version="$(nbgv get-version -v NuGetPackageVersion)"
+          tag="v${version}"
+          # PRs get their own tag so two open PRs at the same version never overwrite each other's assets.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then tag="v${version}-pr${PR_NUMBER}"; fi
+          if [ "$GITHUB_REF_NAME" = "main" ]; then prerelease=false; else prerelease=true; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Release $tag (prerelease: $prerelease) from $GITHUB_SHA"
+
+      - name: Create tag if missing
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Tags are created by CI from version.json. Never create them by hand.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; leaving it in place."
+          else
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+          fi
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -173,21 +320,21 @@ jobs:
           path: dist/
 
       - name: Create or update GitHub release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.tag }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
-          # Re-running the workflow for the same tag must not fail: update the existing
-          # release's assets instead of creating a second one.
+          # Re-running for the same tag updates the existing release's assets.
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
             prerelease_flag=""
-            case "$TAG" in
-              *-*) prerelease_flag="--prerelease" ;;
-            esac
+            if [ "$PRERELEASE" = "true" ]; then prerelease_flag="--prerelease"; fi
             gh release create "$TAG" dist/* \
+              --target "$GITHUB_SHA" \
               --title "Simple Model Server $TAG" \
               --generate-notes \
               $prerelease_flag

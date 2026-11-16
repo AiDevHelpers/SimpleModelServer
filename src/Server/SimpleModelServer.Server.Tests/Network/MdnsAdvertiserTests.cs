@@ -9,190 +9,190 @@ namespace SimpleModelServer.Server.Tests;
 /// </summary>
 public class MdnsAdvertiserTests
 {
-    /// <summary>
-    /// Contract verification: IMdnsAdvertiser has all required members.
-    /// </summary>
-    [Fact]
-    public void IMdnsAdvertiser_Interface_HasRequiredMembers()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	/// <summary>
+	/// Contract verification: IMdnsAdvertiser has all required members.
+	/// </summary>
+	[Fact]
+	public void IMdnsAdvertiser_Interface_HasRequiredMembers()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Act & Assert - All properties and methods must be accessible
-        _ = advertiser.IsAdvertising;
-        advertiser.Advertise();
-        advertiser.Stop();
-    }
+		// Act & Assert - All properties and methods must be accessible
+		_ = advertiser.IsAdvertising;
+		advertiser.Advertise();
+		advertiser.Stop();
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_IsAdvertising_InitiallyFalse()
-    {
-        // Arrange & Act
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	[Fact]
+	public void MdnsAdvertiser_IsAdvertising_InitiallyFalse()
+	{
+		// Arrange & Act
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Assert
-        Assert.False(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.False(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_IsAdvertising_TrueAfterAdvertise()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	[Fact]
+	public void MdnsAdvertiser_IsAdvertising_TrueAfterAdvertise()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Act
-        advertiser.Advertise();
+		// Act
+		advertiser.Advertise();
 
-        // Assert
-        Assert.True(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.True(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_IsAdvertising_FalseAfterStop()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
-        advertiser.Advertise();
+	[Fact]
+	public void MdnsAdvertiser_IsAdvertising_FalseAfterStop()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+		advertiser.Advertise();
 
-        // Act
-        advertiser.Stop();
+		// Act
+		advertiser.Stop();
 
-        // Assert
-        Assert.False(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.False(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_AdvertiseWhenAlreadyAdvertising_IsNoOp()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
-        advertiser.Advertise();
+	[Fact]
+	public void MdnsAdvertiser_AdvertiseWhenAlreadyAdvertising_IsNoOp()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+		advertiser.Advertise();
 
-        // Act - Should not throw or change state
-        advertiser.Advertise();
+		// Act - Should not throw or change state
+		advertiser.Advertise();
 
-        // Assert
-        Assert.True(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.True(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_StopWhenNotAdvertising_IsNoOp()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	[Fact]
+	public void MdnsAdvertiser_StopWhenNotAdvertising_IsNoOp()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Act - Should not throw
-        advertiser.Stop();
+		// Act - Should not throw
+		advertiser.Stop();
 
-        // Assert
-        Assert.False(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.False(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_CanAdvertiseAgainAfterStop()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
-        advertiser.Advertise();
-        advertiser.Stop();
+	[Fact]
+	public void MdnsAdvertiser_CanAdvertiseAgainAfterStop()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+		advertiser.Advertise();
+		advertiser.Stop();
 
-        // Act
-        advertiser.Advertise();
+		// Act
+		advertiser.Advertise();
 
-        // Assert
-        Assert.True(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.True(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_MultipleAdvertiseStop_Cycles()
-    {
-        // Arrange
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	[Fact]
+	public void MdnsAdvertiser_MultipleAdvertiseStop_Cycles()
+	{
+		// Arrange
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Act & Assert - Multiple cycles
-        advertiser.Advertise();
-        Assert.True(advertiser.IsAdvertising);
+		// Act & Assert - Multiple cycles
+		advertiser.Advertise();
+		Assert.True(advertiser.IsAdvertising);
 
-        advertiser.Stop();
-        Assert.False(advertiser.IsAdvertising);
+		advertiser.Stop();
+		Assert.False(advertiser.IsAdvertising);
 
-        advertiser.Advertise();
-        Assert.True(advertiser.IsAdvertising);
+		advertiser.Advertise();
+		Assert.True(advertiser.IsAdvertising);
 
-        advertiser.Stop();
-        Assert.False(advertiser.IsAdvertising);
-    }
+		advertiser.Stop();
+		Assert.False(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_ImplementsIDisposable()
-    {
-        // Arrange & Act
-        IMdnsAdvertiser advertiser = CreateTestAdvertiser();
+	[Fact]
+	public void MdnsAdvertiser_ImplementsIDisposable()
+	{
+		// Arrange & Act
+		IMdnsAdvertiser advertiser = CreateTestAdvertiser();
 
-        // Assert
-        Assert.IsAssignableFrom<IDisposable>(advertiser);
-    }
+		// Assert
+		Assert.IsAssignableFrom<IDisposable>(advertiser);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_Dispose_StopsAdvertising()
-    {
-        // Arrange
-        var advertiser = CreateTestAdvertiser() as TestMdnsAdvertiser;
-        advertiser!.Advertise();
+	[Fact]
+	public void MdnsAdvertiser_Dispose_StopsAdvertising()
+	{
+		// Arrange
+		var advertiser = CreateTestAdvertiser() as TestMdnsAdvertiser;
+		advertiser!.Advertise();
 
-        // Act
-        advertiser.Dispose();
+		// Act
+		advertiser.Dispose();
 
-        // Assert
-        Assert.False(advertiser.IsAdvertising);
-    }
+		// Assert
+		Assert.False(advertiser.IsAdvertising);
+	}
 
-    [Fact]
-    public void MdnsAdvertiser_CanBeDisposedMultipleTimes()
-    {
-        // Arrange
-        var advertiser = CreateTestAdvertiser() as TestMdnsAdvertiser;
+	[Fact]
+	public void MdnsAdvertiser_CanBeDisposedMultipleTimes()
+	{
+		// Arrange
+		var advertiser = CreateTestAdvertiser() as TestMdnsAdvertiser;
 
-        // Act & Assert - Should not throw
-        advertiser!.Dispose();
-        advertiser.Dispose();
-        advertiser.Dispose();
-    }
+		// Act & Assert - Should not throw
+		advertiser!.Dispose();
+		advertiser.Dispose();
+		advertiser.Dispose();
+	}
 
-    // Helper to create test implementations
-    private static IMdnsAdvertiser CreateTestAdvertiser()
-    {
-        return new TestMdnsAdvertiser();
-    }
+	// Helper to create test implementations
+	private static IMdnsAdvertiser CreateTestAdvertiser()
+	{
+		return new TestMdnsAdvertiser();
+	}
 
-    private class TestMdnsAdvertiser : IMdnsAdvertiser
-    {
-        private bool _isAdvertising;
+	private class TestMdnsAdvertiser : IMdnsAdvertiser
+	{
+		private bool _isAdvertising;
 
-        public bool IsAdvertising => _isAdvertising;
+		public bool IsAdvertising => _isAdvertising;
 
-        public void Advertise()
-        {
-            if (!_isAdvertising)
-            {
-                _isAdvertising = true;
-            }
-        }
+		public void Advertise()
+		{
+			if (!_isAdvertising)
+			{
+				_isAdvertising = true;
+			}
+		}
 
-        public void Stop()
-        {
-            if (_isAdvertising)
-            {
-                _isAdvertising = false;
-            }
-        }
+		public void Stop()
+		{
+			if (_isAdvertising)
+			{
+				_isAdvertising = false;
+			}
+		}
 
-        public void Dispose()
-        {
-            if (_isAdvertising)
-            {
-                Stop();
-            }
-        }
-    }
+		public void Dispose()
+		{
+			if (_isAdvertising)
+			{
+				Stop();
+			}
+		}
+	}
 }

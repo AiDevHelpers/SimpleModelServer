@@ -29,84 +29,82 @@ using SimpleModelServer.Providers.Ollama;
 /// </summary>
 public sealed class StartupWarmupTests
 {
-    private const string DraftModel = "qwen2.5-coder-0.5b-chat";
-    private const string MainModel = "qwen2.5-coder-3b-chat";
-    private const string EmbedModel = "nomic-embed-text";
+	private const string DraftModel = "qwen2.5-coder-0.5b-chat";
+	private const string MainModel = "qwen2.5-coder-3b-chat";
+	private const string EmbedModel = "nomic-embed-text";
 
-    private static Task<RouterTestFixture> CreateFixtureAsync()
-    {
-        return RouterTestFixture.CreateAsync(config => new AppConfig
-        {
-            Global = new GlobalConfig
-            {
-                DefaultAgentType = config.Global.DefaultAgentType,
-                OllamaPort = config.Global.OllamaPort,
-                RouterHost = config.Global.RouterHost,
-                RouterModelName = config.Global.RouterModelName,
-                DraftModel = DraftModel,
-                MainModel = MainModel,
-                EmbedModel = EmbedModel
-            },
-            Agents = config.Agents,
-            ModelSources = config.ModelSources,
-            ModelRoles = config.ModelRoles
-        });
-    }
+	private static Task<RouterTestFixture> CreateFixtureAsync()
+	{
+		return RouterTestFixture.CreateAsync(config => new AppConfig
+		{
+			Global = new GlobalConfig
+			{
+				DefaultAgentType = config.Global.DefaultAgentType,
+				OllamaPort = config.Global.OllamaPort,
+				RouterHost = config.Global.RouterHost,
+				RouterModelName = config.Global.RouterModelName,
+				DraftModel = DraftModel,
+				MainModel = MainModel,
+				EmbedModel = EmbedModel
+			},
+			Agents = config.Agents,
+			ModelSources = config.ModelSources,
+			ModelRoles = config.ModelRoles
+		});
+	}
 
-    [Fact]
-    public async Task WarmupModelsAsync_GivenDraftMainAndEmbed_WarmsAllThreeIndividually()
-    {
-        await using RouterTestFixture fixture = await CreateFixtureAsync();
-        // Warm-up only touches models that are not already resident, so start with none loaded.
-        fixture.Ollama.LoadedModels = [];
+	[Fact]
+	public async Task WarmupModelsAsync_GivenDraftMainAndEmbed_WarmsAllThreeIndividually()
+	{
+		await using RouterTestFixture fixture = await CreateFixtureAsync();
 
-        await fixture.Health.WarmupModelsAsync([DraftModel, MainModel, EmbedModel]);
+		await fixture.Health.WarmupModelsAsync([DraftModel, MainModel, EmbedModel]);
 
-        // Each model must have received its own /api/generate warmup call — this is what
-        // distinguishes "all 3 models warmed at startup" from the previous behavior, where only
-        // draft+main were ever warmed (embed wasn't in the list SimpleModelPairApp passed at all,
-        // startup or periodic) and even those two weren't warmed until the first periodic cycle.
-        Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(DraftModel) >= 1,
-            $"Expected at least one warmup call for draft model '{DraftModel}'.");
-        Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(MainModel) >= 1,
-            $"Expected at least one warmup call for main model '{MainModel}'.");
-        Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(EmbedModel) >= 1,
-            $"Expected at least one warmup call for embed model '{EmbedModel}'.");
-    }
+		// Each model must have received its own /api/generate warmup call — this is what
+		// distinguishes "all 3 models warmed at startup" from the previous behavior, where only
+		// draft+main were ever warmed (embed wasn't in the list SimpleModelPairApp passed at all,
+		// startup or periodic) and even those two weren't warmed until the first periodic cycle.
+		Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(DraftModel) >= 1,
+			$"Expected at least one warmup call for draft model '{DraftModel}'.");
+		Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(MainModel) >= 1,
+			$"Expected at least one warmup call for main model '{MainModel}'.");
+		Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(EmbedModel) >= 1,
+			$"Expected at least one warmup call for embed model '{EmbedModel}'.");
+	}
 
-    [Fact]
-    public async Task WarmupModelsAsync_NoneWarmingUpAfterCompletion()
-    {
-        await using RouterTestFixture fixture = await CreateFixtureAsync();
-        string[] models = [DraftModel, MainModel, EmbedModel];
+	[Fact]
+	public async Task WarmupModelsAsync_NoneWarmingUpAfterCompletion()
+	{
+		await using RouterTestFixture fixture = await CreateFixtureAsync();
+		string[] models = [DraftModel, MainModel, EmbedModel];
 
-        await fixture.Health.WarmupModelsAsync(models);
+		await fixture.Health.WarmupModelsAsync(models);
 
-        // IsModelWarmingUp is what /api/generate's 202 "warming_up" short-circuit checks — once
-        // WarmupModelsAsync has returned, nothing should still be marked in-flight.
-        foreach (string model in models)
-        {
-            Assert.False(fixture.Health.IsModelWarmingUp(model), $"'{model}' should not still be marked warming-up.");
-        }
-    }
+		// IsModelWarmingUp is what /api/generate's 202 "warming_up" short-circuit checks — once
+		// WarmupModelsAsync has returned, nothing should still be marked in-flight.
+		foreach (string model in models)
+		{
+			Assert.False(fixture.Health.IsModelWarmingUp(model), $"'{model}' should not still be marked warming-up.");
+		}
+	}
 
-    /// <summary>
-    ///     Regression guard for the specific bug: the periodic warmup list SimpleModelPairApp passes to
-    ///     <see cref="ModelHealthMonitor.RunAsync" /> must include the embed model, not just
-    ///     draft/main — otherwise embed can idle out of VRAM after its keep_alive window and
-    ///     reopen the same "not loaded" gap between periodic cycles that the startup fix closes at
-    ///     boot.
-    /// </summary>
-    [Fact]
-    public async Task WarmupModelsAsync_EmbedModel_IsWarmedLikeDraftAndMain()
-    {
-        await using RouterTestFixture fixture = await CreateFixtureAsync();
+	/// <summary>
+	///     Regression guard for the specific bug: the periodic warmup list SimpleModelPairApp passes to
+	///     <see cref="ModelHealthMonitor.RunAsync" /> must include the embed model, not just
+	///     draft/main — otherwise embed can idle out of VRAM after its keep_alive window and
+	///     reopen the same "not loaded" gap between periodic cycles that the startup fix closes at
+	///     boot.
+	/// </summary>
+	[Fact]
+	public async Task WarmupModelsAsync_EmbedModel_IsWarmedLikeDraftAndMain()
+	{
+		await using RouterTestFixture fixture = await CreateFixtureAsync();
 
-        await fixture.Health.WarmupModelAsync(EmbedModel);
+		await fixture.Health.WarmupModelAsync(EmbedModel);
 
-        Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(EmbedModel) >= 1);
-        Assert.False(fixture.Health.IsModelWarmingUp(EmbedModel));
-    }
+		Assert.True(fixture.Ollama.GenerateCallsByModel.GetValueOrDefault(EmbedModel) >= 1);
+		Assert.False(fixture.Health.IsModelWarmingUp(EmbedModel));
+	}
 }
 
 

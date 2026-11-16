@@ -5,18 +5,18 @@ namespace SimpleModelServer.Discovery;
 /// </summary>
 public enum ConnectionMode
 {
-    /// <summary>
-    /// Connect to a local instance (default port 11435).
-    /// </summary>
-    Local,
+	/// <summary>
+	/// Connect to a local instance (default port 11435).
+	/// </summary>
+	Local,
 
-    /// <summary>
-    /// Discover via mDNS (DNS-SD).
-    /// </summary>
-    Mdns,
+	/// <summary>
+	/// Discover via mDNS (DNS-SD).
+	/// </summary>
+	Mdns,
 
-    /// <summary>
-    /// Connect to a manually-specified host and port.
-    /// </summary>
-    Manual,
+	/// <summary>
+	/// Connect to a manually-specified host and port.
+	/// </summary>
+	Manual,
 }

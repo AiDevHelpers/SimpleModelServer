@@ -19,7 +19,6 @@ export interface ResolvedServerConnection {
   resolvedVia: ConnectionMode;
 }
 
-const MDNS_SERVICE_TYPE = "_draftmodel._tcp";
 const DEFAULT_PORT = 11435;
 const LOCAL_PROBE_TIMEOUT_MS = 2000;
 const MDNS_DISCOVERY_TIMEOUT_MS = 3000;
@@ -70,9 +69,10 @@ export class ServerLocator {
         return this.resolveManual(settings);
       case "mdns":
         return await this.resolveMdns(settings);
-      default:
+      default: {
         const _exhaustive: never = settings.mode;
         throw new Error(`Unknown connection mode: ${_exhaustive}`);
+      }
     }
   }
 
@@ -166,7 +166,7 @@ export class ServerLocator {
           clearTimeout(timeout);
           resolve(false);
         });
-      } catch (err) {
+      } catch {
         clearTimeout(timeout);
         resolve(false);
       }
@@ -184,7 +184,7 @@ export class ServerLocator {
         if (bonjourInstance) {
           try {
             bonjourInstance.destroy();
-          } catch (err) {
+          } catch {
             // Ignore cleanup errors
           }
         }
@@ -227,7 +227,7 @@ export class ServerLocator {
             }
           }
         );
-      } catch (err) {
+      } catch {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeout);

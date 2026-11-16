@@ -7,9 +7,9 @@ namespace SimpleModelServer.Server.Configuration;
 /// </summary>
 internal interface IAdminAuthenticationService
 {
-    /// <summary>
-    ///     Checks if a request is authorized for admin configuration endpoints.
-    ///     Returns true if localhost or valid API key is provided.
-    /// </summary>
-    bool IsAuthorized(HttpRequest request);
+	/// <summary>
+	///     Checks if a request is authorized for admin configuration endpoints.
+	///     Returns true if localhost or valid API key is provided.
+	/// </summary>
+	bool IsAuthorized(HttpRequest request);
 }

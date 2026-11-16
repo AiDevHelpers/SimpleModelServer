@@ -10,123 +10,123 @@ namespace SimpleModelServer.Providers.LMStudio.Tests;
 
 public class LMStudioProviderTests
 {
-    [Fact]
-    public void Constructor_BuildsCorrectBaseUrl()
-    {
-        var config = new ProviderConfiguration
-        {
-            Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
-            Host = "localhost",
-            Port = 1234,
-        };
+	[Fact]
+	public void Constructor_BuildsCorrectBaseUrl()
+	{
+		var config = new ProviderConfiguration
+		{
+			Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
+			Host = "localhost",
+			Port = 1234,
+		};
 
-        var provider = new LMStudioProvider(config);
+		var provider = new LMStudioProvider(config);
 
-        Assert.Equal("http://localhost:1234", provider.BaseUrl);
-    }
+		Assert.Equal("http://localhost:1234", provider.BaseUrl);
+	}
 
-    [Fact]
-    public void Constructor_DefaultsToLocalhost()
-    {
-        var config = new ProviderConfiguration
-        {
-            Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
-            Port = 1234,
-        };
+	[Fact]
+	public void Constructor_DefaultsToLocalhost()
+	{
+		var config = new ProviderConfiguration
+		{
+			Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
+			Port = 1234,
+		};
 
-        var provider = new LMStudioProvider(config);
+		var provider = new LMStudioProvider(config);
 
-        Assert.Equal("http://127.0.0.1:1234", provider.BaseUrl);
-    }
+		Assert.Equal("http://127.0.0.1:1234", provider.BaseUrl);
+	}
 
-    [Fact]
-    public void Constructor_SupportsApiKey()
-    {
-        var config = new ProviderConfiguration
-        {
-            Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
-            Host = "localhost",
-            Port = 1234,
-            ApiKey = "test-key-123",
-        };
+	[Fact]
+	public void Constructor_SupportsApiKey()
+	{
+		var config = new ProviderConfiguration
+		{
+			Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
+			Host = "localhost",
+			Port = 1234,
+			ApiKey = "test-key-123",
+		};
 
-        var provider = new LMStudioProvider(config);
+		var provider = new LMStudioProvider(config);
 
-        Assert.NotNull(provider);
-    }
+		Assert.NotNull(provider);
+	}
 
-    [Fact]
-    public async Task PostChatCompletionAsync_SendsRequest()
-    {
-        var config = new ProviderConfiguration
-        {
-            Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
-            Host = "localhost",
-            Port = 1234,
-        };
+	[Fact]
+	public async Task PostChatCompletionAsync_SendsRequest()
+	{
+		var config = new ProviderConfiguration
+		{
+			Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
+			Host = "localhost",
+			Port = 1234,
+		};
 
-        var mockHandler = new MockHttpMessageHandler();
-        var httpClient = new HttpClient(mockHandler);
+		var mockHandler = new MockHttpMessageHandler();
+		var httpClient = new HttpClient(mockHandler);
 
-        var provider = new LMStudioProvider(config, httpClient);
+		var provider = new LMStudioProvider(config, httpClient);
 
-        var request = new JsonObject
-        {
-            ["model"] = "neural-chat",
-            ["messages"] = new JsonArray
-            {
-                new JsonObject { ["role"] = "user", ["content"] = "Hello" }
-            }
-        };
+		var request = new JsonObject
+		{
+			["model"] = "neural-chat",
+			["messages"] = new JsonArray
+			{
+				new JsonObject { ["role"] = "user", ["content"] = "Hello" }
+			}
+		};
 
-        using var response = await provider.PostChatCompletionAsync(request);
+		using var response = await provider.PostChatCompletionAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.True(mockHandler.LastRequest?.RequestUri?.AbsolutePath.Contains("/v1/chat/completions"));
-    }
+		Assert.True(mockHandler.LastRequest?.RequestUri?.AbsolutePath.Contains("/v1/chat/completions"));
+	}
 
-    [Fact]
-    public async Task PostChatCompletionAsync_IncludesApiKeyHeader()
-    {
-        var config = new ProviderConfiguration
-        {
-            Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
-            Host = "localhost",
-            Port = 1234,
-            ApiKey = "test-api-key",
-        };
+	[Fact]
+	public async Task PostChatCompletionAsync_IncludesApiKeyHeader()
+	{
+		var config = new ProviderConfiguration
+		{
+			Type = SimpleModelServer.Contracts.Providers.Provider.LMStudio,
+			Host = "localhost",
+			Port = 1234,
+			ApiKey = "test-api-key",
+		};
 
-        var mockHandler = new MockHttpMessageHandler();
-        var httpClient = new HttpClient(mockHandler);
+		var mockHandler = new MockHttpMessageHandler();
+		var httpClient = new HttpClient(mockHandler);
 
-        var provider = new LMStudioProvider(config, httpClient);
+		var provider = new LMStudioProvider(config, httpClient);
 
-        var request = new JsonObject
-        {
-            ["model"] = "neural-chat",
-            ["messages"] = new JsonArray()
-        };
+		var request = new JsonObject
+		{
+			["model"] = "neural-chat",
+			["messages"] = new JsonArray()
+		};
 
-        using var response = await provider.PostChatCompletionAsync(request);
+		using var response = await provider.PostChatCompletionAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.True(
-            mockHandler.LastRequest?.Headers.Contains("Authorization"),
-            "Authorization header should be present");
+		Assert.True(
+			mockHandler.LastRequest?.Headers.Contains("Authorization"),
+			"Authorization header should be present");
 
-        var authHeader = mockHandler.LastRequest?.Headers.GetValues("Authorization").FirstOrDefault();
-        Assert.Equal("Bearer test-api-key", authHeader);
-    }
+		var authHeader = mockHandler.LastRequest?.Headers.GetValues("Authorization").FirstOrDefault();
+		Assert.Equal("Bearer test-api-key", authHeader);
+	}
 
-    /// <summary>Mock handler for testing HTTP requests</summary>
-    private class MockHttpMessageHandler : HttpMessageHandler
-    {
-        public HttpRequestMessage? LastRequest { get; private set; }
+	/// <summary>Mock handler for testing HTTP requests</summary>
+	private class MockHttpMessageHandler : HttpMessageHandler
+	{
+		public HttpRequestMessage? LastRequest { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            System.Threading.CancellationToken cancellationToken)
-        {
-            LastRequest = request;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-        }
-    }
+		protected override Task<HttpResponseMessage> SendAsync(
+			HttpRequestMessage request,
+			System.Threading.CancellationToken cancellationToken)
+		{
+			LastRequest = request;
+			return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+		}
+	}
 }

@@ -144,17 +144,23 @@
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src test scripts eslint.config.mjs",
+    "check": "node scripts/check.mjs",
     "test": "node ./out/test/runTests.js",
-    "test:unit": "node --loader tsx ./node_modules/.bin/vitest run",
+    "test:unit": "vitest run",
     "prepackage": "node -e \"require('fs').mkdirSync('../../../build/staging/SimpleModelServer.Extensions.VSCode', { recursive: true })\"",
     "package": "vsce package --out ../../../build/staging/SimpleModelServer.Extensions.VSCode/simplemodelserver-vscode.vsix"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.104.0",
     "@vscode/vsce": "^3.2.1",
     "esbuild": "^0.19.10",
-    "typescript": "^5.3.3"
+    "eslint": "^9.39.5",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "bonjour-service": "^1.2.0",

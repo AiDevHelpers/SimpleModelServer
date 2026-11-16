@@ -10,16 +10,16 @@ namespace SimpleModelServer.Providers.Common.Generation;
 /// </summary>
 public sealed record GenerationOptions
 {
-    public static readonly GenerationOptions None = new();
+	public static readonly GenerationOptions None = new();
 
-    public int? ContextSize { get; init; }
-    public double? Temperature { get; init; }
-    public int? NumGpu { get; init; }
-    public int? NumThread { get; init; }
-    public IReadOnlyList<string>? Stop { get; init; }
-    public string? SystemPrompt { get; init; }
-    public string? KeepAlive { get; init; }
+	public int? ContextSize { get; init; }
+	public double? Temperature { get; init; }
+	public int? NumGpu { get; init; }
+	public int? NumThread { get; init; }
+	public IReadOnlyList<string>? Stop { get; init; }
+	public string? SystemPrompt { get; init; }
+	public string? KeepAlive { get; init; }
 
-    /// <summary>Arbitrary extra sampling key/value pairs passed through verbatim (e.g. custom top_p/top_k).</summary>
-    public JsonObject? ExtraSampling { get; init; }
+	/// <summary>Arbitrary extra sampling key/value pairs passed through verbatim (e.g. custom top_p/top_k).</summary>
+	public JsonObject? ExtraSampling { get; init; }
 }

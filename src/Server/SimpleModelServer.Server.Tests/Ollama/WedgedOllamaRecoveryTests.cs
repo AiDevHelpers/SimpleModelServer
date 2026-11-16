@@ -22,77 +22,77 @@ namespace SimpleModelServer.Server.Tests;
 /// </summary>
 public sealed class WedgedOllamaRecoveryTests
 {
-    [Fact]
-    public async Task WarmupFailingWhileOllamaAnswersProbe_ForcesHardRestart()
-    {
-        await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
+	[Fact]
+	public async Task WarmupFailingWhileOllamaAnswersProbe_ForcesHardRestart()
+	{
+		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-        // /api/tags keeps answering 200 (FakeOllamaServer's default), but /api/generate fails —
-        // the exact "wedged but answering" shape.
-        fixture.Ollama.FailGenerate = true;
+		// /api/tags keeps answering 200 (FakeOllamaServer's default), but /api/generate fails —
+		// the exact "wedged but answering" shape.
+		fixture.Ollama.FailGenerate = true;
 
-        List<bool> recoveries = [];
-        fixture.Health.OllamaRecoveryOverride = forced =>
-        {
-            recoveries.Add(forced);
-            return Task.CompletedTask;
-        };
+		List<bool> recoveries = [];
+		fixture.Health.OllamaRecoveryOverride = forced =>
+		{
+			recoveries.Add(forced);
+			return Task.CompletedTask;
+		};
 
-        // FailureThresholdForRecovery is 3, and each WarmupModelAsync call records one failure
-        // (after its own internal retries), so three calls cross the threshold exactly once.
-        for (int i = 0; i < 3; i++)
-        {
-            await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
-        }
+		// FailureThresholdForRecovery is 3, and each WarmupModelAsync call records one failure
+		// (after its own internal retries), so three calls cross the threshold exactly once.
+		for (int i = 0; i < 3; i++)
+		{
+			await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
+		}
 
-        Assert.Single(recoveries);
-        Assert.True(recoveries[0], "Recovery should be FORCED when Ollama still answers /api/tags but warmups fail.");
-    }
+		Assert.Single(recoveries);
+		Assert.True(recoveries[0], "Recovery should be FORCED when Ollama still answers /api/tags but warmups fail.");
+	}
 
-    [Fact]
-    public async Task WarmupFailingWhileOllamaUnreachable_UsesUnforcedRecovery()
-    {
-        await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
+	[Fact]
+	public async Task WarmupFailingWhileOllamaUnreachable_UsesUnforcedRecovery()
+	{
+		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
 
-        List<bool> recoveries = [];
-        fixture.Health.OllamaRecoveryOverride = forced =>
-        {
-            recoveries.Add(forced);
-            return Task.CompletedTask;
-        };
+		List<bool> recoveries = [];
+		fixture.Health.OllamaRecoveryOverride = forced =>
+		{
+			recoveries.Add(forced);
+			return Task.CompletedTask;
+		};
 
-        // Take the backend fully down so both /api/tags and /api/generate fail — the ordinary
-        // unreachable-Ollama case, which the normal (unforced) recovery already handled.
-        fixture.Ollama.Dispose();
+		// Take the backend fully down so both /api/tags and /api/generate fail — the ordinary
+		// unreachable-Ollama case, which the normal (unforced) recovery already handled.
+		fixture.Ollama.Dispose();
 
-        for (int i = 0; i < 3; i++)
-        {
-            await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
-        }
+		for (int i = 0; i < 3; i++)
+		{
+			await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
+		}
 
-        Assert.Single(recoveries);
-        Assert.False(recoveries[0], "Recovery should NOT be forced when the readiness probe itself is failing.");
-    }
+		Assert.Single(recoveries);
+		Assert.False(recoveries[0], "Recovery should NOT be forced when the readiness probe itself is failing.");
+	}
 
-    [Fact]
-    public async Task WarmupFailure_BelowThreshold_DoesNotTriggerRecovery()
-    {
-        await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
-        fixture.Ollama.FailGenerate = true;
+	[Fact]
+	public async Task WarmupFailure_BelowThreshold_DoesNotTriggerRecovery()
+	{
+		await using RouterTestFixture fixture = await RouterTestFixture.CreateAsync();
+		fixture.Ollama.FailGenerate = true;
 
-        List<bool> recoveries = [];
-        fixture.Health.OllamaRecoveryOverride = forced =>
-        {
-            recoveries.Add(forced);
-            return Task.CompletedTask;
-        };
+		List<bool> recoveries = [];
+		fixture.Health.OllamaRecoveryOverride = forced =>
+		{
+			recoveries.Add(forced);
+			return Task.CompletedTask;
+		};
 
-        // Two failures stay under the threshold of three.
-        for (int i = 0; i < 2; i++)
-        {
-            await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
-        }
+		// Two failures stay under the threshold of three.
+		for (int i = 0; i < 2; i++)
+		{
+			await fixture.Health.WarmupModelAsync(fixture.Config.Global.DraftModel);
+		}
 
-        Assert.Empty(recoveries);
-    }
+		Assert.Empty(recoveries);
+	}
 }

@@ -10,43 +10,43 @@ public sealed record ReportPaths(string JsonPath, string MdPath) : IReportPaths;
 /// </summary>
 public static class ReportWriter
 {
-    public static string BuildBaseFileName(ReportMetadata meta) =>
-        $"{meta.TimestampUtc:yyyyMMdd-HHmmss}-{meta.Mode}-{Sanitize(meta.Label)}";
+	public static string BuildBaseFileName(ReportMetadata meta) =>
+		$"{meta.TimestampUtc:yyyyMMdd-HHmmss}-{meta.Mode}-{Sanitize(meta.Label)}";
 
-    public static string Sanitize(string label)
-    {
-        char[] invalid = Path.GetInvalidFileNameChars();
-        char[] cleaned = [.. label.Select(c => invalid.Contains(c) || c == ' ' ? '-' : c)];
-        return new string(cleaned);
-    }
+	public static string Sanitize(string label)
+	{
+		char[] invalid = Path.GetInvalidFileNameChars();
+		char[] cleaned = [.. label.Select(c => invalid.Contains(c) || c == ' ' ? '-' : c)];
+		return new string(cleaned);
+	}
 
-    /// <summary>Finds a base filename (no extension) under <paramref name="reportsDir"/> for which
-    /// neither the .json nor the .md sibling already exists, appending "-2", "-3", ... as needed.</summary>
-    public static string ResolveAvailableBaseName(string reportsDir, string preferredBaseName)
-    {
-        string candidate = preferredBaseName;
-        int suffix = 2;
-        while (File.Exists(Path.Combine(reportsDir, candidate + ".json")) ||
-               File.Exists(Path.Combine(reportsDir, candidate + ".md")))
-        {
-            candidate = $"{preferredBaseName}-{suffix}";
-            suffix++;
-        }
+	/// <summary>Finds a base filename (no extension) under <paramref name="reportsDir"/> for which
+	/// neither the .json nor the .md sibling already exists, appending "-2", "-3", ... as needed.</summary>
+	public static string ResolveAvailableBaseName(string reportsDir, string preferredBaseName)
+	{
+		string candidate = preferredBaseName;
+		int suffix = 2;
+		while (File.Exists(Path.Combine(reportsDir, candidate + ".json")) ||
+			   File.Exists(Path.Combine(reportsDir, candidate + ".md")))
+		{
+			candidate = $"{preferredBaseName}-{suffix}";
+			suffix++;
+		}
 
-        return candidate;
-    }
+		return candidate;
+	}
 
-    public static ReportPaths Write(string reportsDir, ReportMetadata meta, string jsonContent, string markdownContent)
-    {
-        Directory.CreateDirectory(reportsDir);
-        string baseName = ResolveAvailableBaseName(reportsDir, BuildBaseFileName(meta));
+	public static ReportPaths Write(string reportsDir, ReportMetadata meta, string jsonContent, string markdownContent)
+	{
+		Directory.CreateDirectory(reportsDir);
+		string baseName = ResolveAvailableBaseName(reportsDir, BuildBaseFileName(meta));
 
-        string jsonPath = Path.Combine(reportsDir, baseName + ".json");
-        string mdPath = Path.Combine(reportsDir, baseName + ".md");
+		string jsonPath = Path.Combine(reportsDir, baseName + ".json");
+		string mdPath = Path.Combine(reportsDir, baseName + ".md");
 
-        File.WriteAllText(jsonPath, jsonContent);
-        File.WriteAllText(mdPath, markdownContent);
+		File.WriteAllText(jsonPath, jsonContent);
+		File.WriteAllText(mdPath, markdownContent);
 
-        return new ReportPaths(jsonPath, mdPath);
-    }
+		return new ReportPaths(jsonPath, mdPath);
+	}
 }
