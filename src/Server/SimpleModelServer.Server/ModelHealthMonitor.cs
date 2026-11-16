@@ -631,6 +631,13 @@ internal sealed partial class ModelHealthMonitor(
             return;
         }
 
+        // A generation on this model is running, so the probe timed out behind it rather than the model being dead.
+        // Unloading now would kill the request in flight (the index run's summaries), so leave it be.
+        if (inFlight?.IsBusy(model) == true)
+        {
+            return;
+        }
+
         LogModelUnresponsive(logger, model);
         await process.UnloadModelAsync(model);
 

@@ -46,6 +46,32 @@ public sealed class ModelReloadCoordinatorTests
     }
 
     [Fact]
+    public async Task EnsureModelResponsiveAsync_ModelBusyWithGeneration_IsNotUnloaded()
+    {
+        StubProcessManager process = new() { Responsive = false };
+        AppConfig config = new() { Global = new GlobalConfig { Provider = new ProviderConfiguration { Type = Provider.Ollama } } };
+        InFlightGenerations inFlight = new();
+        ModelHealthMonitor health = new(config, NullLogger.Instance, process, new HttpClient(), _ => null, inFlight);
+
+        using IDisposable generation = inFlight.Track("draft-model");
+        await health.EnsureModelResponsiveAsync("draft-model");
+
+        Assert.Empty(process.UnloadedModels);
+    }
+
+    [Fact]
+    public async Task EnsureModelResponsiveAsync_ModelIdleAndUnresponsive_IsUnloaded()
+    {
+        StubProcessManager process = new() { Responsive = false };
+        AppConfig config = new() { Global = new GlobalConfig { Provider = new ProviderConfiguration { Type = Provider.Ollama } } };
+        ModelHealthMonitor health = new(config, NullLogger.Instance, process, new HttpClient(), _ => null, new InFlightGenerations());
+
+        await health.EnsureModelResponsiveAsync("draft-model");
+
+        Assert.Contains("draft-model", process.UnloadedModels);
+    }
+
+    [Fact]
     public async Task BeginReloadAsync_ClosesGateDuringReloadAndReopensAfter()
     {
         StubProcessManager process = new() { UnloadDelay = TimeSpan.FromMilliseconds(150) };
@@ -142,7 +168,9 @@ public sealed class ModelReloadCoordinatorTests
         public Task<bool> StartServerAsync() => Task.FromResult(true);
         public Task<bool> WaitForServerAsync() => Task.FromResult(true);
         public Task<bool> IsOllamaReadyAsync() => Task.FromResult(true);
-        public Task<bool> IsModelResponsiveAsync(string model) => Task.FromResult(true);
+        public bool Responsive { get; init; } = true;
+
+        public Task<bool> IsModelResponsiveAsync(string model) => Task.FromResult(Responsive);
         public Task<bool> IsModelResponsiveAsync(string model, TimeSpan timeout) => Task.FromResult(true);
         public Task<bool> IsModelLoadedInVramAsync(string model) => Task.FromResult(true);
 
