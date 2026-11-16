@@ -88,6 +88,9 @@ Name: "vsext"; Description: "Visual Studio extension (.vsix, installed manually)
 #ifdef HasVsCodeExtension
 Name: "vscode"; Description: "VS Code extension (.vsix, installed manually)"; Types: custom
 #endif
+#ifdef HasTokenSaver
+Name: "tokensaver"; Description: "TokenSaver MCP (tool server for AI coding assistants, Windows service)"; Types: custom
+#endif
 
 [Dirs]
 ; The ProgramData folder holds the config and the Ollama model store. It is never removed.
@@ -110,9 +113,16 @@ Source: "{#VsExtensionVsix}"; DestDir: "{app}\Extensions"; DestName: "SimpleMode
 Source: "{#VsCodeExtensionVsix}"; DestDir: "{app}\Extensions"; DestName: "SimpleModelServer.Extensions.VSCode.vsix"; \
   Components: vscode; Flags: ignoreversion
 #endif
+#ifdef HasTokenSaver
+Source: "{#TokenSaverMsi}"; DestDir: "{app}\TokenSaver"; DestName: "TokenSaver-Setup.msi"; \
+  Components: tokensaver; Flags: ignoreversion
+#endif
 
 [UninstallDelete]
 Type: files; Name: "{commonappdata}\SimpleModelServer\AI_INSTRUCTIONS_REMOTE_ROUTER.md"
+#ifdef HasTokenSaver
+Type: filesandordirs; Name: "{app}\TokenSaver"
+#endif
 
 [Code]
 const
@@ -313,6 +323,60 @@ begin
   StopServiceIfRunning();
 end;
 
+#ifdef HasTokenSaver
+{ TokenSaver MCP is a separate Windows installer. It is installed silently when its component is
+  selected. A marker file records that this setup installed it, so uninstall removes only that. }
+const
+  TokenSaverMarkerName = 'installed-by-simplemodelserver.txt';
+
+function TokenSaverMsiPath(): String;
+begin
+  Result := ExpandConstant('{app}\TokenSaver\TokenSaver-Setup.msi');
+end;
+
+function TokenSaverLogPath(): String;
+begin
+  Result := ExpandConstant('{commonappdata}\SimpleModelServer\tokensaver-msi.log');
+end;
+
+function TokenSaverMarkerPath(): String;
+begin
+  Result := ExpandConstant('{app}\TokenSaver\') + TokenSaverMarkerName;
+end;
+
+procedure InstallTokenSaverMcp();
+var
+  ResultCode: Integer;
+begin
+  if not Exec(ExpandConstant('{sys}\msiexec.exe'),
+       '/i "' + TokenSaverMsiPath() + '" /qn /norestart /l*v "' + TokenSaverLogPath() + '"',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  { 3010 means success, with a reboot needed. This setup does not reboot. }
+  if (ResultCode = 0) or (ResultCode = 3010) then
+    SaveStringToFile(TokenSaverMarkerPath(), 'installed by SimpleModelServer setup' + #13#10, False)
+  else
+    MsgBox('TokenSaver MCP did not install (msiexec exit code ' + IntToStr(ResultCode) + '). ' +
+           'The log is at ' + TokenSaverLogPath() + '.', mbError, MB_OK);
+end;
+
+procedure UninstallTokenSaverMcp();
+var
+  ResultCode: Integer;
+begin
+  { Only remove what this setup installed. A TokenSaver MSI installed another way is left alone. }
+  if not FileExists(TokenSaverMarkerPath()) then
+    Exit;
+  if not Exec(ExpandConstant('{sys}\msiexec.exe'),
+       '/x "' + TokenSaverMsiPath() + '" /qn /norestart /l*v "' + TokenSaverLogPath() + '"',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  if (ResultCode <> 0) and (ResultCode <> 3010) then
+    MsgBox('TokenSaver MCP was not removed (msiexec exit code ' + IntToStr(ResultCode) + '). ' +
+           'Remove it from Apps & Features. The log is at ' + TokenSaverLogPath() + '.', mbError, MB_OK);
+end;
+#endif
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
@@ -326,6 +390,10 @@ begin
              'The router will not become healthy until Ollama is installed (https://ollama.com/download). ' +
              'Restart the SimpleModelServer service after installing it.',
              mbInformation, MB_OK);
+#ifdef HasTokenSaver
+    if WizardIsComponentSelected('tokensaver') then
+      InstallTokenSaverMcp();
+#endif
   end;
 end;
 
@@ -333,6 +401,9 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
+#ifdef HasTokenSaver
+    UninstallTokenSaverMcp();
+#endif
     if ServiceExists() then
     begin
       NetExe('stop ' + ServiceName + ' /y');

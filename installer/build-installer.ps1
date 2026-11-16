@@ -26,6 +26,10 @@
 
 .PARAMETER SkipVsCodeExtension
     Leave the VS Code extension out. Needs Node.js when included.
+
+.PARAMETER SkipTokenSaver
+    Leave the TokenSaver MCP component out. Use this when the TokenSaver submodule is not
+    available (for example on fork PRs, which have no secrets to check it out).
 #>
 [CmdletBinding()]
 param(
@@ -33,7 +37,8 @@ param(
     [string] $Configuration = "Release",
     [switch] $SkipChat,
     [switch] $SkipVsExtension,
-    [switch] $SkipVsCodeExtension
+    [switch] $SkipVsCodeExtension,
+    [switch] $SkipTokenSaver
 )
 
 $ErrorActionPreference = "Stop"
@@ -145,6 +150,27 @@ if (-not $SkipVsCodeExtension) {
     if (-not (Test-Path $vscodeVsix)) { throw "VS Code packaging produced no .vsix at $vscodeVsix." }
     Copy-Item $vscodeVsix (Join-Path $distDir "SimpleModelServer.Extensions.VSCode-$displayVersion.vsix") -Force
     $defines += @("/DHasVsCodeExtension", "/DVsCodeExtensionVsix=$vscodeVsix")
+}
+
+if (-not $SkipTokenSaver) {
+    # TokenSaver is checked out next to this repo (CI: ../TokenSaver), not inside it. Inside this
+    # repo, our root Directory.Packages.props (central package management) would apply to its
+    # projects and break its publish step (NU1008). TOKENSAVER_DIR overrides the location.
+    $tsDir = if ($env:TOKENSAVER_DIR) { $env:TOKENSAVER_DIR } else { Join-Path (Split-Path -Parent $repoRoot) "TokenSaver" }
+    $tsWix = Join-Path $tsDir "src\Installers\TokenSaver.Setup\TokenSaver.Setup.wixproj"
+    if (-not (Test-Path $tsWix)) {
+        throw "TokenSaver not found at $tsDir. Check out rsperry79/TokenSaver at the commit in installer/tokensaver-ref.txt, set TOKENSAVER_DIR, or pass -SkipTokenSaver."
+    }
+    # The MSI product version must be numeric (no pre-release suffix): 1.2.3.0 -> 1.2.3.
+    $msiVersion = $numericVersion -replace '\.0$', ''
+    Invoke-Native dotnet @("build", $tsWix, "-c", $Configuration, "-p:MyAppVersion=$msiVersion")
+    $tsMsi = Join-Path $tsDir "build\dist\TokenSaver-Setup-$msiVersion.msi"
+    if (-not (Test-Path $tsMsi)) { throw "TokenSaver MSI not found at $tsMsi." }
+    $tsStage = Join-Path $staging "tokensaver"
+    New-Item -ItemType Directory -Force $tsStage | Out-Null
+    $tsCopy = Join-Path $tsStage "TokenSaver-Setup.msi"
+    Copy-Item $tsMsi $tsCopy -Force
+    $defines += @("/DHasTokenSaver", "/DTokenSaverMsi=$tsCopy")
 }
 
 # ── Compile ──────────────────────────────────────────────────────────────────────────

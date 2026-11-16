@@ -230,6 +230,34 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check out TokenSaver (for the MCP installer component)
+        id: tokensaver
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.TOKENSAVER_READ_TOKEN }}
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          set -euo pipefail
+          # Cloned outside the workspace: our root Directory.Packages.props would apply to a checkout
+          # inside it, and actions/checkout refuses paths outside the workspace.
+          if [ -z "$TOKEN" ]; then
+            if [ "$FORK" = "true" ]; then
+              echo "::notice::Fork PR has no secrets; the installer is built without TokenSaver MCP."
+              echo "available=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::TOKENSAVER_READ_TOKEN is not set. Add a read-only token for rsperry79/TokenSaver as a repository secret."
+            exit 1
+          fi
+          ref="$(tr -d '\r\n ' < installer/tokensaver-ref.txt)"
+          dest="$RUNNER_TEMP/TokenSaver"
+          rm -rf "$dest"
+          auth="$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" clone https://github.com/rsperry79/TokenSaver.git "$dest"
+          git -C "$dest" checkout --detach "$ref"
+          echo "TOKENSAVER_DIR=$dest" >> "$GITHUB_ENV"
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
       - name: Install Inno Setup 6
         shell: pwsh
         run: |
@@ -243,8 +271,12 @@ jobs:
 
       - name: Build installer
         shell: pwsh
+        env:
+          TOKENSAVER_AVAILABLE: ${{ steps.tokensaver.outputs.available }}
         # No -Version: the version comes from version.json through nbgv, the single version source.
-        run: ./installer/build-installer.ps1
+        run: |
+          $skip = if ($env:TOKENSAVER_AVAILABLE -eq 'true') { @() } else { @('-SkipTokenSaver') }
+          ./installer/build-installer.ps1 @skip
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
