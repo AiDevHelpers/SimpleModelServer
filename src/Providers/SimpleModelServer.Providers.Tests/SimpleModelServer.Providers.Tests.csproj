@@ -11,7 +11,7 @@
     <ProjectReference Include="..\SimpleModelServer.Providers.Common\SimpleModelServer.Providers.Common.csproj" />
     <ProjectReference Include="..\SimpleModelServer.Providers.Ollama\SimpleModelServer.Providers.Ollama.csproj" />
     <ProjectReference Include="..\SimpleModelServer.Providers.LMStudio\SimpleModelServer.Providers.LMStudio.csproj" />
-    <ProjectReference Include="..\..\..\..\Common\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
   </ItemGroup>
 

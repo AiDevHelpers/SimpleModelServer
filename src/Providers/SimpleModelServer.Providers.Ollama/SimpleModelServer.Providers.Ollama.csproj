@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Common\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
+    <ProjectReference Include="..\..\Contracts\SimpleModelServer.Contracts\SimpleModelServer.Contracts.csproj" />
     <ProjectReference Include="..\..\Config\SimpleModelServer.Config\SimpleModelServer.Config.csproj" />
     <ProjectReference Include="..\SimpleModelServer.Providers.Common\SimpleModelServer.Providers.Common.csproj" />
   </ItemGroup>
