@@ -1,0 +1,6 @@
+<Project>
+  <!-- Contracts is vendored from the old Common repo and pins its own versions; opt out of central package management here. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
