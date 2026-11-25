@@ -28,7 +28,7 @@ jobs:
         shell: pwsh
         run: |
           # MAUI client needs the maui workload and the VS extension needs the VS SDK; both are Windows-only UI builds and are excluded from CI.
-          $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object { $_.FullName -notmatch '\Chat\.Maui\|\Extensions\.VS' }
+          $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object { $_.FullName -notmatch 'Chat\.Maui|Extensions\.VS' }
           foreach ($p in $projects) { dotnet build $p.FullName --configuration Release; if ($LASTEXITCODE -ne 0) { exit 1 } }
           $tests = $projects | Where-Object { $_.Name -like '*Tests.csproj' }
           foreach ($t in $tests) { dotnet test $t.FullName --configuration Release --no-build; if ($LASTEXITCODE -ne 0) { exit 1 } }
